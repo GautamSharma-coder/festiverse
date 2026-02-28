@@ -197,41 +197,68 @@
         opacity: 1;
       }
     }
+    
   </style>
+  <style>
+  /* ... your other styles ... */
+
+  /* Define the slow spin animation */
+  @keyframes spinSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* The container for the mandala image */
+  .mandala-spinner {
+    /* Use vmax to ensure it's a huge square covering any screen orientation */
+    width: 150vmax;
+    height: 150vmax;
+    /* Center the background image within this huge rotating square */
+    background-image: url('./assets/images/loading-image.png');
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    /* Apply the animation: 30s for a slow, majestic turn */
+    animation: spinSlow 30s linear infinite;
+  }
+</style>
 </head>
 
 <body class="loaded">
   <div class="texture-overlay"></div>
- <div id="loader" class="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden">
+ <div id="loader" class="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-[#050505]">
   
-  <div id="loader-left" class="relative w-1/2 h-full bg-[#050505] transition-transform duration-1000 ease-[cubic-bezier(0.8,0,0.2,1)] border-r border-[#ccff00]/20">
-    <div class="absolute inset-0 bg-[url('./assets/images/loading-image.png')] bg-no-repeat bg-center"
-         style="background-size: 200% auto; background-position: 0% center;">
-      <div class="absolute inset-0 bg-black/40"></div>
+  <div id="loader-left" class="relative w-1/2 h-full overflow-hidden transition-transform duration-1000 ease-[cubic-bezier(0.8,0,0.2,1)] border-r border-[#ccff00]/20">
+    
+    <div class="absolute top-1/2 right-0 translate-x-1/2 -translate-y-1/2">
+       <div class="mandala-spinner"></div>
     </div>
+    
+    <div class="absolute inset-0 bg-black/50"></div>
   </div>
 
-  <div id="loader-right" class="relative w-1/2 h-full bg-[#050505] transition-transform duration-1000 ease-[cubic-bezier(0.8,0,0.2,1)] border-l border-[#ccff00]/20">
-    <div class="absolute inset-0 bg-[url('./assets/images/loading-image.png')] bg-no-repeat bg-center"
-         style="background-size: 200% auto; background-position: 100% center;">
-      <div class="absolute inset-0 bg-black/40"></div>
+
+  <div id="loader-right" class="relative w-1/2 h-full overflow-hidden transition-transform duration-1000 ease-[cubic-bezier(0.8,0,0.2,1)] border-l border-[#ccff00]/20">
+    
+    <div class="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2">
+       <div class="mandala-spinner"></div>
     </div>
+
+    <div class="absolute inset-0 bg-black/50"></div>
   </div>
+
 
   <div id="loader-content" class="absolute z-20 flex flex-col items-center gap-4 transition-opacity duration-500">
     <h1 class="font-display text-6xl md:text-8xl font-bold text-white tracking-tighter drop-shadow-2xl">
       FESTIVERSE<span class="text-[#ccff00]">.</span>
     </h1>
-    
     <div class="w-64 h-1 bg-white/10 rounded-full overflow-hidden backdrop-blur-sm">
       <div id="progress-bar" class="h-full bg-[#ccff00] w-0 transition-all duration-[2000ms] ease-out shadow-[0_0_15px_#ccff00]"></div>
     </div>
-    
-    <div class="font-mono text-[#ccff00] text-xs font-bold tracking-[0.3em] uppercase">Initializing</div>
+    <div class="font-mono text-[#ccff00] text-xs font-bold tracking-[0.3em] uppercase">Initializing System</div>
   </div>
 
 </div>
-
   <nav class="fixed top-0 w-full z-40 px-6 py-6 flex justify-between items-center mix-blend-difference">
     <a href="/" class="font-display font-bold text-xl tracking-tighter">
       FESTIVERSE<span class="text-[#ccff00]">.</span>
