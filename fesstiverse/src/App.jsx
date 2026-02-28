@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './App.css';
 
-// UDAAN Components
+// UDAAN Component
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import Societies from './components/Societies';
