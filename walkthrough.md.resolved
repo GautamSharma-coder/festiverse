@@ -1,0 +1,69 @@
+# Festiverse Backend + Frontend Integration — Walkthrough
+
+## What Was Built
+
+A complete Node.js/Express backend using **Supabase** as the database/storage, fully connected to the React (`fesstiverse`) frontend.
+
+## Backend Files (in `festiverse-backend/`)
+
+| File | Purpose |
+|---|---|
+| [server.js](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/festiverse-backend/server.js) | Main Express entry point |
+| [src/config/supabaseClient.js](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/festiverse-backend/src/config/supabaseClient.js) | Supabase connection |
+| [src/middlewares/authMiddleware.js](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/festiverse-backend/src/middlewares/authMiddleware.js) | JWT + Admin auth |
+| [src/routes/authRoutes.js](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/festiverse-backend/src/routes/authRoutes.js) | OTP, register, login |
+| [src/routes/eventRoutes.js](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/festiverse-backend/src/routes/eventRoutes.js) | Events CRUD + user registration |
+| [src/routes/contactRoutes.js](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/festiverse-backend/src/routes/contactRoutes.js) | Contact form |
+| [src/routes/galleryRoutes.js](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/festiverse-backend/src/routes/galleryRoutes.js) | Gallery images |
+| [src/routes/teamRoutes.js](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/festiverse-backend/src/routes/teamRoutes.js) | Team members |
+| [src/routes/adminRoutes.js](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/festiverse-backend/src/routes/adminRoutes.js) | Admin CRUD for all resources |
+| [supabase_schema.sql](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/festiverse-backend/supabase_schema.sql) | SQL schema + seed data |
+
+## Frontend Files Modified (in `fesstiverse/`)
+
+| File | Change |
+|---|---|
+| [src/lib/api.js](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/fesstiverse/src/lib/api.js) | **[NEW]** Central API utility with auto-JWT |
+| [.env.local](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/fesstiverse/.env.local) | **[NEW]** `VITE_API_URL=http://localhost:3000` |
+| [src/App.jsx](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/fesstiverse/src/App.jsx) | Persistent auth, logout, user state |
+| [src/components/RegistrationForm.jsx](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/fesstiverse/src/components/RegistrationForm.jsx) | Real OTP + register API calls |
+| [src/components/LoginModal.jsx](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/fesstiverse/src/components/LoginModal.jsx) | Login API + token storage |
+| [src/components/EventsDashboard.jsx](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/fesstiverse/src/components/EventsDashboard.jsx) | Fetch events + register via API |
+| [src/components/FestHero.jsx](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/fesstiverse/src/components/FestHero.jsx) | Login/logout buttons + user greeting |
+
+## Auth Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant FE as React Frontend
+    participant BE as Express Backend
+    participant SB as Supabase
+
+    U->>FE: Fill registration form
+    FE->>BE: POST /api/auth/send-otp
+    BE-->>FE: OTP (logged to console)
+    U->>FE: Enter OTP
+    FE->>BE: POST /api/auth/register
+    BE->>SB: INSERT into users
+    BE-->>FE: JWT token + user data
+    FE->>FE: Store in localStorage
+
+    U->>FE: Click Login
+    FE->>BE: POST /api/auth/login
+    BE->>SB: SELECT from users
+    BE-->>FE: JWT token + user data
+    FE->>FE: Store in localStorage, show dashboard
+```
+
+## Steps to Go Live
+
+1. **Set up Supabase**: Create project → Run [supabase_schema.sql](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/festiverse-backend/supabase_schema.sql) → Create `assets` storage bucket (public)
+2. **Update [.env](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/festiverse-backend/.env)** in `festiverse-backend/` with your Supabase URL and Service Role Key
+3. **Start backend**: `npm run dev` in `festiverse-backend/`
+4. **Restart frontend**: Stop and re-run `npm run dev` in `fesstiverse/` (to pick up [.env.local](file:///c:/Users/asus/Code_folder/Project_code/Festiverse26/fesstiverse/.env.local))
+
+## Remaining Work
+
+- [ ] Build `AdminPanel.jsx` component
+- [ ] Full end-to-end verification

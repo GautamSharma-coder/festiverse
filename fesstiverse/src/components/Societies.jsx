@@ -36,8 +36,8 @@ const societies = [
 const Societies = () => {
     return (
         <section id="society" className="py-32 relative" style={{ backgroundColor: '#0a0a0a' }}>
-            <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem' }}>
-                <h2 style={{ fontSize: '1.875rem', fontWeight: 500, letterSpacing: '-0.025em', marginBottom: '4rem', textAlign: 'center', color: '#e4e4e7' }}>
+            <div style={{ maxWidth: '80rem', margin: '0 auto',marginTop: '2rem',padding: '0 1.5rem' }}>
+                <h2 style={{ fontSize: '1.875rem', fontWeight: 500, letterSpacing: '-0.025em', marginBottom: '4rem', marginTop: '0rem', textAlign: 'center', color: '#e4e4e7',padding: '2em' }}>
                     Our Societies
                 </h2>
 
@@ -121,6 +121,7 @@ const Societies = () => {
                                 textTransform: 'uppercase',
                                 color: '#a1a1aa',
                                 marginTop: '-1.5rem',
+                                marginBottom: '2rem',
                             }}>
                                 {s.name}
                             </span>

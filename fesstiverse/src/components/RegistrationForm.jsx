@@ -1,30 +1,55 @@
 import React, { useState } from 'react';
+import { apiFetch } from '../lib/api';
 
-const RegistrationForm = () => {
+const RegistrationForm = ({ onRegister }) => {
     const [otpSent, setOtpSent] = useState(false);
     const [otpBtnText, setOtpBtnText] = useState('Send OTP');
     const [otp, setOtp] = useState('');
+    const [phone, setPhone] = useState('');
+    const [name, setName] = useState('');
+    const [college, setCollege] = useState('');
+    const [email, setEmail] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [statusMsg, setStatusMsg] = useState('');
 
-    const sendOTP = () => {
+    const sendOTP = async () => {
+        if (!phone) return alert('Please enter your phone number.');
         setOtpBtnText('Sending...');
-        setTimeout(() => {
-            alert('Your OTP is: 1234');
+        try {
+            const data = await apiFetch('/api/auth/send-otp', {
+                method: 'POST',
+                body: JSON.stringify({ phone }),
+            });
+            alert(`OTP sent! (Hint: ${data.otp_hint})`);
             setOtpSent(true);
             setOtpBtnText('Resend');
-        }, 1000);
+        } catch (err) {
+            alert(err.message);
+            setOtpBtnText('Send OTP');
+        }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (otp === '1234') {
-            alert('Registration Successful! Please Login to select events.');
-            e.target.reset();
-            setOtpSent(false);
-            setOtpBtnText('Send OTP');
-            setOtp('');
-            window.scrollTo(0, 0);
-        } else {
-            alert('Invalid OTP. Try 1234');
+        if (!otp) return alert('Please enter the OTP.');
+        setLoading(true);
+        setStatusMsg('');
+        try {
+            const data = await apiFetch('/api/auth/register', {
+                method: 'POST',
+                body: JSON.stringify({ name, college, email, phone, otp }),
+            });
+            setStatusMsg('✅ ' + data.message);
+            // Auto-login: store token and user, then redirect to dashboard
+            if (data.token && data.user) {
+                localStorage.setItem('festiverse_token', data.token);
+                localStorage.setItem('festiverse_user', JSON.stringify(data.user));
+                if (onRegister) onRegister(data.user);
+            }
+        } catch (err) {
+            setStatusMsg('❌ ' + err.message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -58,27 +83,34 @@ const RegistrationForm = () => {
             <h2 style={{ fontSize: '1.875rem', fontWeight: 700, color: '#fff', marginBottom: '1.5rem' }}>
                 Get Your Pass
             </h2>
+
+            {statusMsg && (
+                <div style={{ padding: '0.75rem', borderRadius: '0.5rem', marginBottom: '1rem', background: 'rgba(0,0,0,0.3)', color: statusMsg.startsWith('✅') ? '#4ade80' : '#f87171', fontSize: '0.875rem' }}>
+                    {statusMsg}
+                </div>
+            )}
+
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
                     <div>
                         <label style={labelStyle}>Full Name</label>
-                        <input type="text" required style={inputStyle} />
+                        <input type="text" required style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} />
                     </div>
                     <div>
                         <label style={labelStyle}>College Name</label>
-                        <input type="text" required style={inputStyle} />
+                        <input type="text" required style={inputStyle} value={college} onChange={(e) => setCollege(e.target.value)} />
                     </div>
                 </div>
 
                 <div>
                     <label style={labelStyle}>Email Address</label>
-                    <input type="email" required style={inputStyle} />
+                    <input type="email" required style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
                 </div>
 
                 <div>
                     <label style={labelStyle}>Phone Number</label>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <input type="tel" required style={{ ...inputStyle, flex: 1 }} />
+                        <input type="tel" required style={{ ...inputStyle, flex: 1 }} value={phone} onChange={(e) => setPhone(e.target.value)} />
                         <button
                             type="button"
                             onClick={sendOTP}
@@ -113,6 +145,7 @@ const RegistrationForm = () => {
 
                 <button
                     type="submit"
+                    disabled={loading}
                     style={{
                         width: '100%',
                         padding: '1rem',
@@ -121,13 +154,13 @@ const RegistrationForm = () => {
                         color: '#fff',
                         fontWeight: 700,
                         fontSize: '0.875rem',
-                        cursor: 'pointer',
+                        cursor: loading ? 'not-allowed' : 'pointer',
                         border: 'none',
-                        opacity: 1,
+                        opacity: loading ? 0.6 : 1,
                         transition: 'opacity 0.2s',
                     }}
                 >
-                    Complete Registration
+                    {loading ? 'Registering...' : 'Complete Registration'}
                 </button>
             </form>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const Navbar = ({ isFestiverse, toggleUniverse }) => {
+const Navbar = ({ isFestiverse, toggleUniverse, onAdminClick }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const udaanLinks = [
@@ -47,21 +47,10 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
           style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
           onClick={() => window.scrollTo(0, 0)}
         >
-          <div style={{
-            width: '2.5rem',
-            height: '2.5rem',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: isFestiverse
-              ? 'linear-gradient(to bottom right, #9333ea, #06b6d4)'
-              : 'linear-gradient(to bottom right, #dc2626, #000)',
-            transition: 'background 0.5s',
-          }}>
-            <span className="font-serif" style={{ fontStyle: 'italic', fontWeight: 700, fontSize: '1.125rem', color: '#fff' }}>U</span>
+          <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '10%', overflow: 'hidden' }}>
+            <img src="/udaan.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10%' }} />
           </div>
+
           <span style={{ fontSize: '1.125rem', fontWeight: 500, letterSpacing: '-0.025em', color: '#fff' }}>
             {isFestiverse ? "FEST'26" : "UDAAN"}
           </span>
@@ -141,18 +130,44 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
           </button>
 
           {/* GEC Badge - hidden on mobile */}
-          <div className="gec-badge" style={{
-            width: '2rem',
-            height: '2rem',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.05)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }} title="GEC Samastipur">
-            <span style={{ fontSize: '0.5625rem', fontWeight: 700, letterSpacing: '-0.05em', color: '#fff' }}>GEC</span>
-          </div>
+          <a href="https://www.gecsamastipur.ac.in/" target="_blank">
+            <div className="gec-badge" style={{
+              width: '4.1rem',
+              height: '3rem',
+              borderRadius: '10%',
+              //background: 'rgba(255,255,255,0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              // border: '1px solid rgba(255,255,255,0.1)',
+            }} title="GEC Samastipur">
+              <img src="/college_logo.png" alt="GEC" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '0%' }} />
+            </div>
+          </a>
+
+          {/* Admin Button - subtle */}
+          <button
+            onClick={onAdminClick}
+            title="Admin Panel (Ctrl+Shift+A)"
+            style={{
+              width: '2rem',
+              height: '2rem',
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              color: '#71717a',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.8rem',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#a78bfa'; e.currentTarget.style.borderColor = '#7c3aed'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#71717a'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
+          >
+            ⚙
+          </button>
 
           {/* Hamburger Button - shown only on mobile */}
           <button

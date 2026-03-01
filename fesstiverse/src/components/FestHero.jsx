@@ -1,6 +1,6 @@
 import React from 'react';
 
-const FestHero = ({ onLoginClick }) => {
+const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }) => {
     return (
         <header id="fest-home" style={{
             minHeight: '80vh',
@@ -50,36 +50,77 @@ const FestHero = ({ onLoginClick }) => {
                 gap: '1rem',
                 position: 'relative',
                 zIndex: 10,
+                alignItems: 'center',
             }}>
-                <a
-                    href="#register"
-                    style={{
-                        padding: '0.75rem 2rem',
-                        borderRadius: '9999px',
-                        background: 'linear-gradient(to right, #9333ea, #06b6d4)',
-                        color: '#fff',
-                        fontWeight: 700,
-                        textDecoration: 'none',
-                        boxShadow: '0 0 20px rgba(124,58,237,0.5)',
-                        transition: 'box-shadow 0.3s',
-                    }}
-                >
-                    Register Now
-                </a>
-                <button
-                    onClick={onLoginClick}
-                    style={{
-                        padding: '0.75rem 2rem',
-                        borderRadius: '9999px',
-                        border: '1px solid rgba(168, 85, 247, 0.5)',
-                        color: '#e9d5ff',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                    }}
-                >
-                    Login
-                </button>
+                {!isLoggedIn ? (
+                    <>
+                        <a
+                            href="#register"
+                            style={{
+                                padding: '0.75rem 2rem',
+                                borderRadius: '9999px',
+                                background: 'linear-gradient(to right, #9333ea, #06b6d4)',
+                                color: '#fff',
+                                fontWeight: 700,
+                                textDecoration: 'none',
+                                boxShadow: '0 0 20px rgba(124,58,237,0.5)',
+                                transition: 'box-shadow 0.3s',
+                            }}
+                        >
+                            Register Now
+                        </a>
+                        <button
+                            onClick={onLoginClick}
+                            style={{
+                                padding: '0.75rem 2rem',
+                                borderRadius: '9999px',
+                                border: '1px solid rgba(168, 85, 247, 0.5)',
+                                color: '#e9d5ff',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                fontSize: '0.875rem',
+                            }}
+                        >
+                            Login
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <button
+                            onClick={onDashboardClick}
+                            style={{
+                                padding: '0.75rem 2rem',
+                                borderRadius: '9999px',
+                                background: 'linear-gradient(to right, #9333ea, #06b6d4)',
+                                color: '#fff',
+                                fontWeight: 700,
+                                border: 'none',
+                                cursor: 'pointer',
+                                boxShadow: '0 0 20px rgba(124,58,237,0.5)',
+                            }}
+                        >
+                            My Dashboard
+                        </button>
+                        <span style={{ color: '#a5f3fc', fontSize: '0.875rem' }}>
+                            Hi, {user?.name || 'User'}!
+                        </span>
+                        <button
+                            onClick={onLogout}
+                            style={{
+                                padding: '0.5rem 1.25rem',
+                                borderRadius: '9999px',
+                                border: '1px solid rgba(248,113,113,0.4)',
+                                color: '#fca5a5',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                fontSize: '0.75rem',
+                                transition: 'all 0.2s',
+                            }}
+                        >
+                            Logout
+                        </button>
+                    </>
+                )}
             </div>
         </header>
     );

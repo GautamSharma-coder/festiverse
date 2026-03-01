@@ -1,11 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { apiFetch } from '../lib/api';
 
 const LoginModal = ({ isOpen, onClose, onLogin }) => {
+    const [phone, setPhone] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
     if (!isOpen) return null;
 
-    const handleLogin = () => {
-        onLogin();
-        onClose();
+    const handleLogin = async () => {
+        if (!phone) return setError('Please enter your phone number.');
+        setLoading(true);
+        setError('');
+        try {
+            const data = await apiFetch('/api/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ phone }),
+            });
+            // Store token and user info
+            localStorage.setItem('festiverse_token', data.token);
+            localStorage.setItem('festiverse_user', JSON.stringify(data.user));
+            onLogin(data.user);
+            onClose();
+            setPhone('');
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -57,10 +79,20 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
                     color: '#fff',
                     marginBottom: '1rem',
                 }}>Login</h3>
+
+                {error && (
+                    <div style={{ color: '#f87171', fontSize: '0.8125rem', marginBottom: '0.75rem', padding: '0.5rem', background: 'rgba(248,113,113,0.1)', borderRadius: '0.25rem' }}>
+                        {error}
+                    </div>
+                )}
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <input
                         type="text"
                         placeholder="Registered Phone Number"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                         style={{
                             width: '100%',
                             background: '#000',
@@ -76,21 +108,22 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
                     />
                     <button
                         onClick={handleLogin}
+                        disabled={loading}
                         style={{
                             width: '100%',
-                            backgroundColor: '#0891b2',
+                            backgroundColor: loading ? '#065f73' : '#0891b2',
                             color: '#000',
                             fontWeight: 700,
                             padding: '0.75rem',
                             borderRadius: '0.25rem',
-                            cursor: 'pointer',
+                            cursor: loading ? 'not-allowed' : 'pointer',
                             border: 'none',
                             transition: 'background-color 0.2s',
                         }}
-                        onMouseEnter={(e) => e.target.style.backgroundColor = '#06b6d4'}
-                        onMouseLeave={(e) => e.target.style.backgroundColor = '#0891b2'}
+                        onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = '#06b6d4')}
+                        onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = '#0891b2')}
                     >
-                        Login
+                        {loading ? 'Logging in...' : 'Login'}
                     </button>
                 </div>
             </div>

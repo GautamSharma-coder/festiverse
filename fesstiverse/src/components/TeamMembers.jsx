@@ -1,39 +1,51 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-const members = Array.from({ length: 10 }, (_, i) => ({
-    id: i + 1,
+const getMembers = (batchYear) => Array.from({ length: 10 }, (_, i) => ({
+    id: `${batchYear}-${i + 1}`,
     name: `Member ${i + 1}`,
-    batch: 'Batch 2k24',
+    batch: `Batch ${batchYear}`,
     realName: 'John Doe',
     role: 'Creative Lead',
     phone: '+91 98765 43210',
 }));
 
+const members2k24 = getMembers('2k24');
+const members2k23 = getMembers('2k23');
+
 const TeamMembers = () => {
+    const [activeBatch, setActiveBatch] = useState('2k24');
+    const members = activeBatch === '2k24' ? members2k24 : members2k23;
+
     return (
         <section id="members" style={{ padding: '8rem 0', background: 'rgba(24, 24, 27, 0.3)' }}>
             <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem' }}>
                     <h2 style={{ fontSize: '1.875rem', fontWeight: 500, color: '#e4e4e7' }}>The Team</h2>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button style={{
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '9999px',
-                            background: 'rgba(255,255,255,0.1)',
-                            fontSize: '0.75rem',
-                            color: '#fff',
-                            border: 'none',
-                            cursor: 'pointer',
-                        }}>2k24</button>
-                        <button style={{
-                            padding: '0.25rem 0.75rem',
-                            borderRadius: '9999px',
-                            background: 'transparent',
-                            fontSize: '0.75rem',
-                            color: '#71717a',
-                            border: 'none',
-                            cursor: 'pointer',
-                        }}>2k23</button>
+                        <button
+                            onClick={() => setActiveBatch('2k24')}
+                            style={{
+                                padding: '0.25rem 0.75rem',
+                                borderRadius: '9999px',
+                                background: activeBatch === '2k24' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                                fontSize: '0.75rem',
+                                color: activeBatch === '2k24' ? '#fff' : '#71717a',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                            }}>2k24</button>
+                        <button
+                            onClick={() => setActiveBatch('2k23')}
+                            style={{
+                                padding: '0.25rem 0.75rem',
+                                borderRadius: '9999px',
+                                background: activeBatch === '2k23' ? 'rgba(255,255,255,0.1)' : 'transparent',
+                                fontSize: '0.75rem',
+                                color: activeBatch === '2k23' ? '#fff' : '#71717a',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                            }}>2k23</button>
                     </div>
                 </div>
 
