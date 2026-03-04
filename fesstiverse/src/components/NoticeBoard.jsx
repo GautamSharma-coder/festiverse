@@ -1,13 +1,28 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-const notices = [
-    { title: 'Auditions 2026 Open', desc: 'Register before 20th Oct.', color: '#ef4444' },
-    { title: 'Art Exhibition', desc: 'Visit Room 204.', color: '#f59e0b' },
-    { title: 'Debate Finals', desc: 'Main Auditorium, 4 PM.', color: '#3b82f6' },
-    { title: 'Nukkad Natak Practice', desc: 'OAT, 5 PM.', color: '#22c55e' },
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+const fallbackNotices = [
+    { id: 1, title: 'Auditions 2026 Open', description: 'Register before 20th Oct.', color: '#ef4444' },
+    { id: 2, title: 'Art Exhibition', description: 'Visit Room 204.', color: '#f59e0b' },
+    { id: 3, title: 'Debate Finals', description: 'Main Auditorium, 4 PM.', color: '#3b82f6' },
+    { id: 4, title: 'Nukkad Natak Practice', description: 'OAT, 5 PM.', color: '#22c55e' },
 ];
 
 const NoticeBoard = () => {
+    const [notices, setNotices] = useState(fallbackNotices);
+
+    useEffect(() => {
+        fetch(`${API}/api/notices`)
+            .then((r) => r.json())
+            .then((d) => {
+                if (d.success && d.notices && d.notices.length > 0) {
+                    setNotices(d.notices);
+                }
+            })
+            .catch(() => { });
+    }, []);
+
     return (
         <section id="notice" style={{ padding: '5rem 0', backgroundColor: '#0a0a0a' }}>
             <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '3rem' }}>
@@ -29,27 +44,28 @@ const NoticeBoard = () => {
                     }}>
                         <div style={{
                             position: 'absolute',
-                            inset: '0',
-                            top: 0,
+                            top: 0, left: 0, right: 0,
                             height: '2.5rem',
                             background: 'linear-gradient(to bottom, #18181b, transparent)',
                             zIndex: 10,
-                            left: 0,
-                            right: 0,
-                            bottom: 'auto',
                         }}></div>
                         <div className="notice-scroll" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             {notices.map((n, i) => (
-                                <div key={i} style={{
+                                <div key={n.id || i} style={{
                                     padding: '0.75rem',
                                     background: 'rgba(39, 39, 42, 0.5)',
-                                    borderLeft: `2px solid ${n.color}`,
+                                    borderLeft: `2px solid ${n.color || '#3b82f6'}`,
                                     borderRadius: '0.25rem',
                                 }}>
                                     <p style={{ fontSize: '0.875rem', color: '#fff', fontWeight: 500 }}>{n.title}</p>
-                                    <p style={{ fontSize: '0.75rem', color: '#71717a' }}>{n.desc}</p>
+                                    <p style={{ fontSize: '0.75rem', color: '#71717a' }}>{n.description || n.desc}</p>
                                 </div>
                             ))}
+                            {notices.length === 0 && (
+                                <div style={{ textAlign: 'center', color: '#71717a', padding: '2rem' }}>
+                                    <p>No notices at this time.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

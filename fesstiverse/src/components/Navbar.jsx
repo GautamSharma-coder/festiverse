@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const Navbar = ({ isFestiverse, toggleUniverse, onAdminClick }) => {
+const Navbar = ({ isFestiverse, toggleUniverse }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const udaanLinks = [
@@ -145,29 +145,6 @@ const Navbar = ({ isFestiverse, toggleUniverse, onAdminClick }) => {
             </div>
           </a>
 
-          {/* Admin Button - subtle */}
-          <button
-            onClick={onAdminClick}
-            title="Admin Panel (Ctrl+Shift+A)"
-            style={{
-              width: '2rem',
-              height: '2rem',
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: '#71717a',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '0.8rem',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#a78bfa'; e.currentTarget.style.borderColor = '#7c3aed'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#71717a'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}
-          >
-            ⚙
-          </button>
 
           {/* Hamburger Button - shown only on mobile */}
           <button

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { proxyImageUrl } from '../lib/proxyImage';
 
 const galleryImages = [
-    'https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/4734259a-bad7-422f-981e-ce01e79184f2_1600w.jpg',
-    'https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/c543a9e1-f226-4ced-80b0-feb8445a75b9_1600w.jpg',
-    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80',
-    'https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/5bab247f-35d9-400d-a82b-fd87cfe913d2_1600w.webp',
-    'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=800&q=80',
-];
+  'https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/4734259a-bad7-422f-981e-ce01e79184f2_1600w.jpg',
+  'https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/c543a9e1-f226-4ced-80b0-feb8445a75b9_1600w.jpg',
+  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80',
+  'https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/5bab247f-35d9-400d-a82b-fd87cfe913d2_1600w.webp',
+  'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=800&q=80',
+].map(proxyImageUrl);
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Syne+Mono&display=swap');
@@ -402,116 +403,116 @@ const styles = `
 `;
 
 const tickerItems = [
-    'MUSIC FESTIVAL', 'LIVE PERFORMANCES', 'CULTURAL NIGHTS',
-    'TECH SUMMIT', 'FOOD & ARTS', 'COMMUNITY VIBES',
-    'MUSIC FESTIVAL', 'LIVE PERFORMANCES', 'CULTURAL NIGHTS',
-    'TECH SUMMIT', 'FOOD & ARTS', 'COMMUNITY VIBES',
+  'MUSIC FESTIVAL', 'LIVE PERFORMANCES', 'CULTURAL NIGHTS',
+  'TECH SUMMIT', 'FOOD & ARTS', 'COMMUNITY VIBES',
+  'MUSIC FESTIVAL', 'LIVE PERFORMANCES', 'CULTURAL NIGHTS',
+  'TECH SUMMIT', 'FOOD & ARTS', 'COMMUNITY VIBES',
 ];
 
 const FestGallery2 = () => {
-    const [lightboxIdx, setLightboxIdx] = useState(null);
+  const [lightboxIdx, setLightboxIdx] = useState(null);
 
-    const prev = () => setLightboxIdx(i => (i - 1 + galleryImages.length) % galleryImages.length);
-    const next = () => setLightboxIdx(i => (i + 1) % galleryImages.length);
+  const prev = () => setLightboxIdx(i => (i - 1 + galleryImages.length) % galleryImages.length);
+  const next = () => setLightboxIdx(i => (i + 1) % galleryImages.length);
 
-    useEffect(() => {
-        const handler = (e) => {
-            if (lightboxIdx === null) return;
-            if (e.key === 'Escape') setLightboxIdx(null);
-            if (e.key === 'ArrowLeft') prev();
-            if (e.key === 'ArrowRight') next();
-        };
-        window.addEventListener('keydown', handler);
-        return () => window.removeEventListener('keydown', handler);
-    }, [lightboxIdx]);
+  useEffect(() => {
+    const handler = (e) => {
+      if (lightboxIdx === null) return;
+      if (e.key === 'Escape') setLightboxIdx(null);
+      if (e.key === 'ArrowLeft') prev();
+      if (e.key === 'ArrowRight') next();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightboxIdx]);
 
-    return (
-        <>
-            <style>{styles}</style>
+  return (
+    <>
+      <style>{styles}</style>
 
-            <section className="fg2-root">
-                <div className="fg2-watermark">MEMORIES</div>
-                <div className="fg2-noise" />
+      <section className="fg2-root">
+        <div className="fg2-watermark">MEMORIES</div>
+        <div className="fg2-noise" />
 
-                <div className="fg2-content">
+        <div className="fg2-content">
 
-                    {/* Header */}
-                    <div className="fg2-header">
-                        <div>
-                            <div className="fg2-label">Past Glimpses</div>
-                            <h2 className="fg2-title">
-                                WE <em>WERE</em><br />THERE
-                            </h2>
-                        </div>
-                        <div className="fg2-header-right">
-                            <div className="fg2-count">0{galleryImages.length} PHOTOGRAPHS</div>
-                            <button className="fg2-cta">
-                                View All
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M1 7h12M8 2l5 5-5 5" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
+          {/* Header */}
+          <div className="fg2-header">
+            <div>
+              <div className="fg2-label">Past Glimpses</div>
+              <h2 className="fg2-title">
+                WE <em>WERE</em><br />THERE
+              </h2>
+            </div>
+            <div className="fg2-header-right">
+              <div className="fg2-count">0{galleryImages.length} PHOTOGRAPHS</div>
+              <button className="fg2-cta">
+                View All
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M1 7h12M8 2l5 5-5 5" />
+                </svg>
+              </button>
+            </div>
+          </div>
 
-                    {/* Bento Grid */}
-                    <div className="fg2-grid">
-                        {galleryImages.map((src, i) => (
-                            <div
-                                key={i}
-                                className="fg2-cell"
-                                onClick={() => setLightboxIdx(i)}
-                            >
-                                <img src={src} alt={`Event ${i + 1}`} loading="lazy" />
-                                <div className="fg2-cell-overlay">
-                                    <span className="fg2-cell-num">{String(i + 1).padStart(2, '0')}</span>
-                                </div>
-                                <div className="fg2-expand-icon">
-                                    <svg strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <polyline points="5,2 2,2 2,5" />
-                                        <polyline points="9,2 12,2 12,5" />
-                                        <polyline points="5,12 2,12 2,9" />
-                                        <polyline points="9,12 12,12 12,9" />
-                                    </svg>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Ticker */}
-                    <div className="fg2-ticker">
-                        <div className="fg2-ticker-inner">
-                            {tickerItems.map((item, i) => (
-                                <div key={i} className="fg2-ticker-item">
-                                    <span className="fg2-ticker-text">{item}</span>
-                                    <span className="fg2-ticker-dot" />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
+          {/* Bento Grid */}
+          <div className="fg2-grid">
+            {galleryImages.map((src, i) => (
+              <div
+                key={i}
+                className="fg2-cell"
+                onClick={() => setLightboxIdx(i)}
+              >
+                <img src={src} alt={`Event ${i + 1}`} loading="lazy" />
+                <div className="fg2-cell-overlay">
+                  <span className="fg2-cell-num">{String(i + 1).padStart(2, '0')}</span>
                 </div>
-            </section>
-
-            {/* Lightbox */}
-            {lightboxIdx !== null && (
-                <div className="fg2-lightbox" onClick={() => setLightboxIdx(null)}>
-                    <img
-                        className="fg2-lb-img"
-                        src={galleryImages[lightboxIdx]}
-                        alt={`Gallery ${lightboxIdx + 1}`}
-                        onClick={e => e.stopPropagation()}
-                    />
-                    <button className="fg2-lb-close" onClick={() => setLightboxIdx(null)}>✕</button>
-                    <button className="fg2-lb-nav prev" onClick={e => { e.stopPropagation(); prev(); }}>‹</button>
-                    <button className="fg2-lb-nav next" onClick={e => { e.stopPropagation(); next(); }}>›</button>
-                    <div className="fg2-lb-counter">
-                        {String(lightboxIdx + 1).padStart(2, '0')} / {String(galleryImages.length).padStart(2, '0')}
-                    </div>
+                <div className="fg2-expand-icon">
+                  <svg strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="5,2 2,2 2,5" />
+                    <polyline points="9,2 12,2 12,5" />
+                    <polyline points="5,12 2,12 2,9" />
+                    <polyline points="9,12 12,12 12,9" />
+                  </svg>
                 </div>
-            )}
-        </>
-    );
+              </div>
+            ))}
+          </div>
+
+          {/* Ticker */}
+          <div className="fg2-ticker">
+            <div className="fg2-ticker-inner">
+              {tickerItems.map((item, i) => (
+                <div key={i} className="fg2-ticker-item">
+                  <span className="fg2-ticker-text">{item}</span>
+                  <span className="fg2-ticker-dot" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Lightbox */}
+      {lightboxIdx !== null && (
+        <div className="fg2-lightbox" onClick={() => setLightboxIdx(null)}>
+          <img
+            className="fg2-lb-img"
+            src={galleryImages[lightboxIdx]}
+            alt={`Gallery ${lightboxIdx + 1}`}
+            onClick={e => e.stopPropagation()}
+          />
+          <button className="fg2-lb-close" onClick={() => setLightboxIdx(null)}>✕</button>
+          <button className="fg2-lb-nav prev" onClick={e => { e.stopPropagation(); prev(); }}>‹</button>
+          <button className="fg2-lb-nav next" onClick={e => { e.stopPropagation(); next(); }}>›</button>
+          <div className="fg2-lb-counter">
+            {String(lightboxIdx + 1).padStart(2, '0')} / {String(galleryImages.length).padStart(2, '0')}
+          </div>
+        </div>
+      )}
+    </>
+  );
 };
 
 export default FestGallery2;

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import './App.css';
+import { useToast } from './components/Toast';
+import { ScrollReveal } from './components/ScrollReveal';
 
 // UDAAN Components
 import Navbar from './components/Navbar';
@@ -25,8 +27,8 @@ function App() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
-  const [showAdmin, setShowAdmin] = useState(false);
   const navigate = useNavigate();
+  const { ToastContainer, showToast } = useToast();
 
   // Check for existing session on mount
   useEffect(() => {
@@ -48,12 +50,12 @@ function App() {
     const handler = (e) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'A') {
         e.preventDefault();
-        setShowAdmin(true);
+        navigate('/admin');
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [navigate]);
 
   const toggleUniverse = () => {
     setIsFestiverse((prev) => !prev);
@@ -84,15 +86,15 @@ function App() {
   const HomePage = () => (
     <>
       {/* Navbar */}
-      <Navbar isFestiverse={isFestiverse} toggleUniverse={toggleUniverse} onAdminClick={() => setShowAdmin(true)} />
+      <Navbar isFestiverse={isFestiverse} toggleUniverse={toggleUniverse} />
 
       {/* UDAAN View */}
       <main className={`app-view ${isFestiverse ? 'hidden-view' : ''}`}>
         <HeroSection />
-        <Societies />
-        <GalleryCarousel />
-        <TeamMembers />
-        <NoticeBoard />
+        <ScrollReveal><Societies /></ScrollReveal>
+        <ScrollReveal delay={100}><GalleryCarousel /></ScrollReveal>
+        <ScrollReveal delay={100}><TeamMembers /></ScrollReveal>
+        <ScrollReveal delay={100}><NoticeBoard /></ScrollReveal>
       </main>
 
       {/* FESTIVERSE View */}
@@ -106,12 +108,16 @@ function App() {
         />
         <SponsorMarquee />
 
-        <section id="register" style={{ padding: '5rem 0', maxWidth: '56rem', margin: '0 auto', paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
-          <RegistrationForm onRegister={handleLogin} />
-        </section>
+        {!isLoggedIn && (
+          <ScrollReveal>
+            <section id="register" style={{ padding: '5rem 0', maxWidth: '56rem', margin: '0 auto', paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
+              <RegistrationForm onRegister={handleLogin} showToast={showToast} />
+            </section>
+          </ScrollReveal>
+        )}
 
-        <FestGallery />
-        <FestFooter />
+        <ScrollReveal delay={100}><FestGallery /></ScrollReveal>
+        <FestFooter onAdminClick={() => navigate('/admin')} />
       </main>
 
       {/* Login Modal */}
@@ -119,15 +125,14 @@ function App() {
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
         onLogin={handleLogin}
+        showToast={showToast}
       />
-
-      {/* Admin Panel Overlay */}
-      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
     </>
   );
 
   return (
     <div className="antialiased">
+      <ToastContainer />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route
@@ -144,6 +149,10 @@ function App() {
               <HomePage />
             )
           }
+        />
+        <Route
+          path="/admin"
+          element={<AdminPanel onClose={() => navigate('/')} />}
         />
       </Routes>
     </div>

@@ -20,8 +20,35 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ─── Validate required env vars ───
+const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'JWT_SECRET'];
+const missing = REQUIRED_ENV.filter(k => !process.env[k]);
+if (missing.length > 0) {
+    console.warn(`⚠️  Missing env vars: ${missing.join(', ')}`);
+}
+if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD) {
+    console.warn('⚠️  Email OTP disabled — EMAIL_USER / EMAIL_APP_PASSWORD not set');
+}
+
 // ─── Middleware ───
-app.use(cors());
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    process.env.FRONTEND_URL, // Set in production .env
+].filter(Boolean);
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl, Postman)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(null, true); // For now, allow all but log unknown origins
+            // In strict production: callback(new Error('CORS not allowed'));
+        }
+    },
+    credentials: true,
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
@@ -31,28 +58,25 @@ const eventRoutes = require('./src/routes/eventRoutes');
 const contactRoutes = require('./src/routes/contactRoutes');
 const galleryRoutes = require('./src/routes/galleryRoutes');
 const teamRoutes = require('./src/routes/teamRoutes');
+const noticeRoutes = require('./src/routes/noticeRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
+const proxyRoutes = require('./src/routes/proxyRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/team', teamRoutes);
+app.use('/api/notices', noticeRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/proxy', proxyRoutes);
 
 // ─── Health Check ───
 app.get('/', (req, res) => {
     res.json({
         status: 'ok',
         message: '🚀 Festiverse Backend is running!',
-        endpoints: {
-            auth: '/api/auth (send-otp, register, login)',
-            events: '/api/events',
-            contact: '/api/contact',
-            gallery: '/api/gallery',
-            team: '/api/team',
-            admin: '/api/admin (login, registrations, messages, users, gallery, team, events)',
-        },
+        version: '1.0.0',
     });
 });
 

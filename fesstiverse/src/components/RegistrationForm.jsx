@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../lib/api';
 
-const RegistrationForm = ({ onRegister }) => {
+const RegistrationForm = ({ onRegister, showToast }) => {
     const [otpSent, setOtpSent] = useState(false);
     const [otpBtnText, setOtpBtnText] = useState('Send OTP');
     const [otp, setOtp] = useState('');
@@ -13,25 +13,25 @@ const RegistrationForm = ({ onRegister }) => {
     const [statusMsg, setStatusMsg] = useState('');
 
     const sendOTP = async () => {
-        if (!phone) return alert('Please enter your phone number.');
+        if (!email) return showToast?.('Please enter your email address first.', 'warning');
         setOtpBtnText('Sending...');
         try {
-            const data = await apiFetch('/api/auth/send-otp', {
+            await apiFetch('/api/auth/send-otp', {
                 method: 'POST',
-                body: JSON.stringify({ phone }),
+                body: JSON.stringify({ email }),
             });
-            alert(`OTP sent! (Hint: ${data.otp_hint})`);
+            setStatusMsg('✉️ OTP sent to your email! Check your inbox.');
             setOtpSent(true);
             setOtpBtnText('Resend');
         } catch (err) {
-            alert(err.message);
+            showToast?.(err.message, 'error');
             setOtpBtnText('Send OTP');
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!otp) return alert('Please enter the OTP.');
+        if (!otp) return showToast?.('Please enter the OTP.', 'warning');
         setLoading(true);
         setStatusMsg('');
         try {
@@ -104,13 +104,8 @@ const RegistrationForm = ({ onRegister }) => {
 
                 <div>
                     <label style={labelStyle}>Email Address</label>
-                    <input type="email" required style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} />
-                </div>
-
-                <div>
-                    <label style={labelStyle}>Phone Number</label>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <input type="tel" required style={{ ...inputStyle, flex: 1 }} value={phone} onChange={(e) => setPhone(e.target.value)} />
+                        <input type="email" required style={{ ...inputStyle, flex: 1 }} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" />
                         <button
                             type="button"
                             onClick={sendOTP}
@@ -139,9 +134,15 @@ const RegistrationForm = ({ onRegister }) => {
                             value={otp}
                             onChange={(e) => setOtp(e.target.value)}
                             style={inputStyle}
+                            placeholder="4-digit code from your email"
                         />
                     </div>
                 )}
+
+                <div>
+                    <label style={labelStyle}>Phone Number</label>
+                    <input type="tel" required style={inputStyle} value={phone} onChange={(e) => setPhone(e.target.value)} />
+                </div>
 
                 <button
                     type="submit"

@@ -25,25 +25,40 @@ router.get('/', async (req, res) => {
 
 /**
  * POST /api/events/register
- * Registers a user for selected events. Requires authentication.
+ * Registers a user for selected events. Supports team events with member names.
+ * Body: { registrations: [{ eventId, teamMembers?: [{name, phone}] }] }
+ * OR legacy: { eventIds: [id1, id2] }
  */
 router.post('/register', verifyToken, async (req, res) => {
     try {
-        const { eventIds } = req.body; // Array of event IDs
         const userId = req.user.id;
+        let regs = [];
 
-        if (!eventIds || !Array.isArray(eventIds) || eventIds.length === 0) {
+        if (req.body.registrations) {
+            // New format: registrations with optional team members
+            regs = req.body.registrations.map((r) => ({
+                user_id: userId,
+                event_id: r.eventId,
+                team_members: r.teamMembers || [],
+            }));
+        } else if (req.body.eventIds) {
+            // Legacy format: just event IDs
+            regs = req.body.eventIds.map((eventId) => ({
+                user_id: userId,
+                event_id: eventId,
+                team_members: [],
+            }));
+        } else {
             return res.status(400).json({ success: false, message: 'Please select at least one event.' });
         }
 
-        const registrations = eventIds.map((eventId) => ({
-            user_id: userId,
-            event_id: eventId,
-        }));
+        if (regs.length === 0) {
+            return res.status(400).json({ success: false, message: 'Please select at least one event.' });
+        }
 
         const { data, error } = await supabase
             .from('event_registrations')
-            .upsert(registrations, { onConflict: 'user_id,event_id' })
+            .upsert(regs, { onConflict: 'user_id,event_id' })
             .select();
 
         if (error) throw error;

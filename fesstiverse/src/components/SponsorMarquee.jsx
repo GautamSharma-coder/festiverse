@@ -4,17 +4,42 @@ const sponsors = ['Sponsored by TechGiant', 'Café Chai', 'Coding Ninjas', 'Unac
 
 const SponsorMarquee = () => {
     return (
-        <div className="bg-purple-900/10 border-y border-purple-500/20 py-4 overflow-hidden">
-            <div className="flex animate-marquee whitespace-nowrap gap-16 text-zinc-500 font-bold uppercase tracking-wider text-sm">
-                {sponsors.map((s, i) => (
-                    <span key={`a-${i}`}>{s}</span>
-                ))}
-                {sponsors.map((s, i) => (
-                    <span key={`b-${i}`}>{s}</span>
-                ))}
+        <>
+            <style>{`
+                @keyframes marqueeScroll {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+            `}</style>
+            <div style={{
+                background: 'rgba(88, 28, 135, 0.08)',
+                borderTop: '1px solid rgba(168, 85, 247, 0.15)',
+                borderBottom: '1px solid rgba(168, 85, 247, 0.15)',
+                padding: '1rem 0',
+                overflow: 'hidden',
+            }}>
+                <div style={{
+                    display: 'flex',
+                    whiteSpace: 'nowrap',
+                    gap: '4rem',
+                    color: '#71717a',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    fontSize: '0.875rem',
+                    animation: 'marqueeScroll 20s linear infinite',
+                    width: 'max-content',
+                }}>
+                    {[...sponsors, ...sponsors, ...sponsors].map((s, i) => (
+                        <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{ color: 'rgba(168, 85, 247, 0.5)' }}>✦</span> {s}
+                        </span>
+                    ))}
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 
 export default SponsorMarquee;
+

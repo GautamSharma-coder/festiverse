@@ -5,7 +5,7 @@ const router = express.Router();
 
 /**
  * GET /api/team
- * Fetches all team members.
+ * Public endpoint — fetches all team members grouped by category.
  */
 router.get('/', async (req, res) => {
     try {
@@ -15,10 +15,10 @@ router.get('/', async (req, res) => {
             .order('created_at', { ascending: true });
 
         if (error) throw error;
-        res.json({ success: true, team: data });
+        res.json({ success: true, members: data });
     } catch (err) {
         console.error('TEAM FETCH ERROR:', err);
-        res.status(500).json({ success: false, message: 'Failed to fetch team.' });
+        res.status(500).json({ success: false, message: 'Failed to fetch team members.' });
     }
 });
 
