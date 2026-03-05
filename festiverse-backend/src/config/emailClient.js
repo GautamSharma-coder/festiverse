@@ -5,11 +5,14 @@ let _transporter = null;
 function getTransporter() {
   if (!_transporter) {
     _transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_APP_PASSWORD,
       },
+      family: 4,                 // Force IPv4 (Render doesn't support IPv6 outbound)
       connectionTimeout: 10000,  // 10s to establish connection
       greetingTimeout: 10000,    // 10s for SMTP greeting
       socketTimeout: 15000,      // 15s socket inactivity timeout
