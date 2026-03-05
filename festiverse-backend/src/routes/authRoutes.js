@@ -34,7 +34,8 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
         console.log(`📧 OTP sent to ${email}`);
         res.json({ success: true, message: 'OTP sent to your email!' });
     } catch (err) {
-        console.error('EMAIL SEND ERROR:', err);
+        console.error('EMAIL SEND ERROR:', err.message);
+        console.error('EMAIL ERROR DETAILS:', { code: err.code, command: err.command, responseCode: err.responseCode });
         delete otpStore[email.toLowerCase()];
         res.status(500).json({ success: false, message: 'Failed to send OTP email. Please try again.' });
     }

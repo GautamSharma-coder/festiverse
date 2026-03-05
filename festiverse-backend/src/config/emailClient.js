@@ -1,54 +1,43 @@
 const nodemailer = require('nodemailer');
-const dns = require('dns');
-
-const resolver = new dns.Resolver();
-resolver.setServers(['8.8.8.8', '1.1.1.1']);
-
-const smtpReady = new Promise((resolve) => {
-    resolver.resolve4('smtp.gmail.com', (err, addresses) => {
-        if (!err && addresses.length > 0) {
-            console.log(`📧 Resolved smtp.gmail.com → ${addresses[0]}`);
-            resolve(addresses[0]);
-        } else {
-            console.warn('⚠️  DNS resolve failed:', err?.message);
-            resolve('smtp.gmail.com');
-        }
-    });
-});
 
 let _transporter = null;
 
-async function getTransporter() {
-    if (!_transporter) {
-        const host = await smtpReady;
-        _transporter = nodemailer.createTransport({
-            host, port: 465, secure: true,
-            auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_APP_PASSWORD },
-            tls: { servername: 'smtp.gmail.com', rejectUnauthorized: true },
-        });
-    }
-    return _transporter;
+function getTransporter() {
+  if (!_transporter) {
+    _transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_APP_PASSWORD,
+      },
+      connectionTimeout: 10000,  // 10s to establish connection
+      greetingTimeout: 10000,    // 10s for SMTP greeting
+      socketTimeout: 15000,      // 15s socket inactivity timeout
+    });
+    console.log('📧 Gmail SMTP transporter created');
+  }
+  return _transporter;
 }
 
 // ── Design tokens — Luxury Editorial ──────────────────────────────────
 const C = {
-    ink: '#0a0807',
-    paper: '#110f0d',
-    paperAlt: '#161210',
-    rule: '#2a2320',
-    ruleLight: '#3a3330',
-    cream: '#e8e0d4',
-    muted: '#7a6f65',
-    dim: '#3d3530',
-    crimson: '#c0392b',
-    crimsonLt: '#e84040',
-    gold: '#c9a84c',
-    goldDim: '#8a7030',
+  ink: '#0a0807',
+  paper: '#110f0d',
+  paperAlt: '#161210',
+  rule: '#2a2320',
+  ruleLight: '#3a3330',
+  cream: '#e8e0d4',
+  muted: '#7a6f65',
+  dim: '#3d3530',
+  crimson: '#c0392b',
+  crimsonLt: '#e84040',
+  gold: '#c9a84c',
+  goldDim: '#8a7030',
 };
 
 // ── Ornamental divider ─────────────────────────────────────────────────
 function ornaDivider(color = C.rule) {
-    return `
+  return `
     <table width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
         <td style="padding:0 40px;">
@@ -66,7 +55,7 @@ function ornaDivider(color = C.rule) {
 
 // ── Shared header ──────────────────────────────────────────────────────
 function emailHeader() {
-    return `
+  return `
     <tr>
       <td>
         <!-- Gold top rule -->
@@ -97,7 +86,7 @@ function emailHeader() {
 
 // ── Shared footer ──────────────────────────────────────────────────────
 function emailFooter() {
-    return `
+  return `
     <tr>
       <td style="background:${C.ink};padding:0;">
         <div style="height:1px;background:linear-gradient(90deg,transparent,${C.goldDim},transparent);"></div>
@@ -123,10 +112,10 @@ function emailFooter() {
 
 // ── OTP Email ──────────────────────────────────────────────────────────
 async function sendOTPEmail(toEmail, otp) {
-    const transporter = await getTransporter();
-    const digits = String(otp).split('');
+  const transporter = getTransporter();
+  const digits = String(otp).split('');
 
-    const html = `<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -220,25 +209,25 @@ async function sendOTPEmail(toEmail, otp) {
 </body>
 </html>`;
 
-    await transporter.sendMail({
-        from: `"Festiverse'26" <${process.env.EMAIL_USER}>`,
-        to: toEmail,
-        subject: `Your Verification Code: ${otp} — Festiverse'26`,
-        html,
-    });
+  await transporter.sendMail({
+    from: `"Festiverse'26" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: `Your Verification Code: ${otp} — Festiverse'26`,
+    html,
+  });
 }
 
 // ── Confirmation Email ─────────────────────────────────────────────────
 async function sendConfirmationEmail(toEmail, name) {
-    const transporter = await getTransporter();
+  const transporter = getTransporter();
 
-    const steps = [
-        { num: 'I', title: 'Discover Events', desc: 'Browse the complete programme of technical and cultural competitions.' },
-        { num: 'II', title: 'Form Your Ensemble', desc: 'Assemble a team for collaborative events and group challenges.' },
-        { num: 'III', title: 'Follow the Board', desc: 'Monitor schedules, rulebooks, and live announcements.' },
-    ];
+  const steps = [
+    { num: 'I', title: 'Discover Events', desc: 'Browse the complete programme of technical and cultural competitions.' },
+    { num: 'II', title: 'Form Your Ensemble', desc: 'Assemble a team for collaborative events and group challenges.' },
+    { num: 'III', title: 'Follow the Board', desc: 'Monitor schedules, rulebooks, and live announcements.' },
+  ];
 
-    const html = `<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -280,7 +269,7 @@ async function sendConfirmationEmail(toEmail, name) {
         <tr>
           <td style="padding:28px 40px 0;">
             ${ornaDivider(C.ruleLight).replace(/<table[^>]*>[\s\S]*?<\/table>/,
-        `<div style="height:1px;background:linear-gradient(90deg,transparent,${C.ruleLight},transparent);"></div>`)}
+    `<div style="height:1px;background:linear-gradient(90deg,transparent,${C.ruleLight},transparent);"></div>`)}
           </td>
         </tr>
 
@@ -342,12 +331,12 @@ async function sendConfirmationEmail(toEmail, name) {
 </body>
 </html>`;
 
-    await transporter.sendMail({
-        from: `"Festiverse'26" <${process.env.EMAIL_USER}>`,
-        to: toEmail,
-        subject: `Your Admission is Confirmed, ${name} — Festiverse'26`,
-        html,
-    });
+  await transporter.sendMail({
+    from: `"Festiverse'26" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject: `Your Admission is Confirmed, ${name} — Festiverse'26`,
+    html,
+  });
 }
 
 module.exports = { sendOTPEmail, sendConfirmationEmail };
