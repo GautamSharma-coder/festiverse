@@ -26,8 +26,10 @@ const missing = REQUIRED_ENV.filter(k => !process.env[k]);
 if (missing.length > 0) {
     console.warn(`⚠️  Missing env vars: ${missing.join(', ')}`);
 }
-if (!process.env.RESEND_API_KEY && (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD)) {
-    console.warn('⚠️  Email disabled — set RESEND_API_KEY or EMAIL_USER + EMAIL_APP_PASSWORD');
+const gmailVars = ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'EMAIL_USER'];
+const missingGmail = gmailVars.filter(k => !process.env[k]);
+if (missingGmail.length > 0) {
+    console.warn(`⚠️  Gmail API not fully configured — missing: ${missingGmail.join(', ')}`);
 }
 
 // ─── Middleware ───

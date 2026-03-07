@@ -1,178 +1,171 @@
 /**
  * ╔═══════════════════════════════════════════════════════════════════════╗
- * ║  Email Client — Festiverse'26                                       ║
+ * ║  Email Client — Festiverse'26  (Gmail REST API)                     ║
  * ╠═══════════════════════════════════════════════════════════════════════╣
  * ║                                                                     ║
- * ║  PRIORITY 1: Resend HTTP API  (set RESEND_API_KEY env var)          ║
- * ║    → Works everywhere including Render free tier                    ║
- * ║    → Sign up free at https://resend.com                             ║
- * ║    → Get your API key at https://resend.com/api-keys                ║
+ * ║  Uses Gmail REST API over HTTPS (port 443) — works on Render free   ║
+ * ║  tier where SMTP ports (465/587) are blocked.                       ║
  * ║                                                                     ║
- * ║  PRIORITY 2: Nodemailer SMTP  (set EMAIL_USER + EMAIL_APP_PASSWORD) ║
- * ║    → Only works locally or on paid hosting (SMTP ports open)        ║
- * ║    → ⚠️ WILL FAIL on Render free tier (ports 465/587 blocked)      ║
+ * ║  REQUIRED ENV VARS:                                                 ║
+ * ║    GMAIL_CLIENT_ID      = from Google Cloud Console                 ║
+ * ║    GMAIL_CLIENT_SECRET  = from Google Cloud Console                 ║
+ * ║    GMAIL_REFRESH_TOKEN  = from OAuth2 Playground                    ║
+ * ║    EMAIL_USER           = your Gmail address (sender)               ║
  * ║                                                                     ║
- * ║  REQUIRED ENV VARS (pick one set):                                  ║
- * ║    Option A: RESEND_API_KEY=re_xxxxxxxxx  (recommended)             ║
- * ║    Option B: EMAIL_USER=you@gmail.com                               ║
- * ║              EMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx                  ║
- * ║                                                                     ║
- * ║  OPTIONAL:                                                          ║
- * ║    EMAIL_FROM=Your Name <you@yourdomain.com>                        ║
+ * ║  SETUP GUIDE (one-time, ~5 minutes):                                ║
+ * ║    1. Go to https://console.cloud.google.com                        ║
+ * ║    2. Create a project → Enable "Gmail API"                         ║
+ * ║    3. Credentials → Create OAuth 2.0 Client ID (Web application)   ║
+ * ║       → Add redirect URI: https://developers.google.com/oauthplayground  ║
+ * ║    4. Go to https://developers.google.com/oauthplayground           ║
+ * ║       → Click ⚙️ gear → Check "Use your own OAuth credentials"     ║
+ * ║       → Enter your Client ID & Secret                              ║
+ * ║       → Select scope: https://mail.google.com/                     ║
+ * ║       → Authorize → Exchange code → Copy the Refresh Token         ║
+ * ║    5. Add all 4 env vars to Render dashboard                       ║
  * ║                                                                     ║
  * ╚═══════════════════════════════════════════════════════════════════════╝
  */
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const EMAIL_FROM = process.env.EMAIL_FROM || 'Festiverse\'26 <onboarding@resend.dev>';
+const { google } = require('googleapis');
 
-// Log which email provider will be used on startup
-if (RESEND_API_KEY) {
-  console.log('✅ Email provider: Resend HTTP API (RESEND_API_KEY is set)');
-} else if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
-  console.log('⚠️  Email provider: Nodemailer SMTP (fallback — will FAIL on Render free tier!)');
-  console.log('   → To fix: set RESEND_API_KEY env var. Get one free at https://resend.com/api-keys');
+const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID;
+const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
+const GMAIL_REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
+const EMAIL_USER = process.env.EMAIL_USER;
+
+// ── Startup validation ─────────────────────────────────────────────────
+const requiredVars = {
+  GMAIL_CLIENT_ID,
+  GMAIL_CLIENT_SECRET,
+  GMAIL_REFRESH_TOKEN,
+  EMAIL_USER,
+};
+const missing = Object.entries(requiredVars).filter(([, v]) => !v).map(([k]) => k);
+
+if (missing.length === 0) {
+  console.log('✅ Gmail REST API configured — all env vars present');
+  console.log(`   Sender: ${EMAIL_USER}`);
 } else {
-  console.error('❌ EMAIL IS NOT CONFIGURED! No emails will be sent.');
-  console.error('   → Option A (recommended): Set RESEND_API_KEY env var');
-  console.error('     Sign up at https://resend.com → API Keys → Create API Key');
-  console.error('   → Option B (local only):   Set EMAIL_USER + EMAIL_APP_PASSWORD env vars');
+  console.error('❌ Gmail REST API NOT configured! Missing env vars:');
+  missing.forEach(k => console.error(`   → ${k} is not set`));
+  console.error('');
+  console.error('   📖 SETUP GUIDE:');
+  console.error('   1. Go to https://console.cloud.google.com');
+  console.error('   2. Create project → Enable "Gmail API"');
+  console.error('   3. Credentials → OAuth 2.0 Client ID (Web app)');
+  console.error('      Add redirect URI: https://developers.google.com/oauthplayground');
+  console.error('   4. Go to https://developers.google.com/oauthplayground');
+  console.error('      → ⚙️ Use your own OAuth credentials → Enter Client ID & Secret');
+  console.error('      → Select scope: https://mail.google.com/');
+  console.error('      → Authorize → Exchange → Copy Refresh Token');
+  console.error('   5. Set these env vars on Render:');
+  console.error('      GMAIL_CLIENT_ID=xxxxx');
+  console.error('      GMAIL_CLIENT_SECRET=xxxxx');
+  console.error('      GMAIL_REFRESH_TOKEN=xxxxx');
+  console.error('      EMAIL_USER=your@gmail.com');
 }
 
-// ── Send email via Resend HTTP API ─────────────────────────────────────
-async function sendViaResend(to, subject, html) {
-  console.log(`📧 [Resend] Sending to: ${to} | Subject: "${subject.substring(0, 50)}..."`);
+// ── Gmail OAuth2 client ────────────────────────────────────────────────
+let _oauth2Client = null;
 
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from: EMAIL_FROM, to, subject, html }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    const status = res.status;
-
-    // Developer-friendly error messages for common Resend errors
-    if (status === 401) {
+function getOAuth2Client() {
+  if (!_oauth2Client) {
+    if (missing.length > 0) {
       throw new Error(
-        `[Resend] ❌ INVALID API KEY (401 Unauthorized)\n` +
-        `  → Your RESEND_API_KEY is wrong or expired.\n` +
-        `  → Go to https://resend.com/api-keys and create a new one.\n` +
-        `  → Make sure you copied the full key starting with "re_"`
+        `❌ Cannot send email — missing env vars: ${missing.join(', ')}\n` +
+        `   See the setup guide in emailClient.js or check Render logs on startup.`
       );
     }
+    _oauth2Client = new google.auth.OAuth2(
+      GMAIL_CLIENT_ID,
+      GMAIL_CLIENT_SECRET,
+      'https://developers.google.com/oauthplayground'
+    );
+    _oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN });
+    console.log('📧 Gmail OAuth2 client initialized');
+  }
+  return _oauth2Client;
+}
+
+// ── Send email via Gmail REST API ──────────────────────────────────────
+async function sendEmail(to, subject, htmlBody) {
+  console.log(`📧 [Gmail API] Sending to: ${to} | Subject: "${subject.substring(0, 50)}..."`);
+
+  const oauth2Client = getOAuth2Client();
+
+  // Build RFC 2822 email message
+  const rawEmail = [
+    `From: "Festiverse'26" <${EMAIL_USER}>`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: text/html; charset=UTF-8`,
+    ``,
+    htmlBody,
+  ].join('\r\n');
+
+  // Base64url encode
+  const encodedMessage = Buffer.from(rawEmail)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+
+  try {
+    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+    const result = await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw: encodedMessage },
+    });
+    console.log(`✅ [Gmail API] Email sent successfully! ID: ${result.data.id}`);
+    return result.data;
+  } catch (err) {
+    // Developer-friendly error messages
+    const status = err?.response?.status || err?.code;
+    const message = err?.response?.data?.error?.message || err.message;
+
+    if (status === 401 || message?.includes('invalid_grant')) {
+      throw new Error(
+        `[Gmail API] ❌ AUTHENTICATION FAILED (${status})\n` +
+        `  → Your GMAIL_REFRESH_TOKEN is expired or invalid.\n` +
+        `  → Go to https://developers.google.com/oauthplayground\n` +
+        `  → ⚙️ Use your own OAuth credentials → Re-authorize → Get new Refresh Token\n` +
+        `  → Update GMAIL_REFRESH_TOKEN on Render`
+      );
+    }
+
     if (status === 403) {
       throw new Error(
-        `[Resend] ❌ FORBIDDEN (403)\n` +
-        `  → Your API key doesn't have permission to send emails.\n` +
-        `  → If using a custom "from" address, verify your domain first at https://resend.com/domains\n` +
-        `  → Or remove EMAIL_FROM env var to use the default "onboarding@resend.dev"`
+        `[Gmail API] ❌ PERMISSION DENIED (403): ${message}\n` +
+        `  → Make sure Gmail API is enabled in your Google Cloud project\n` +
+        `  → Go to https://console.cloud.google.com/apis/library/gmail.googleapis.com\n` +
+        `  → Also check that you authorized the scope: https://mail.google.com/`
       );
     }
-    if (status === 422) {
-      throw new Error(
-        `[Resend] ❌ VALIDATION ERROR (422): ${err.message || JSON.stringify(err)}\n` +
-        `  → Check that the "to" email address is valid: "${to}"\n` +
-        `  → Check that EMAIL_FROM is properly formatted: "${EMAIL_FROM}"`
-      );
-    }
+
     if (status === 429) {
       throw new Error(
-        `[Resend] ❌ RATE LIMIT HIT (429)\n` +
-        `  → Free tier limit: 100 emails/day, 2 emails/second.\n` +
-        `  → Wait a moment and try again, or upgrade at https://resend.com/pricing`
+        `[Gmail API] ❌ RATE LIMIT HIT (429)\n` +
+        `  → Gmail API limit: ~100 emails/day for free accounts.\n` +
+        `  → Wait and try again later.`
+      );
+    }
+
+    if (err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT') {
+      throw new Error(
+        `[Gmail API] ❌ NETWORK ERROR: ${err.message}\n` +
+        `  → Cannot reach googleapis.com — check internet connection.\n` +
+        `  → This should NOT happen on Render (HTTPS is not blocked).`
       );
     }
 
     throw new Error(
-      `[Resend] ❌ API ERROR (${status}): ${err.message || JSON.stringify(err)}\n` +
-      `  → Check Resend dashboard for details: https://resend.com/emails`
+      `[Gmail API] ❌ UNEXPECTED ERROR: ${message}\n` +
+      `  → Status: ${status}\n` +
+      `  → Full error: ${JSON.stringify(err?.response?.data || err.message)}`
     );
   }
-
-  const result = await res.json();
-  console.log(`✅ [Resend] Email sent successfully! ID: ${result.id}`);
-  return result;
-}
-
-// ── Send email via Nodemailer SMTP (local dev fallback) ────────────────
-let _transporter = null;
-async function sendViaSMTP(to, subject, html) {
-  console.log(`📧 [SMTP] Sending to: ${to} | Subject: "${subject.substring(0, 50)}..."`);
-
-  if (!_transporter) {
-    const nodemailer = require('nodemailer');
-    _transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_APP_PASSWORD },
-      family: 4,
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-    });
-    console.log('📧 [SMTP] Gmail transporter created');
-  }
-
-  try {
-    const info = await _transporter.sendMail({
-      from: `"Festiverse'26" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
-    });
-    console.log(`✅ [SMTP] Email sent successfully! MessageId: ${info.messageId}`);
-    return info;
-  } catch (err) {
-    // Developer-friendly error messages for common SMTP errors
-    if (err.code === 'ESOCKET' || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH') {
-      throw new Error(
-        `[SMTP] ❌ CONNECTION FAILED: ${err.message}\n` +
-        `  → 🚨 If on Render free tier: SMTP ports (465/587) are BLOCKED!\n` +
-        `  → FIX: Switch to Resend HTTP API instead:\n` +
-        `     1. Sign up free at https://resend.com\n` +
-        `     2. Get API key at https://resend.com/api-keys\n` +
-        `     3. Add RESEND_API_KEY=re_xxxxx to Render env vars\n` +
-        `  → If running locally: check your internet connection`
-      );
-    }
-    if (err.code === 'EAUTH' || err.responseCode === 535) {
-      throw new Error(
-        `[SMTP] ❌ AUTHENTICATION FAILED\n` +
-        `  → EMAIL_USER: "${process.env.EMAIL_USER}" — is this correct?\n` +
-        `  → EMAIL_APP_PASSWORD — is this a valid Gmail App Password?\n` +
-        `  → Generate one at: https://myaccount.google.com/apppasswords\n` +
-        `  → Make sure 2FA is enabled on your Google account first`
-      );
-    }
-
-    throw new Error(`[SMTP] ❌ UNKNOWN ERROR: ${err.message} (code: ${err.code})`);
-  }
-}
-
-// ── Unified send function ──────────────────────────────────────────────
-async function sendEmail(to, subject, html) {
-  if (RESEND_API_KEY) {
-    return sendViaResend(to, subject, html);
-  }
-  if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
-    return sendViaSMTP(to, subject, html);
-  }
-  throw new Error(
-    `❌ NO EMAIL PROVIDER CONFIGURED!\n` +
-    `  → Option A (recommended for Render): Set RESEND_API_KEY env var\n` +
-    `     1. Sign up free at https://resend.com\n` +
-    `     2. Create API key at https://resend.com/api-keys\n` +
-    `     3. Add to Render: RESEND_API_KEY=re_xxxxxxxxx\n` +
-    `  → Option B (local dev only): Set these env vars:\n` +
-    `     EMAIL_USER=your@gmail.com\n` +
-    `     EMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx`
-  );
 }
 
 // ── Design tokens — Luxury Editorial ──────────────────────────────────
@@ -214,24 +207,16 @@ function emailHeader() {
   return `
     <tr>
       <td>
-        <!-- Gold top rule -->
         <div style="height:1px;background:linear-gradient(90deg,transparent,${C.gold},transparent);"></div>
         <div style="height:3px;background:${C.crimson};"></div>
-
         <table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="background:${C.ink};padding:36px 40px 30px;">
-
-              <!-- Eyebrow -->
               <p style="margin:0 0 14px;color:${C.goldDim};font-size:9px;font-family:Georgia,serif;letter-spacing:5px;text-transform:uppercase;text-align:center;">— UDAAN Cultural Club &nbsp;·&nbsp; GEC Samastipur —</p>
-
-              <!-- Masthead -->
               <h1 style="margin:0;text-align:center;color:${C.cream};font-size:34px;font-family:Georgia,'Times New Roman',serif;font-weight:700;letter-spacing:6px;text-transform:uppercase;line-height:1;">
                 FESTIVERSE
               </h1>
               <p style="margin:4px 0 0;text-align:center;color:${C.crimson};font-size:13px;font-family:Georgia,serif;letter-spacing:8px;">&lsquo;26</p>
-
-              <!-- Gold rule under masthead -->
               <div style="height:1px;background:linear-gradient(90deg,transparent,${C.goldDim},transparent);margin-top:20px;"></div>
             </td>
           </tr>
@@ -287,7 +272,6 @@ async function sendOTPEmail(toEmail, otp) {
 
         ${emailHeader()}
 
-        <!-- Body -->
         <tr>
           <td style="background:${C.ink};padding:40px 40px 12px;">
             <p style="margin:0 0 4px;color:${C.goldDim};font-size:9px;font-family:Georgia,serif;letter-spacing:5px;text-transform:uppercase;text-align:center;">Verification</p>
@@ -297,33 +281,23 @@ async function sendOTPEmail(toEmail, otp) {
           </td>
         </tr>
 
-        <!-- OTP stage -->
         <tr>
           <td style="padding:0 40px 12px;">
             <table cellpadding="0" cellspacing="0" border="0" style="width:100%;background:${C.paperAlt};border:1px solid ${C.rule};border-top:3px solid ${C.crimson};border-radius:2px;">
               <tr>
                 <td style="padding:32px 20px;text-align:center;">
-
-                  <!-- Corner ornaments via thin lines -->
                   <p style="margin:0 0 20px;color:${C.goldDim};font-size:10px;font-family:Georgia,serif;letter-spacing:4px;text-transform:uppercase;">Access Code</p>
-
-                  <!-- Digit tiles -->
                   <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 20px;">
                     <tr>
                       ${digits.map(d => `
                       <td style="padding:0 4px;">
                         <span style="display:inline-block;width:58px;height:72px;line-height:72px;
-                          background:${C.ink};
-                          border:1px solid ${C.ruleLight};
-                          border-bottom:2px solid ${C.crimson};
-                          color:${C.cream};font-size:32px;font-weight:700;
-                          font-family:Georgia,'Times New Roman',serif;
+                          background:${C.ink};border:1px solid ${C.ruleLight};border-bottom:2px solid ${C.crimson};
+                          color:${C.cream};font-size:32px;font-weight:700;font-family:Georgia,'Times New Roman',serif;
                           text-align:center;border-radius:2px;">${d}</span>
                       </td>`).join('')}
                     </tr>
                   </table>
-
-                  <!-- Validity -->
                   <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
                     <tr>
                       <td style="border-top:1px solid ${C.rule};border-bottom:1px solid ${C.rule};padding:8px 20px;text-align:center;">
@@ -333,14 +307,12 @@ async function sendOTPEmail(toEmail, otp) {
                       </td>
                     </tr>
                   </table>
-
                 </td>
               </tr>
             </table>
           </td>
         </tr>
 
-        <!-- Notice -->
         <tr>
           <td style="padding:24px 40px 36px;">
             <table cellpadding="0" cellspacing="0" border="0" style="width:100%;border-left:3px solid ${C.goldDim};background:${C.paperAlt};border-radius:2px;">
@@ -392,12 +364,10 @@ async function sendConfirmationEmail(toEmail, name) {
 
         ${emailHeader()}
 
-        <!-- Admission stamp section -->
         <tr>
           <td style="background:${C.ink};padding:36px 40px 0;">
             <table width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <!-- Left: thick crimson rule -->
                 <td style="width:4px;background:${C.crimson};border-radius:2px;"></td>
                 <td style="padding-left:20px;">
                   <p style="margin:0 0 6px;color:${C.goldDim};font-size:9px;font-family:Georgia,serif;letter-spacing:5px;text-transform:uppercase;">Official Confirmation</p>
@@ -413,14 +383,12 @@ async function sendConfirmationEmail(toEmail, name) {
           </td>
         </tr>
 
-        <!-- Horizontal rule -->
         <tr>
           <td style="padding:28px 40px 0;">
             <div style="height:1px;background:linear-gradient(90deg,transparent,${C.ruleLight},transparent);"></div>
           </td>
         </tr>
 
-        <!-- Body prose -->
         <tr>
           <td style="padding:24px 40px 28px;">
             <p style="margin:0;color:#9a8e82;font-size:14px;font-family:Georgia,'Times New Roman',serif;line-height:1.85;font-style:italic;">
@@ -431,7 +399,6 @@ async function sendConfirmationEmail(toEmail, name) {
 
         ${ornaDivider()}
 
-        <!-- Programme steps -->
         <tr>
           <td style="padding:28px 40px 8px;">
             <p style="margin:0 0 20px;color:${C.goldDim};font-size:9px;font-family:Georgia,serif;letter-spacing:5px;text-transform:uppercase;text-align:center;">Your Programme</p>
@@ -441,7 +408,6 @@ async function sendConfirmationEmail(toEmail, name) {
                 <td style="padding-bottom:${i < steps.length - 1 ? '16px' : '4px'};">
                   <table cellpadding="0" cellspacing="0" border="0" style="width:100%;background:${C.paperAlt};border:1px solid ${C.rule};border-radius:2px;overflow:hidden;">
                     <tr>
-                      <!-- Roman numeral column -->
                       <td style="width:52px;background:${C.crimson};text-align:center;vertical-align:middle;padding:16px 0;">
                         <span style="color:rgba(255,255,255,0.9);font-size:13px;font-family:Georgia,serif;font-weight:700;">${s.num}</span>
                       </td>
@@ -457,7 +423,6 @@ async function sendConfirmationEmail(toEmail, name) {
           </td>
         </tr>
 
-        <!-- CTA -->
         <tr>
           <td style="padding:28px 40px 36px;text-align:center;">
             <a href="#" style="display:inline-block;padding:14px 48px;background:${C.crimson};color:#fff;font-size:11px;font-weight:700;font-family:Georgia,serif;letter-spacing:4px;text-transform:uppercase;text-decoration:none;border-radius:2px;border-bottom:2px solid #8a1a10;">
