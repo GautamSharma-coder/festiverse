@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
+import { proxyImageUrl } from '../lib/proxyImage';
+import { apiFetch } from '../lib/api';
 
-const NUM_ITEMS = 7;
 const CARD_WIDTH = 260;
 const AUTO_PLAY_SPEED = 3000;
 
@@ -10,21 +11,40 @@ const GalleryCarousel = () => {
     const autoPlayRef = useRef(null);
     const scrollTimeoutRef = useRef(null);
 
-    const angle = 360 / NUM_ITEMS;
-    const radius = Math.round((CARD_WIDTH / 2) / Math.tan(Math.PI / NUM_ITEMS)) + 40;
+    const [images, setImages] = useState([]);
+
+    useEffect(() => {
+        const loadImages = async () => {
+            try {
+                const res = await apiFetch('/api/gallery');
+                if (res.images && res.images.length > 0) {
+                    // Take up to 10 images for the carousel to not overcrowd it
+                    setImages(res.images.slice(0, 10));
+                }
+            } catch (err) {
+                console.error('Error fetching gallery images:', err);
+            }
+        };
+        loadImages();
+    }, []);
+
+    const numItems = Math.max(images.length, 1); // Avoid division by zero
+    const angle = 360 / numItems;
+    const radius = Math.max(Math.round((CARD_WIDTH / 2) / Math.tan(Math.PI / numItems)) + 40, 200);
 
     const rotateCarousel = useCallback((direction = -1, smooth = true) => {
         const track = trackRef.current;
-        if (!track) return;
+        if (!track || images.length <= 1) return;
         track.style.transition = smooth ? 'transform 1s ease-out' : 'none';
         currentAngleRef.current += angle * direction;
         track.style.transform = `rotateY(${currentAngleRef.current}deg)`;
-    }, [angle]);
+    }, [angle, images.length]);
 
     const startAutoPlay = useCallback(() => {
+        if (images.length <= 1) return;
         clearInterval(autoPlayRef.current);
         autoPlayRef.current = setInterval(() => rotateCarousel(-1, true), AUTO_PLAY_SPEED);
-    }, [rotateCarousel]);
+    }, [rotateCarousel, images.length]);
 
     const stopAutoPlay = useCallback(() => {
         clearInterval(autoPlayRef.current);
@@ -40,8 +60,9 @@ const GalleryCarousel = () => {
 
     const handleWheel = useCallback((e) => {
         e.preventDefault();
-        stopAutoPlay();
+        if (images.length <= 1) return;
 
+        stopAutoPlay();
         const track = trackRef.current;
         if (!track) return;
         track.style.transition = 'none';
@@ -53,7 +74,7 @@ const GalleryCarousel = () => {
             track.style.transition = 'transform 1s ease-out';
             startAutoPlay();
         }, 500);
-    }, [stopAutoPlay, startAutoPlay]);
+    }, [stopAutoPlay, startAutoPlay, images.length]);
 
     useEffect(() => {
         const container = trackRef.current?.parentElement;
@@ -65,9 +86,20 @@ const GalleryCarousel = () => {
     const handleNext = () => { stopAutoPlay(); rotateCarousel(-1); startAutoPlay(); };
     const handlePrev = () => { stopAutoPlay(); rotateCarousel(1); startAutoPlay(); };
 
-    const cards = Array.from({ length: NUM_ITEMS }, (_, i) => (
+    if (images.length === 0) {
+        return (
+            <section style={{ padding: '5rem 0', textAlign: 'center' }}>
+                <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem' }}>
+                    <h2 style={{ fontSize: '1.875rem', fontWeight: 500, color: '#e4e4e7' }}>Gallery Perspectives</h2>
+                    <p style={{ color: '#71717a', fontSize: '0.875rem', marginTop: '1rem' }}>No images to display yet.</p>
+                </div>
+            </section>
+        );
+    }
+
+    const cards = images.map((img, i) => (
         <div
-            key={i}
+            key={img.id || i}
             style={{
                 position: 'absolute',
                 inset: 0,
@@ -77,14 +109,14 @@ const GalleryCarousel = () => {
                 overflow: 'hidden',
                 boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
                 border: '1px solid rgba(63, 63, 70, 0.5)',
-                transform: `rotateY(${i * angle}deg) translateZ(${radius}px)`,
+                transform: images.length > 1 ? `rotateY(${i * angle}deg) translateZ(${radius}px)` : 'none',
                 backfaceVisibility: 'hidden',
             }}
         >
             <img
-                src={`https://picsum.photos/600/800?random=${i + 10}`}
+                src={proxyImageUrl(img.url)}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }}
-                alt="Gallery Art"
+                alt={img.title || "Gallery Art"}
             />
             <div style={{
                 position: 'absolute',
@@ -99,7 +131,7 @@ const GalleryCarousel = () => {
         <section style={{ padding: '5rem 0', overflow: 'hidden', position: 'relative' }}>
             <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem', marginBottom: '4rem', textAlign: 'center' }}>
                 <h2 style={{ fontSize: '1.875rem', fontWeight: 500, color: '#e4e4e7' }}>Gallery Perspectives</h2>
-                <p style={{ color: '#71717a', fontSize: '0.875rem', marginTop: '0.5rem' }}>Scroll to rotate</p>
+                {images.length > 1 && <p style={{ color: '#71717a', fontSize: '0.875rem', marginTop: '0.5rem' }}>Scroll to rotate</p>}
             </div>
 
             <div
@@ -111,7 +143,7 @@ const GalleryCarousel = () => {
                     justifyContent: 'center',
                     alignItems: 'center',
                     perspective: '1200px',
-                    cursor: 'grab',
+                    cursor: images.length > 1 ? 'grab' : 'default',
                 }}
                 onMouseEnter={stopAutoPlay}
                 onMouseLeave={startAutoPlay}
@@ -130,36 +162,38 @@ const GalleryCarousel = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '2rem' }}>
-                <button
-                    onClick={handlePrev}
-                    style={{
-                        padding: '0.5rem 1.5rem',
-                        borderRadius: '9999px',
-                        border: '1px solid #3f3f46',
-                        color: '#d4d4d8',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                    }}
-                >
-                    ← Prev
-                </button>
-                <button
-                    onClick={handleNext}
-                    style={{
-                        padding: '0.5rem 1.5rem',
-                        borderRadius: '9999px',
-                        border: '1px solid #3f3f46',
-                        color: '#d4d4d8',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                    }}
-                >
-                    Next →
-                </button>
-            </div>
+            {images.length > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '2rem' }}>
+                    <button
+                        onClick={handlePrev}
+                        style={{
+                            padding: '0.5rem 1.5rem',
+                            borderRadius: '9999px',
+                            border: '1px solid #3f3f46',
+                            color: '#d4d4d8',
+                            background: 'transparent',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                        }}
+                    >
+                        ← Prev
+                    </button>
+                    <button
+                        onClick={handleNext}
+                        style={{
+                            padding: '0.5rem 1.5rem',
+                            borderRadius: '9999px',
+                            border: '1px solid #3f3f46',
+                            color: '#d4d4d8',
+                            background: 'transparent',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                        }}
+                    >
+                        Next →
+                    </button>
+                </div>
+            )}
         </section>
     );
 };

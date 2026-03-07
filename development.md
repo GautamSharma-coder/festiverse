@@ -1,7 +1,7 @@
 # Festiverse'26 — Development Guide
 
-> **Last updated:** 3 March 2026  
-> **Stack:** React (Vite) · Express.js · Supabase (PostgreSQL + Storage) · Vercel
+> **Last updated:** 7 March 2026  
+> **Stack:** React (Vite) · Express.js · Supabase (PostgreSQL + Storage) · Render
 
 ---
 
@@ -137,6 +137,7 @@ The app has two visual "universes" toggled by a pill switch in the navbar:
 - [x] Admin login with JWT + session management
 - [x] Image proxy for DNS-hijacked Supabase URLs
 - [x] Mobile-responsive layouts across all components
+- [x] Hidden tap area in footer for mobile Admin Panel access
 
 ### Backend
 - [x] Express server with CORS, JSON body parsing
@@ -147,7 +148,7 @@ The app has two visual "universes" toggled by a pill switch in the navbar:
 - [x] Admin CRUD routes with `verifyToken` + `verifyAdmin` middleware
 - [x] File upload to Supabase Storage via Multer
 - [x] Image proxy route to work around DNS issues
-- [x] Vercel deployment configuration
+- [x] Render deployment configuration
 - [x] Database schema + migration scripts
 - [x] Rate limiting on OTP (3/min) and login (5/min) endpoints
 - [x] Input validation (email, phone, OTP format) on auth routes
@@ -161,7 +162,7 @@ The app has two visual "universes" toggled by a pill switch in the navbar:
 - [x] **Real Email OTP** — replaced mock OTP with Nodemailer + Gmail (DNS-safe)
 - [x] **Removed `otp_hint`** — OTP is no longer leaked in API responses
 - [ ] **Payment gateway integration** — if registration requires a fee, integrate Razorpay / Stripe
-- [ ] **Protected admin route** — add route guard or hide the UI entry point
+- [x] **Protected admin route** — added auth middleware and hid the UI entry point on mobile via tap area
 
 ### Security & Production Readiness
 - [x] **Rate limiting** — OTP (3/min), login (5/min) via in-memory rate limiter
@@ -184,7 +185,7 @@ The app has two visual "universes" toggled by a pill switch in the navbar:
 - [ ] **QR code-based check-in** — generate QR for registered users, scan at event entry
 - [ ] **Leaderboard / results** — competition results and winner announcements
 - [ ] **Sponsor section** — `SponsorMarquee.jsx` exists but needs real data and management via admin
-- [ ] **About page** — dedicated page for UDAAN club and college info
+- [x] **About page** — dedicated page for UDAAN club and college info
 
 ### UI/UX Improvements
 - [ ] **Loading skeletons** — show skeleton UI while data loads (partially done in admin panel)
@@ -233,4 +234,4 @@ Set `VITE_API_URL=http://localhost:3000` in `fesstiverse/.env` for local develop
 | Database | Supabase (PostgreSQL) |
 | Storage | Supabase Storage (bucket: `assets`) |
 | Auth | JWT (jsonwebtoken), Email OTP (Nodemailer + Gmail) |
-| Deployment | Vercel (backend), TBD (frontend) |
+| Deployment | Render (backend), TBD (frontend) |

@@ -1,13 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { proxyImageUrl } from '../lib/proxyImage';
-
-const galleryImages = [
-  'https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/4734259a-bad7-422f-981e-ce01e79184f2_1600w.jpg',
-  'https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/c543a9e1-f226-4ced-80b0-feb8445a75b9_1600w.jpg',
-  'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80',
-  'https://hoirqrkdgbmvpwutwuwj.supabase.co/storage/v1/object/public/assets/assets/5bab247f-35d9-400d-a82b-fd87cfe913d2_1600w.webp',
-  'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=800&q=80',
-].map(proxyImageUrl);
+import { apiFetch } from '../lib/api';
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Syne+Mono&display=swap');
@@ -411,20 +404,43 @@ const tickerItems = [
 
 const FestGallery2 = () => {
   const [lightboxIdx, setLightboxIdx] = useState(null);
+  const [galleryImages, setGalleryImages] = useState([]);
 
-  const prev = () => setLightboxIdx(i => (i - 1 + galleryImages.length) % galleryImages.length);
-  const next = () => setLightboxIdx(i => (i + 1) % galleryImages.length);
+  useEffect(() => {
+    const fetchImages = async () => {
+      try {
+        const res = await apiFetch('/api/gallery');
+        if (res.images && res.images.length > 0) {
+          // The bento grid supports exactly 5 image slots
+          setGalleryImages(res.images.slice(0, 5).map(img => proxyImageUrl(img.url)));
+        }
+      } catch (err) {
+        console.error('Error fetching gallery images:', err);
+      }
+    };
+    fetchImages();
+  }, []);
+
+  const prev = () => {
+    if (galleryImages.length === 0) return;
+    setLightboxIdx(i => (i - 1 + galleryImages.length) % galleryImages.length);
+  };
+
+  const next = () => {
+    if (galleryImages.length === 0) return;
+    setLightboxIdx(i => (i + 1) % galleryImages.length);
+  };
 
   useEffect(() => {
     const handler = (e) => {
-      if (lightboxIdx === null) return;
+      if (lightboxIdx === null || galleryImages.length === 0) return;
       if (e.key === 'Escape') setLightboxIdx(null);
       if (e.key === 'ArrowLeft') prev();
       if (e.key === 'ArrowRight') next();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [lightboxIdx]);
+  }, [lightboxIdx, galleryImages.length]);
 
   return (
     <>
