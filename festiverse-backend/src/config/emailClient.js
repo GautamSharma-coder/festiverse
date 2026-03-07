@@ -94,11 +94,14 @@ async function sendEmail(to, subject, htmlBody) {
 
   const oauth2Client = getOAuth2Client();
 
+  // MIME-encode subject for non-ASCII chars (RFC 2047)
+  const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`;
+
   // Build RFC 2822 email message
   const rawEmail = [
     `From: "Festiverse'26" <${EMAIL_USER}>`,
     `To: ${to}`,
-    `Subject: ${subject}`,
+    `Subject: ${encodedSubject}`,
     `MIME-Version: 1.0`,
     `Content-Type: text/html; charset=UTF-8`,
     ``,
