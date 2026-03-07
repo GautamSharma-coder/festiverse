@@ -1,14 +1,48 @@
 /**
- * Email client for Festiverse'26
- * Uses Resend HTTP API (works on Render free tier where SMTP ports are blocked)
- * Falls back to Nodemailer SMTP for local development
+ * ╔═══════════════════════════════════════════════════════════════════════╗
+ * ║  Email Client — Festiverse'26                                       ║
+ * ╠═══════════════════════════════════════════════════════════════════════╣
+ * ║                                                                     ║
+ * ║  PRIORITY 1: Resend HTTP API  (set RESEND_API_KEY env var)          ║
+ * ║    → Works everywhere including Render free tier                    ║
+ * ║    → Sign up free at https://resend.com                             ║
+ * ║    → Get your API key at https://resend.com/api-keys                ║
+ * ║                                                                     ║
+ * ║  PRIORITY 2: Nodemailer SMTP  (set EMAIL_USER + EMAIL_APP_PASSWORD) ║
+ * ║    → Only works locally or on paid hosting (SMTP ports open)        ║
+ * ║    → ⚠️ WILL FAIL on Render free tier (ports 465/587 blocked)      ║
+ * ║                                                                     ║
+ * ║  REQUIRED ENV VARS (pick one set):                                  ║
+ * ║    Option A: RESEND_API_KEY=re_xxxxxxxxx  (recommended)             ║
+ * ║    Option B: EMAIL_USER=you@gmail.com                               ║
+ * ║              EMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx                  ║
+ * ║                                                                     ║
+ * ║  OPTIONAL:                                                          ║
+ * ║    EMAIL_FROM=Your Name <you@yourdomain.com>                        ║
+ * ║                                                                     ║
+ * ╚═══════════════════════════════════════════════════════════════════════╝
  */
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const EMAIL_FROM = process.env.EMAIL_FROM || 'Festiverse\'26 <onboarding@resend.dev>';
 
+// Log which email provider will be used on startup
+if (RESEND_API_KEY) {
+  console.log('✅ Email provider: Resend HTTP API (RESEND_API_KEY is set)');
+} else if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+  console.log('⚠️  Email provider: Nodemailer SMTP (fallback — will FAIL on Render free tier!)');
+  console.log('   → To fix: set RESEND_API_KEY env var. Get one free at https://resend.com/api-keys');
+} else {
+  console.error('❌ EMAIL IS NOT CONFIGURED! No emails will be sent.');
+  console.error('   → Option A (recommended): Set RESEND_API_KEY env var');
+  console.error('     Sign up at https://resend.com → API Keys → Create API Key');
+  console.error('   → Option B (local only):   Set EMAIL_USER + EMAIL_APP_PASSWORD env vars');
+}
+
 // ── Send email via Resend HTTP API ─────────────────────────────────────
 async function sendViaResend(to, subject, html) {
+  console.log(`📧 [Resend] Sending to: ${to} | Subject: "${subject.substring(0, 50)}..."`);
+
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -20,14 +54,56 @@ async function sendViaResend(to, subject, html) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(`Resend API error (${res.status}): ${err.message || JSON.stringify(err)}`);
+    const status = res.status;
+
+    // Developer-friendly error messages for common Resend errors
+    if (status === 401) {
+      throw new Error(
+        `[Resend] ❌ INVALID API KEY (401 Unauthorized)\n` +
+        `  → Your RESEND_API_KEY is wrong or expired.\n` +
+        `  → Go to https://resend.com/api-keys and create a new one.\n` +
+        `  → Make sure you copied the full key starting with "re_"`
+      );
+    }
+    if (status === 403) {
+      throw new Error(
+        `[Resend] ❌ FORBIDDEN (403)\n` +
+        `  → Your API key doesn't have permission to send emails.\n` +
+        `  → If using a custom "from" address, verify your domain first at https://resend.com/domains\n` +
+        `  → Or remove EMAIL_FROM env var to use the default "onboarding@resend.dev"`
+      );
+    }
+    if (status === 422) {
+      throw new Error(
+        `[Resend] ❌ VALIDATION ERROR (422): ${err.message || JSON.stringify(err)}\n` +
+        `  → Check that the "to" email address is valid: "${to}"\n` +
+        `  → Check that EMAIL_FROM is properly formatted: "${EMAIL_FROM}"`
+      );
+    }
+    if (status === 429) {
+      throw new Error(
+        `[Resend] ❌ RATE LIMIT HIT (429)\n` +
+        `  → Free tier limit: 100 emails/day, 2 emails/second.\n` +
+        `  → Wait a moment and try again, or upgrade at https://resend.com/pricing`
+      );
+    }
+
+    throw new Error(
+      `[Resend] ❌ API ERROR (${status}): ${err.message || JSON.stringify(err)}\n` +
+      `  → Check Resend dashboard for details: https://resend.com/emails`
+    );
   }
-  return res.json();
+
+  const result = await res.json();
+  console.log(`✅ [Resend] Email sent successfully! ID: ${result.id}`);
+  return result;
 }
 
 // ── Send email via Nodemailer SMTP (local dev fallback) ────────────────
 let _transporter = null;
-function sendViaSMTP(to, subject, html) {
+async function sendViaSMTP(to, subject, html) {
+  console.log(`📧 [SMTP] Sending to: ${to} | Subject: "${subject.substring(0, 50)}..."`);
+
   if (!_transporter) {
     const nodemailer = require('nodemailer');
     _transporter = nodemailer.createTransport({
@@ -40,27 +116,63 @@ function sendViaSMTP(to, subject, html) {
       greetingTimeout: 10000,
       socketTimeout: 15000,
     });
-    console.log('📧 Gmail SMTP transporter created (local dev)');
+    console.log('📧 [SMTP] Gmail transporter created');
   }
-  return _transporter.sendMail({
-    from: `"Festiverse'26" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    html,
-  });
+
+  try {
+    const info = await _transporter.sendMail({
+      from: `"Festiverse'26" <${process.env.EMAIL_USER}>`,
+      to,
+      subject,
+      html,
+    });
+    console.log(`✅ [SMTP] Email sent successfully! MessageId: ${info.messageId}`);
+    return info;
+  } catch (err) {
+    // Developer-friendly error messages for common SMTP errors
+    if (err.code === 'ESOCKET' || err.code === 'ETIMEDOUT' || err.code === 'ENETUNREACH') {
+      throw new Error(
+        `[SMTP] ❌ CONNECTION FAILED: ${err.message}\n` +
+        `  → 🚨 If on Render free tier: SMTP ports (465/587) are BLOCKED!\n` +
+        `  → FIX: Switch to Resend HTTP API instead:\n` +
+        `     1. Sign up free at https://resend.com\n` +
+        `     2. Get API key at https://resend.com/api-keys\n` +
+        `     3. Add RESEND_API_KEY=re_xxxxx to Render env vars\n` +
+        `  → If running locally: check your internet connection`
+      );
+    }
+    if (err.code === 'EAUTH' || err.responseCode === 535) {
+      throw new Error(
+        `[SMTP] ❌ AUTHENTICATION FAILED\n` +
+        `  → EMAIL_USER: "${process.env.EMAIL_USER}" — is this correct?\n` +
+        `  → EMAIL_APP_PASSWORD — is this a valid Gmail App Password?\n` +
+        `  → Generate one at: https://myaccount.google.com/apppasswords\n` +
+        `  → Make sure 2FA is enabled on your Google account first`
+      );
+    }
+
+    throw new Error(`[SMTP] ❌ UNKNOWN ERROR: ${err.message} (code: ${err.code})`);
+  }
 }
 
 // ── Unified send function ──────────────────────────────────────────────
 async function sendEmail(to, subject, html) {
   if (RESEND_API_KEY) {
-    console.log(`📧 Sending via Resend to ${to}`);
     return sendViaResend(to, subject, html);
   }
   if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
-    console.log(`📧 Sending via SMTP to ${to}`);
     return sendViaSMTP(to, subject, html);
   }
-  throw new Error('No email provider configured. Set RESEND_API_KEY or EMAIL_USER + EMAIL_APP_PASSWORD.');
+  throw new Error(
+    `❌ NO EMAIL PROVIDER CONFIGURED!\n` +
+    `  → Option A (recommended for Render): Set RESEND_API_KEY env var\n` +
+    `     1. Sign up free at https://resend.com\n` +
+    `     2. Create API key at https://resend.com/api-keys\n` +
+    `     3. Add to Render: RESEND_API_KEY=re_xxxxxxxxx\n` +
+    `  → Option B (local dev only): Set these env vars:\n` +
+    `     EMAIL_USER=your@gmail.com\n` +
+    `     EMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx`
+  );
 }
 
 // ── Design tokens — Luxury Editorial ──────────────────────────────────
