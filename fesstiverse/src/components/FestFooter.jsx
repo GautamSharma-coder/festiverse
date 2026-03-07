@@ -324,6 +324,7 @@ const styles = `
 const FestFooter = ({ onAdminClick }) => {
   const [subscribed, setSubscribed] = useState(false);
   const [email, setEmail] = useState('');
+  const [tapCount, setTapCount] = useState(0);
 
   const handleSubscribe = (e) => {
     e.preventDefault();
@@ -418,7 +419,17 @@ const FestFooter = ({ onAdminClick }) => {
 
           {/* Bottom bar */}
           <div className="ff-bottom">
-            <div className="ff-copy">
+            <div
+              className="ff-copy"
+              onClick={() => {
+                setTapCount((prev) => prev + 1);
+                if (tapCount + 1 >= 5) {
+                  onAdminClick();
+                  setTapCount(0);
+                }
+              }}
+              style={{ cursor: 'pointer' }}
+            >
               © 2026 FESTIVERSE — All rights reserved
             </div>
             <div className="ff-college">
