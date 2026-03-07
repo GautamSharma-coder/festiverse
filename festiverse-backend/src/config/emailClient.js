@@ -1,25 +1,66 @@
-const nodemailer = require('nodemailer');
+/**
+ * Email client for Festiverse'26
+ * Uses Resend HTTP API (works on Render free tier where SMTP ports are blocked)
+ * Falls back to Nodemailer SMTP for local development
+ */
 
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const EMAIL_FROM = process.env.EMAIL_FROM || 'Festiverse\'26 <onboarding@resend.dev>';
+
+// ── Send email via Resend HTTP API ─────────────────────────────────────
+async function sendViaResend(to, subject, html) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from: EMAIL_FROM, to, subject, html }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`Resend API error (${res.status}): ${err.message || JSON.stringify(err)}`);
+  }
+  return res.json();
+}
+
+// ── Send email via Nodemailer SMTP (local dev fallback) ────────────────
 let _transporter = null;
-
-function getTransporter() {
+function sendViaSMTP(to, subject, html) {
   if (!_transporter) {
+    const nodemailer = require('nodemailer');
     _transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 465,
       secure: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_APP_PASSWORD,
-      },
-      family: 4,                 // Force IPv4 (Render doesn't support IPv6 outbound)
-      connectionTimeout: 10000,  // 10s to establish connection
-      greetingTimeout: 10000,    // 10s for SMTP greeting
-      socketTimeout: 15000,      // 15s socket inactivity timeout
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_APP_PASSWORD },
+      family: 4,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
-    console.log('📧 Gmail SMTP transporter created');
+    console.log('📧 Gmail SMTP transporter created (local dev)');
   }
-  return _transporter;
+  return _transporter.sendMail({
+    from: `"Festiverse'26" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html,
+  });
+}
+
+// ── Unified send function ──────────────────────────────────────────────
+async function sendEmail(to, subject, html) {
+  if (RESEND_API_KEY) {
+    console.log(`📧 Sending via Resend to ${to}`);
+    return sendViaResend(to, subject, html);
+  }
+  if (process.env.EMAIL_USER && process.env.EMAIL_APP_PASSWORD) {
+    console.log(`📧 Sending via SMTP to ${to}`);
+    return sendViaSMTP(to, subject, html);
+  }
+  throw new Error('No email provider configured. Set RESEND_API_KEY or EMAIL_USER + EMAIL_APP_PASSWORD.');
 }
 
 // ── Design tokens — Luxury Editorial ──────────────────────────────────
@@ -115,7 +156,6 @@ function emailFooter() {
 
 // ── OTP Email ──────────────────────────────────────────────────────────
 async function sendOTPEmail(toEmail, otp) {
-  const transporter = getTransporter();
   const digits = String(otp).split('');
 
   const html = `<!DOCTYPE html>
@@ -212,18 +252,11 @@ async function sendOTPEmail(toEmail, otp) {
 </body>
 </html>`;
 
-  await transporter.sendMail({
-    from: `"Festiverse'26" <${process.env.EMAIL_USER}>`,
-    to: toEmail,
-    subject: `Your Verification Code: ${otp} — Festiverse'26`,
-    html,
-  });
+  await sendEmail(toEmail, `Your Verification Code: ${otp} — Festiverse'26`, html);
 }
 
 // ── Confirmation Email ─────────────────────────────────────────────────
 async function sendConfirmationEmail(toEmail, name) {
-  const transporter = getTransporter();
-
   const steps = [
     { num: 'I', title: 'Discover Events', desc: 'Browse the complete programme of technical and cultural competitions.' },
     { num: 'II', title: 'Form Your Ensemble', desc: 'Assemble a team for collaborative events and group challenges.' },
@@ -271,8 +304,7 @@ async function sendConfirmationEmail(toEmail, name) {
         <!-- Horizontal rule -->
         <tr>
           <td style="padding:28px 40px 0;">
-            ${ornaDivider(C.ruleLight).replace(/<table[^>]*>[\s\S]*?<\/table>/,
-    `<div style="height:1px;background:linear-gradient(90deg,transparent,${C.ruleLight},transparent);"></div>`)}
+            <div style="height:1px;background:linear-gradient(90deg,transparent,${C.ruleLight},transparent);"></div>
           </td>
         </tr>
 
@@ -334,12 +366,7 @@ async function sendConfirmationEmail(toEmail, name) {
 </body>
 </html>`;
 
-  await transporter.sendMail({
-    from: `"Festiverse'26" <${process.env.EMAIL_USER}>`,
-    to: toEmail,
-    subject: `Your Admission is Confirmed, ${name} — Festiverse'26`,
-    html,
-  });
+  await sendEmail(toEmail, `Your Admission is Confirmed, ${name} — Festiverse'26`, html);
 }
 
 module.exports = { sendOTPEmail, sendConfirmationEmail };

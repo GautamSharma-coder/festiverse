@@ -26,8 +26,8 @@ const missing = REQUIRED_ENV.filter(k => !process.env[k]);
 if (missing.length > 0) {
     console.warn(`⚠️  Missing env vars: ${missing.join(', ')}`);
 }
-if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD) {
-    console.warn('⚠️  Email OTP disabled — EMAIL_USER / EMAIL_APP_PASSWORD not set');
+if (!process.env.RESEND_API_KEY && (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD)) {
+    console.warn('⚠️  Email disabled — set RESEND_API_KEY or EMAIL_USER + EMAIL_APP_PASSWORD');
 }
 
 // ─── Middleware ───
