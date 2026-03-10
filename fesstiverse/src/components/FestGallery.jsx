@@ -446,7 +446,7 @@ const FestGallery2 = () => {
     <>
       <style>{styles}</style>
 
-      <section className="fg2-root">
+      <section id="gallery" className="fg2-root">
         <div className="fg2-watermark">MEMORIES</div>
         <div className="fg2-noise" />
 

@@ -239,10 +239,11 @@ const AdminPanel = ({ onClose }) => {
     const [search, setSearch] = useState('');
     const [newNotice, setNewNotice] = useState({ title: '', description: '', color: '#3b82f6' });
 
-    const [newEvent, setNewEvent] = useState({ name: '', location: '', date: '', description: '' });
+    const [newEvent, setNewEvent] = useState({ name: '', location: '', date: '', description: '', rules: '', schedule: '', prizes: '' });
     const [newTeam, setNewTeam] = useState({ name: '', role: '', bio: '', social_link: '', society: '', category: 'Coordinator' });
     const [teamImage, setTeamImage] = useState(null);
     const [galleryImage, setGalleryImage] = useState(null);
+    const [eventImage, setEventImage] = useState(null);
     const [galleryMeta, setGalleryMeta] = useState({ title: '', category: '' });
 
     // Editing states
@@ -365,8 +366,19 @@ const AdminPanel = ({ onClose }) => {
     const addEvent = async (e) => {
         e.preventDefault();
         try {
-            await adminFetch('/api/admin/events', { method: 'POST', body: JSON.stringify(newEvent) });
-            setNewEvent({ name: '', location: '', date: '', description: '' });
+            const formData = new FormData();
+            formData.append('name', newEvent.name);
+            formData.append('location', newEvent.location);
+            formData.append('date', newEvent.date);
+            formData.append('description', newEvent.description);
+            formData.append('rules', newEvent.rules);
+            formData.append('schedule', JSON.stringify([newEvent.schedule]));
+            formData.append('prizes', newEvent.prizes);
+            if (eventImage) formData.append('image', eventImage);
+
+            await adminFetch('/api/admin/events', { method: 'POST', body: formData });
+            setNewEvent({ name: '', location: '', date: '', description: '', rules: '', schedule: '', prizes: '' });
+            setEventImage(null);
             flash('Event added successfully');
             fetchTabData();
         } catch (err) { flash(err.message, 'err'); }
@@ -420,8 +432,25 @@ const AdminPanel = ({ onClose }) => {
     const updateEvent = async (e) => {
         e.preventDefault();
         try {
-            await adminFetch(`/api/admin/events/${editingEvent.id}`, { method: 'PUT', body: JSON.stringify(editingEvent) });
+            const formData = new FormData();
+            formData.append('name', editingEvent.name);
+            formData.append('location', editingEvent.location);
+            if (editingEvent.date) formData.append('date', editingEvent.date);
+            formData.append('description', editingEvent.description);
+            formData.append('rules', editingEvent.rules || '');
+
+            // Handle schedule array/string conversion safely
+            const schedStr = typeof editingEvent.schedule === 'string'
+                ? JSON.stringify([editingEvent.schedule])
+                : JSON.stringify(editingEvent.schedule || []);
+            formData.append('schedule', schedStr);
+
+            formData.append('prizes', editingEvent.prizes || '');
+            if (eventImage) formData.append('image', eventImage);
+
+            await adminFetch(`/api/admin/events/${editingEvent.id}`, { method: 'PUT', body: formData });
             setEditingEvent(null);
+            setEventImage(null);
             flash('Event updated successfully');
             fetchTabData();
         } catch (err) { flash(err.message, 'err'); }
@@ -666,6 +695,7 @@ const AdminPanel = ({ onClose }) => {
                                 }
                                 grouped[uid].events.push({
                                     id: r.id,
+                                    custom_id: r.custom_id,
                                     name: r.events?.name || '—',
                                     date: r.created_at,
                                     team_members: r.team_members,
@@ -713,7 +743,10 @@ const AdminPanel = ({ onClose }) => {
                                                             {(g.user.name || '?')[0].toUpperCase()}
                                                         </div>
                                                         <div style={{ flex: 1, minWidth: 0 }}>
-                                                            <div style={{ fontWeight: 700, fontSize: '.88rem' }}>{g.user.name || '—'}</div>
+                                                            <div style={{ fontWeight: 700, fontSize: '.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                {g.user.name || '—'}
+                                                                {g.user.has_paid ? <span style={{ color: '#86efac', background: 'rgba(34,197,94,.1)', padding: '2px 6px', borderRadius: 4, fontSize: '.65rem', fontWeight: 600 }}>Paid</span> : <span style={{ color: '#fca5a5', background: 'rgba(239,68,68,.1)', padding: '2px 6px', borderRadius: 4, fontSize: '.65rem', fontWeight: 600 }}>Unpaid</span>}
+                                                            </div>
                                                             <div style={{ fontSize: '.72rem', color: 'var(--muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                                                                 <span>📞 {g.user.phone || '—'}</span>
                                                                 {g.user.email && <span>✉ {g.user.email}</span>}
@@ -734,6 +767,7 @@ const AdminPanel = ({ onClose }) => {
                                                                 fontSize: '.78rem', fontWeight: 500, color: 'var(--text)',
                                                             }}>
                                                                 <span>{ev.name}</span>
+                                                                {ev.custom_id && <span style={{ fontSize: '.65rem', padding: '1px 5px', background: 'var(--border)', borderRadius: 4, marginLeft: 6, color: 'var(--text)', fontWeight: '500', letterSpacing: '0.05em' }}>{ev.custom_id}</span>}
                                                                 {ev.team_size > 1 && <span style={{ fontSize: '.6rem', color: 'var(--accent)', fontWeight: 700 }}>TEAM</span>}
                                                                 {ev.team_members && ev.team_members.length > 0 && (
                                                                     <span style={{ fontSize: '.65rem', color: 'var(--muted)' }}>
@@ -778,7 +812,7 @@ const AdminPanel = ({ onClose }) => {
                                 </div>
                                 <div className="ap-card" style={{ padding: 0, overflow: 'hidden' }}>
                                     <table className="ap-table">
-                                        <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>College</th><th>Joined</th><th></th></tr></thead>
+                                        <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>College</th><th>Payment</th><th>Joined</th><th></th></tr></thead>
                                         <tbody>
                                             {users.filter(u => !search || (u.name || '').toLowerCase().includes(search.toLowerCase()) || (u.phone || '').includes(search)).map(u => (
                                                 <tr key={u.id}>
@@ -786,10 +820,11 @@ const AdminPanel = ({ onClose }) => {
                                                     <td>{u.phone}</td>
                                                     <td style={{ color: 'var(--muted)' }}>{u.email || '—'}</td>
                                                     <td style={{ color: 'var(--muted)' }}>{u.college || '—'}</td>
+                                                    <td>{u.has_paid ? <span style={{ color: '#86efac', background: 'rgba(34,197,94,.1)', padding: '2px 6px', borderRadius: 4, fontSize: '.7rem' }}>Paid</span> : <span style={{ color: '#fca5a5', background: 'rgba(239,68,68,.1)', padding: '2px 6px', borderRadius: 4, fontSize: '.7rem' }}>Unpaid</span>}</td>
                                                     <td style={{ fontSize: '.75rem', color: 'var(--muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
                                                     <td>
                                                         <div className="ap-actions">
-                                                            <button className="ap-edit" onClick={() => { setEditingUser(u); window.scrollTo(0, 0); }}>Edit</button>
+                                                            <button className="ap-edit" onClick={() => { setEditingUser({ ...u, name: u.name || '', phone: u.phone || '', email: u.email || '', college: u.college || '' }); window.scrollTo(0, 0); }}>Edit</button>
                                                             <button className="ap-del" onClick={() => deleteUser(u.id)}>Delete</button>
                                                         </div>
                                                     </td>
@@ -838,12 +873,22 @@ const AdminPanel = ({ onClose }) => {
                                             <div className="ap-form-grid">
                                                 <div className="ap-field"><label>Event Name *</label><input required placeholder="e.g. Solo Dance" value={editingEvent.name} onChange={e => setEditingEvent({ ...editingEvent, name: e.target.value })} /></div>
                                                 <div className="ap-field"><label>Location</label><input placeholder="e.g. Main Stage" value={editingEvent.location} onChange={e => setEditingEvent({ ...editingEvent, location: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Date</label><input type="date" value={editingEvent.date} onChange={e => setEditingEvent({ ...editingEvent, date: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Description</label><input placeholder="Brief description" value={editingEvent.description} onChange={e => setEditingEvent({ ...editingEvent, description: e.target.value })} /></div>
+                                                <div className="ap-field"><label>Date</label><input type="date" value={editingEvent.date ? new Date(editingEvent.date).toISOString().split('T')[0] : ''} onChange={e => setEditingEvent({ ...editingEvent, date: e.target.value })} /></div>
+                                                <div className="ap-field"><label>Short Description</label><input placeholder="Brief description" value={editingEvent.description} onChange={e => setEditingEvent({ ...editingEvent, description: e.target.value })} /></div>
+
+                                                <div className="ap-field" style={{ gridColumn: '1 / -1' }}><label>Rules</label><textarea placeholder="Event rules" value={editingEvent.rules || ''} onChange={e => setEditingEvent({ ...editingEvent, rules: e.target.value })} rows="3" /></div>
+                                                <div className="ap-field"><label>Schedule</label><input placeholder="e.g. 10:00 AM - 12:00 PM" value={(Array.isArray(editingEvent.schedule) ? editingEvent.schedule[0] : editingEvent.schedule) || ''} onChange={e => setEditingEvent({ ...editingEvent, schedule: e.target.value })} /></div>
+                                                <div className="ap-field"><label>Prizes</label><input placeholder="e.g. 1st: $500" value={editingEvent.prizes || ''} onChange={e => setEditingEvent({ ...editingEvent, prizes: e.target.value })} /></div>
+
+                                                <div className="ap-field ap-field-file" style={{ gridColumn: '1 / -1' }}>
+                                                    <label>Event Image (Banner/Poster)</label>
+                                                    <input type="file" accept="image/*" onChange={e => setEventImage(e.target.files[0])} />
+                                                    <div className="ap-file-label">{eventImage ? `📷 ${eventImage.name}` : '📷 Change cover image (optional)'}</div>
+                                                </div>
                                             </div>
                                             <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
                                                 <button type="submit" className="ap-btn-submit">Save Changes</button>
-                                                <button type="button" className="ap-btn-ghost" onClick={() => setEditingEvent(null)}>Cancel</button>
+                                                <button type="button" className="ap-btn-ghost" onClick={() => { setEditingEvent(null); setEventImage(null); }}>Cancel</button>
                                             </div>
                                         </form>
                                     </div>
@@ -855,7 +900,17 @@ const AdminPanel = ({ onClose }) => {
                                                 <div className="ap-field"><label>Event Name *</label><input required placeholder="e.g. Solo Dance" value={newEvent.name} onChange={e => setNewEvent({ ...newEvent, name: e.target.value })} /></div>
                                                 <div className="ap-field"><label>Location</label><input placeholder="e.g. Main Stage" value={newEvent.location} onChange={e => setNewEvent({ ...newEvent, location: e.target.value })} /></div>
                                                 <div className="ap-field"><label>Date</label><input type="date" value={newEvent.date} onChange={e => setNewEvent({ ...newEvent, date: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Description</label><input placeholder="Brief description" value={newEvent.description} onChange={e => setNewEvent({ ...newEvent, description: e.target.value })} /></div>
+                                                <div className="ap-field"><label>Short Description</label><input placeholder="Brief description" value={newEvent.description} onChange={e => setNewEvent({ ...newEvent, description: e.target.value })} /></div>
+
+                                                <div className="ap-field" style={{ gridColumn: '1 / -1' }}><label>Rules</label><textarea placeholder="Event rules" value={newEvent.rules} onChange={e => setNewEvent({ ...newEvent, rules: e.target.value })} rows="3" /></div>
+                                                <div className="ap-field"><label>Schedule</label><input placeholder="e.g. 10:00 AM - 12:00 PM" value={newEvent.schedule} onChange={e => setNewEvent({ ...newEvent, schedule: e.target.value })} /></div>
+                                                <div className="ap-field"><label>Prizes</label><input placeholder="e.g. 1st: $500" value={newEvent.prizes} onChange={e => setNewEvent({ ...newEvent, prizes: e.target.value })} /></div>
+
+                                                <div className="ap-field ap-field-file" style={{ gridColumn: '1 / -1' }}>
+                                                    <label>Event Image (Banner/Poster)</label>
+                                                    <input type="file" accept="image/*" onChange={e => setEventImage(e.target.files[0])} />
+                                                    <div className="ap-file-label">{eventImage ? `📷 ${eventImage.name}` : '📷 Choose cover image (optional)'}</div>
+                                                </div>
                                             </div>
                                             <button type="submit" className="ap-btn-submit">+ Add Event</button>
                                         </form>
@@ -875,7 +930,7 @@ const AdminPanel = ({ onClose }) => {
                                                     <td>{ev.team_size > 1 ? <span style={{ color: 'var(--accent)' }}>Team ×{ev.team_size}</span> : <span style={{ color: 'var(--muted)' }}>Solo</span>}</td>
                                                     <td>
                                                         <div className="ap-actions">
-                                                            <button className="ap-edit" onClick={() => { setEditingEvent(ev); window.scrollTo(0, 0); }}>Edit</button>
+                                                            <button className="ap-edit" onClick={() => { setEditingEvent({ ...ev, name: ev.name || '', location: ev.location || '', date: ev.date || '', description: ev.description || '', rules: ev.rules || '', schedule: ev.schedule || '', prizes: ev.prizes || '' }); window.scrollTo(0, 0); }}>Edit</button>
                                                             <button className="ap-del" onClick={() => deleteEvent(ev.id)}>Delete</button>
                                                         </div>
                                                     </td>
@@ -975,7 +1030,7 @@ const AdminPanel = ({ onClose }) => {
                                                 {m.society && <div className="ap-team-society">{m.society}</div>}
                                                 <div className={`ap-badge ${badgeClass(m.category)}`}>{m.category || 'Coordinator'}</div>
                                                 <div className="ap-actions" style={{ marginTop: 10, justifyContent: 'center' }}>
-                                                    <button className="ap-edit" onClick={() => { setEditingTeam(m); window.scrollTo(0, 0); }}>Edit</button>
+                                                    <button className="ap-edit" onClick={() => { setEditingTeam({ ...m, name: m.name || '', role: m.role || '', category: m.category || 'Coordinator', society: m.society || '', bio: m.bio || '', social_link: m.social_link || '' }); window.scrollTo(0, 0); }}>Edit</button>
                                                     <button className="ap-del" onClick={() => deleteTeamMember(m.id)}>Remove</button>
                                                 </div>
                                             </div>
@@ -1044,7 +1099,7 @@ const AdminPanel = ({ onClose }) => {
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
                                                         <span className="ap-gal-cat">{img.category || '—'}</span>
                                                         <div className="ap-actions">
-                                                            <button className="ap-edit" onClick={() => { setEditingGallery(img); window.scrollTo(0, 0); }}>Edit</button>
+                                                            <button className="ap-edit" onClick={() => { setEditingGallery({ ...img, title: img.title || '', category: img.category || '' }); window.scrollTo(0, 0); }}>Edit</button>
                                                             <button className="ap-del" onClick={() => deleteGalleryImage(img.id)}>✕</button>
                                                         </div>
                                                     </div>
@@ -1127,7 +1182,7 @@ const AdminPanel = ({ onClose }) => {
                                             </div>
                                             <div style={{ fontSize: '.65rem', color: 'var(--muted)', flexShrink: 0, marginRight: 10 }}>{new Date(n.created_at).toLocaleDateString()}</div>
                                             <div className="ap-actions">
-                                                <button className="ap-edit" onClick={() => { setEditingNotice(n); window.scrollTo(0, 0); }}>Edit</button>
+                                                <button className="ap-edit" onClick={() => { setEditingNotice({ ...n, title: n.title || '', description: n.description || '', color: n.color || '#3b82f6' }); window.scrollTo(0, 0); }}>Edit</button>
                                                 <button className="ap-del" onClick={() => deleteNotice(n.id)}>✕</button>
                                             </div>
                                         </div>
@@ -1156,6 +1211,7 @@ const AdminPanel = ({ onClose }) => {
                                             <div style={{ marginTop: 8, fontSize: '.78rem' }}>
                                                 <div>Name: <strong>{checkinResult.registration.users?.name}</strong></div>
                                                 <div>Event: <strong>{checkinResult.registration.events?.name}</strong></div>
+                                                <div style={{ marginTop: 4 }}>Payment: <strong>{checkinResult.registration.users?.has_paid ? <span style={{ color: '#86efac' }}>Paid ✅</span> : <span style={{ color: '#fca5a5' }}>Unpaid ❌</span>}</strong></div>
                                             </div>
                                         )}
                                     </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 
 /* ── CSS ─────────────────────────────────────────────────────────────── */
@@ -401,7 +402,7 @@ const CSS = `
     word-break: break-word;
   }
   .d-team-row {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;
+    display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 8px; margin-bottom: 8px;
     min-width: 0;
   }
   .d-team-row input {
@@ -553,463 +554,493 @@ const Spin = () => <span className="d-spin" />;
 
 /* ── SVG check ─── */
 const Check = () => (
-    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-        <path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+    <path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
 );
 
 /* ── Main Component ─────────────────────────────────────────────────── */
 const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
-    const [activeTab, setActiveTab] = useState('profile');
-    const [profile, setProfile] = useState({
-        name: user?.name || '', email: user?.email || '',
-        phone: user?.phone || '', college: user?.college || '',
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('profile');
+  const [profile, setProfile] = useState({
+    name: user?.name || '', email: user?.email || '',
+    phone: user?.phone || '', college: user?.college || '',
+  });
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url || '');
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const [myEvents, setMyEvents] = useState([]);
+  const [allEvents, setAllEvents] = useState([]);
+  const [selectedEvents, setSelectedEvents] = useState([]);
+  const [teamMembers, setTeamMembers] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState({ text: '', type: '' });
+  const [eventSearch, setEventSearch] = useState('');
+  const [qrModal, setQrModal] = useState(null); // registration id for QR
+  const [qrImage, setQrImage] = useState('');
+  const [qrLoading, setQrLoading] = useState(false);
+
+  useEffect(() => { fetchProfile(); fetchMyEvents(); fetchAllEvents(); }, []);
+
+  const fetchProfile = async () => { try { const d = await apiFetch('/api/auth/profile'); if (d.user) { setProfile({ name: d.user.name || '', email: d.user.email || '', phone: d.user.phone || '', college: d.user.college || '' }); if (d.user.avatar_url) setAvatarUrl(d.user.avatar_url); } } catch { } };
+  const fetchMyEvents = async () => { try { const d = await apiFetch('/api/events/my-events'); setMyEvents(d.registrations || []); } catch { } };
+  const fetchAllEvents = async () => { try { const d = await apiFetch('/api/events'); setAllEvents(d.events || []); } catch { } };
+
+  const saveProfile = async () => {
+    setSaving(true); setMsg({ text: '', type: '' });
+    try {
+      let data;
+      if (avatarFile) {
+        // Use FormData for avatar upload
+        const formData = new FormData();
+        formData.append('name', profile.name);
+        formData.append('email', profile.email);
+        formData.append('college', profile.college);
+        formData.append('avatar', avatarFile);
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const res = await fetch(`${API_URL}/api/auth/profile`, {
+          method: 'PUT',
+          body: formData,
+          credentials: 'include', // Include httpOnly cookies
+        });
+        data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Upload failed');
+      } else {
+        data = await apiFetch('/api/auth/profile', {
+          method: 'PUT',
+          body: JSON.stringify({ name: profile.name, email: profile.email, college: profile.college }),
+        });
+      }
+      setMsg({ text: 'Profile saved successfully.', type: 'ok' });
+      if (data.user?.avatar_url) { setAvatarUrl(data.user.avatar_url); setAvatarFile(null); setAvatarPreview(''); }
+      if (onProfileUpdate && data.user) onProfileUpdate(data.user);
+    } catch (e) { setMsg({ text: e.message, type: 'err' }); }
+    finally { setSaving(false); }
+  };
+
+  const toggleEvent = (id) => {
+    setSelectedEvents(prev => {
+      if (prev.includes(id)) {
+        const copy = { ...teamMembers }; delete copy[id]; setTeamMembers(copy);
+        return prev.filter(e => e !== id);
+      }
+      const ev = allEvents.find(e => e.id === id);
+      if (ev?.team_size > 1) {
+        const slots = Array.from({ length: ev.team_size - 1 }, () => ({ name: '', phone: '', email: '' }));
+        setTeamMembers(p => ({ ...p, [id]: slots }));
+      }
+      return [...prev, id];
     });
-    const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url || '');
-    const [avatarFile, setAvatarFile] = useState(null);
-    const [avatarPreview, setAvatarPreview] = useState('');
-    const [myEvents, setMyEvents] = useState([]);
-    const [allEvents, setAllEvents] = useState([]);
-    const [selectedEvents, setSelectedEvents] = useState([]);
-    const [teamMembers, setTeamMembers] = useState({});
-    const [saving, setSaving] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [msg, setMsg] = useState({ text: '', type: '' });
-    const [eventSearch, setEventSearch] = useState('');
-    const [qrModal, setQrModal] = useState(null); // registration id for QR
-    const [qrImage, setQrImage] = useState('');
-    const [qrLoading, setQrLoading] = useState(false);
+  };
 
-    useEffect(() => { fetchProfile(); fetchMyEvents(); fetchAllEvents(); }, []);
+  const updateMember = (eid, idx, field, val) =>
+    setTeamMembers(p => {
+      const arr = [...(p[eid] || [])];
+      arr[idx] = { ...arr[idx], [field]: val };
+      return { ...p, [eid]: arr };
+    });
 
-    const fetchProfile = async () => { try { const d = await apiFetch('/api/auth/profile'); if (d.user) { setProfile({ name: d.user.name || '', email: d.user.email || '', phone: d.user.phone || '', college: d.user.college || '' }); if (d.user.avatar_url) setAvatarUrl(d.user.avatar_url); } } catch { } };
-    const fetchMyEvents = async () => { try { const d = await apiFetch('/api/events/my-events'); setMyEvents(d.registrations || []); } catch { } };
-    const fetchAllEvents = async () => { try { const d = await apiFetch('/api/events'); setAllEvents(d.events || []); } catch { } };
+  const registerEvents = async () => {
+    if (!selectedEvents.length) return setMsg({ text: 'Select at least one event to continue.', type: 'err' });
+    for (const eid of selectedEvents) {
+      const ev = allEvents.find(e => e.id === eid);
+      if (ev?.team_size > 1) {
+        const members = teamMembers[eid] || [];
+        if (members.some(m => !m.name.trim()))
+          return setMsg({ text: `Fill in all team member names for "${ev.name}".`, type: 'err' });
+      }
+    }
+    setLoading(true);
+    try {
+      const payload = selectedEvents.map(eid => ({ eventId: eid, teamMembers: teamMembers[eid] || [] }));
+      await apiFetch('/api/events/register', { method: 'POST', body: JSON.stringify({ registrations: payload }) });
+      setMsg({ text: 'Registered! See you at the festival.', type: 'ok' });
+      setSelectedEvents([]); setTeamMembers({}); fetchMyEvents();
+    } catch (e) { setMsg({ text: e.message, type: 'err' }); }
+    finally { setLoading(false); }
+  };
 
-    const saveProfile = async () => {
-        setSaving(true); setMsg({ text: '', type: '' });
-        try {
-            let data;
-            if (avatarFile) {
-                // Use FormData for avatar upload
-                const formData = new FormData();
-                formData.append('name', profile.name);
-                formData.append('email', profile.email);
-                formData.append('college', profile.college);
-                formData.append('avatar', avatarFile);
-                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-                const token = localStorage.getItem('festiverse_token');
-                const res = await fetch(`${API_URL}/api/auth/profile`, {
-                    method: 'PUT',
-                    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-                    body: formData,
-                });
-                data = await res.json();
-                if (!res.ok) throw new Error(data.message || 'Upload failed');
-            } else {
-                data = await apiFetch('/api/auth/profile', {
-                    method: 'PUT',
-                    body: JSON.stringify({ name: profile.name, email: profile.email, college: profile.college }),
-                });
-            }
-            setMsg({ text: 'Profile saved successfully.', type: 'ok' });
-            if (data.user?.avatar_url) { setAvatarUrl(data.user.avatar_url); setAvatarFile(null); setAvatarPreview(''); }
-            if (onProfileUpdate && data.user) onProfileUpdate(data.user);
-        } catch (e) { setMsg({ text: e.message, type: 'err' }); }
-        finally { setSaving(false); }
-    };
+  const registeredIds = myEvents.map(r => r.event_id);
+  const initials = (user?.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
-    const toggleEvent = (id) => {
-        setSelectedEvents(prev => {
-            if (prev.includes(id)) {
-                const copy = { ...teamMembers }; delete copy[id]; setTeamMembers(copy);
-                return prev.filter(e => e !== id);
-            }
-            const ev = allEvents.find(e => e.id === id);
-            if (ev?.team_size > 1) {
-                const slots = Array.from({ length: ev.team_size - 1 }, () => ({ name: '', phone: '' }));
-                setTeamMembers(p => ({ ...p, [id]: slots }));
-            }
-            return [...prev, id];
-        });
-    };
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    }
+  };
 
-    const updateMember = (eid, idx, field, val) =>
-        setTeamMembers(p => {
-            const arr = [...(p[eid] || [])];
-            arr[idx] = { ...arr[idx], [field]: val };
-            return { ...p, [eid]: arr };
-        });
+  const showQr = async (regId) => {
+    setQrModal(regId); setQrLoading(true); setQrImage('');
+    try {
+      const d = await apiFetch(`/api/events/qr/${regId}`);
+      setQrImage(d.qrCode || '');
+    } catch (e) {
+      setQrImage('');
+    } finally { setQrLoading(false); }
+  };
 
-    const registerEvents = async () => {
-        if (!selectedEvents.length) return setMsg({ text: 'Select at least one event to continue.', type: 'err' });
-        for (const eid of selectedEvents) {
-            const ev = allEvents.find(e => e.id === eid);
-            if (ev?.team_size > 1) {
-                const members = teamMembers[eid] || [];
-                if (members.some(m => !m.name.trim()))
-                    return setMsg({ text: `Fill in all team member names for "${ev.name}".`, type: 'err' });
-            }
-        }
-        setLoading(true);
-        try {
-            const payload = selectedEvents.map(eid => ({ eventId: eid, teamMembers: teamMembers[eid] || [] }));
-            await apiFetch('/api/events/register', { method: 'POST', body: JSON.stringify({ registrations: payload }) });
-            setMsg({ text: 'Registered! See you at the festival.', type: 'ok' });
-            setSelectedEvents([]); setTeamMembers({}); fetchMyEvents();
-        } catch (e) { setMsg({ text: e.message, type: 'err' }); }
-        finally { setLoading(false); }
-    };
+  const tabs = [
+    { id: 'profile', label: 'Profile', icon: '⊙' },
+    { id: 'my-events', label: 'Tickets', icon: '◎' },
+    { id: 'register', label: 'Explore', icon: '◈' },
+  ];
 
-    const registeredIds = myEvents.map(r => r.event_id);
-    const initials = (user?.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const switchTab = (id) => { setActiveTab(id); setMsg({ text: '', type: '' }); };
 
-    const handleAvatarChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setAvatarFile(file);
-            setAvatarPreview(URL.createObjectURL(file));
-        }
-    };
+  return (
+    <>
+      <style>{CSS}</style>
+      <div className="d-root">
 
-    const showQr = async (regId) => {
-        setQrModal(regId); setQrLoading(true); setQrImage('');
-        try {
-            const d = await apiFetch(`/api/events/qr/${regId}`);
-            setQrImage(d.qrCode || '');
-        } catch (e) {
-            setQrImage('');
-        } finally { setQrLoading(false); }
-    };
-
-    const tabs = [
-        { id: 'profile', label: 'Profile', icon: '⊙' },
-        { id: 'my-events', label: 'Tickets', icon: '◎' },
-        { id: 'register', label: 'Explore', icon: '◈' },
-    ];
-
-    const switchTab = (id) => { setActiveTab(id); setMsg({ text: '', type: '' }); };
-
-    return (
-        <>
-            <style>{CSS}</style>
-            <div className="d-root">
-
-                {/* ── Topbar ── */}
-                <header className="d-topbar">
-                    <div className="d-topbar-left">
-                        <button className="d-back-btn" onClick={onClose}>
-                            <span>←</span>
-                        </button>
-                        <div className="d-logo">Festiver<span>se</span> <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--muted)' }}>'26</span></div>
-                    </div>
-                    <div className="d-topbar-right">
-                        <div className="d-user-chip">
-                            <div className="d-avatar" style={avatarUrl ? { backgroundImage: `url(${avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-                                {!avatarUrl && initials}
-                            </div>
-                            <span className="d-user-chip-name">{user?.name}</span>
-                        </div>
-                        <button className="d-btn-icon" onClick={onLogout}>Logout</button>
-                    </div>
-                </header>
-
-                {/* ── Main body ── */}
-                <main className="d-body">
-
-                    <div className="d-header d-fade">
-                        <h1>My <em>Dashboard</em></h1>
-                        <p>Manage your profile and event registrations</p>
-                    </div>
-
-                    <div className="d-tabs-desktop d-fade" style={{ animationDelay: '.05s' }}>
-                        {tabs.map(t => (
-                            <button key={t.id} className={`d-tab ${activeTab === t.id ? 'active' : ''}`} onClick={() => switchTab(t.id)}>
-                                <span className="d-tab-icon">{t.icon}</span> {t.label}
-                                {t.id === 'my-events' && myEvents.length > 0 && (
-                                    <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 99, padding: '1px 6px', fontSize: '0.7rem', marginLeft: 2 }}>{myEvents.length}</span>
-                                )}
-                            </button>
-                        ))}
-                    </div>
-
-                    {msg.text && (
-                        <div className={`d-msg ${msg.type}`}>
-                            <span className="d-msg-icon">{msg.type === 'ok' ? '✓' : '!'}</span>
-                            {msg.text}
-                        </div>
-                    )}
-
-                    {/* ── PROFILE ── */}
-                    {activeTab === 'profile' && (
-                        <div className="d-fade">
-                            <div className="d-stats">
-                                <div className="d-stat">
-                                    <div className="d-stat-val">{myEvents.length}</div>
-                                    <div className="d-stat-lbl">Registered</div>
-                                </div>
-                                <div className="d-stat">
-                                    <div className="d-stat-val">{allEvents.length}</div>
-                                    <div className="d-stat-lbl">Total Events</div>
-                                </div>
-                                <div className="d-stat">
-                                    <div className="d-stat-val" style={{ fontSize: '1rem', paddingTop: 4 }}>
-                                        {profile.college ? profile.college.split(' ')[0] : '—'}
-                                    </div>
-                                    <div className="d-stat-lbl">College</div>
-                                </div>
-                            </div>
-
-                            <div className="d-card">
-                                {/* Avatar Section */}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-                                    <div style={{
-                                        width: 64, height: 64, borderRadius: '50%',
-                                        background: avatarPreview || avatarUrl
-                                            ? `url(${avatarPreview || avatarUrl}) center/cover`
-                                            : 'linear-gradient(135deg, var(--accent), #f59e0b)',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: '1.3rem', fontWeight: 700, color: '#fff',
-                                        border: '2px solid var(--border)', flexShrink: 0,
-                                    }}>
-                                        {!(avatarPreview || avatarUrl) && initials}
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>Profile Photo</div>
-                                        <label style={{
-                                            display: 'inline-block', fontSize: '0.75rem', color: 'var(--accent)',
-                                            cursor: 'pointer', padding: '4px 10px', borderRadius: 6,
-                                            border: '1px solid rgba(249,115,22,0.3)', background: 'rgba(249,115,22,0.06)',
-                                        }}>
-                                            {avatarFile ? '✓ Photo selected' : '📷 Upload'}
-                                            <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: 'none' }} />
-                                        </label>
-                                        {avatarFile && <span style={{ fontSize: '0.7rem', color: 'var(--muted)', marginLeft: 8 }}>{avatarFile.name}</span>}
-                                    </div>
-                                </div>
-
-                                <div className="d-section-label">Personal Information</div>
-                                <div className="d-form-grid">
-                                    {[
-                                        { label: 'Full Name', key: 'name', type: 'text', disabled: false },
-                                        { label: 'Phone', key: 'phone', type: 'tel', disabled: true },
-                                        { label: 'Email', key: 'email', type: 'email', disabled: false },
-                                        { label: 'College', key: 'college', type: 'text', disabled: false },
-                                    ].map(f => (
-                                        <div key={f.key} className="d-field">
-                                            <label>{f.label}{f.disabled && <span style={{ color: 'var(--muted2)', fontSize: '0.6rem', marginLeft: 5 }}>locked</span>}</label>
-                                            <input
-                                                type={f.type}
-                                                value={profile[f.key]}
-                                                disabled={f.disabled}
-                                                onChange={e => !f.disabled && setProfile({ ...profile, [f.key]: e.target.value })}
-                                                placeholder={f.disabled ? '—' : `Enter ${f.label.toLowerCase()}`}
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="d-divider" />
-                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                    <button className="d-btn-primary" disabled={saving} onClick={saveProfile}>
-                                        {saving ? <><Spin /> Saving…</> : 'Save Changes'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ── MY EVENTS ── */}
-                    {activeTab === 'my-events' && (
-                        <div className="d-fade">
-                            {myEvents.length === 0 ? (
-                                <div className="d-card">
-                                    <div className="d-empty">
-                                        <div className="d-empty-icon">🎟</div>
-                                        <h3>No tickets yet</h3>
-                                        <p>Register for events to see them here.</p>
-                                        <button className="d-btn-primary" onClick={() => switchTab('register')}>
-                                            Explore Events →
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="d-section-label" style={{ marginBottom: 14 }}>Your Registrations</div>
-                                    {myEvents.map((reg, i) => (
-                                        <div key={reg.id} className="d-my-ev d-fade" style={{ animationDelay: `${i * 0.05}s` }}>
-                                            <div className="d-my-ev-dot" />
-                                            <div className="d-my-ev-info">
-                                                <div className="d-my-ev-name">{reg.events?.name || 'Event'}</div>
-                                                <div className="d-my-ev-meta">
-                                                    {[reg.events?.location, reg.events?.date && new Date(reg.events.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })].filter(Boolean).join('  ·  ')}
-                                                </div>
-                                            </div>
-                                            <button
-                                                className="d-btn-ghost"
-                                                style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-                                                onClick={() => showQr(reg.id)}
-                                            >
-                                                📱 QR
-                                            </button>
-                                            <span className="d-my-ev-badge">{reg.checked_in ? 'Checked In' : 'Confirmed'}</span>
-                                        </div>
-                                    ))}
-                                </>
-                            )}
-
-                            {/* QR Modal */}
-                            {qrModal && (
-                                <div style={{
-                                    position: 'fixed', inset: 0, zIndex: 9999,
-                                    background: 'rgba(0,0,0,0.85)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    animation: 'fadeUp .2s ease',
-                                }} onClick={() => { setQrModal(null); setQrImage(''); }}>
-                                    <div style={{
-                                        background: '#fff', borderRadius: 16, padding: 32,
-                                        textAlign: 'center', maxWidth: 340, width: '90%',
-                                    }} onClick={e => e.stopPropagation()}>
-                                        <h3 style={{ color: '#111', fontFamily: 'var(--font-h)', marginBottom: 16, fontSize: '1.1rem' }}>Your Event QR Code</h3>
-                                        {qrLoading ? (
-                                            <p style={{ color: '#666', padding: 20 }}>Generating QR code...</p>
-                                        ) : qrImage ? (
-                                            <img src={qrImage} alt="QR Code" style={{ width: 200, height: 200, margin: '0 auto' }} />
-                                        ) : (
-                                            <p style={{ color: '#999', padding: 20 }}>Could not generate QR code.</p>
-                                        )}
-                                        <p style={{ fontSize: '0.75rem', color: '#999', marginTop: 12 }}>Show this at the event entrance for check-in</p>
-                                        <button onClick={() => { setQrModal(null); setQrImage(''); }}
-                                            style={{
-                                                marginTop: 16, padding: '8px 24px', borderRadius: 8,
-                                                border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
-                                                fontFamily: 'var(--font-b)', fontSize: '0.85rem',
-                                            }}>Close</button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* ── REGISTER ── */}
-                    {activeTab === 'register' && (
-                        <div className="d-fade">
-                            <div className="d-section-label" style={{ marginBottom: 14 }}>
-                                {allEvents.length} Events Available
-                            </div>
-
-                            {/* Search */}
-                            <div style={{ marginBottom: 16 }}>
-                                <input
-                                    type="text"
-                                    placeholder="🔍 Search events by name, location..."
-                                    value={eventSearch}
-                                    onChange={e => setEventSearch(e.target.value)}
-                                    style={{
-                                        width: '100%', padding: '10px 14px',
-                                        background: 'var(--surface)', border: '1px solid var(--border)',
-                                        borderRadius: 10, color: 'var(--text)', fontSize: '0.85rem',
-                                        fontFamily: 'var(--font-b)', outline: 'none',
-                                        transition: 'border-color .15s',
-                                    }}
-                                    onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                                    onBlur={e => e.target.style.borderColor = 'var(--border)'}
-                                />
-                            </div>
-
-                            <div className="d-events-grid">
-                                {allEvents.filter(ev => {
-                                    if (!eventSearch.trim()) return true;
-                                    const q = eventSearch.toLowerCase();
-                                    return (ev.name || '').toLowerCase().includes(q) ||
-                                        (ev.location || '').toLowerCase().includes(q) ||
-                                        (ev.category || '').toLowerCase().includes(q) ||
-                                        (ev.description || '').toLowerCase().includes(q);
-                                }).map((ev, i) => {
-                                    const isReg = registeredIds.includes(ev.id);
-                                    const isSel = selectedEvents.includes(ev.id);
-                                    return (
-                                        <div
-                                            key={ev.id}
-                                            className={`d-ev d-fade ${isReg ? 'd-ev-reg' : ''} ${isSel && !isReg ? 'd-ev-sel' : ''}`}
-                                            style={{ animationDelay: `${i * 0.04}s` }}
-                                        >
-                                            <div onClick={() => !isReg && toggleEvent(ev.id)} style={{ cursor: isReg ? 'default' : 'pointer' }}>
-                                                <div className="d-ev-head">
-                                                    <div className="d-ev-name">{ev.name}</div>
-                                                    <div className="d-ev-badges">
-                                                        {isReg && <span className="d-badge d-badge-green">Confirmed</span>}
-                                                        {isSel && !isReg && <span className="d-badge d-badge-orange">Selected</span>}
-                                                        {ev.team_size > 1 && <span className="d-badge d-badge-amber">Team ×{ev.team_size}</span>}
-                                                    </div>
-                                                </div>
-
-                                                {ev.location && <div className="d-ev-meta"><span>📍</span>{ev.location}</div>}
-                                                {ev.date && <div className="d-ev-meta"><span>🗓</span>{new Date(ev.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</div>}
-                                                {ev.description && <div className="d-ev-desc">{ev.description}</div>}
-
-                                                {!isReg && (
-                                                    <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.78rem', color: isSel ? 'var(--accent)' : 'var(--muted)' }}>
-                                                        <div className={`d-checkbox ${isSel ? 'checked' : ''}`}>{isSel && <Check />}</div>
-                                                        {isSel ? 'Selected' : 'Click to select'}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {isSel && !isReg && ev.team_size > 1 && teamMembers[ev.id] && (
-                                                <div className="d-team-form" onClick={e => e.stopPropagation()}>
-                                                    <div className="d-team-title">
-                                                        <span>◈</span> Team Members — you + {ev.team_size - 1} others
-                                                    </div>
-                                                    {teamMembers[ev.id].map((m, idx) => (
-                                                        <div key={idx} className="d-team-row">
-                                                            <input
-                                                                placeholder={`Member ${idx + 2} name *`}
-                                                                value={m.name}
-                                                                onChange={e => updateMember(ev.id, idx, 'name', e.target.value)}
-                                                            />
-                                                            <input
-                                                                placeholder={`Member ${idx + 2} phone`}
-                                                                value={m.phone}
-                                                                onChange={e => updateMember(ev.id, idx, 'phone', e.target.value)}
-                                                            />
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {selectedEvents.length > 0 && (
-                                <div className="d-reg-bar">
-                                    <div className="d-reg-bar-text">
-                                        <strong>{selectedEvents.length} event{selectedEvents.length !== 1 ? 's' : ''} selected</strong>
-                                        <span>Review your selections before confirming</span>
-                                    </div>
-                                    <button className="d-btn-primary" disabled={loading} onClick={registerEvents}>
-                                        {loading ? <><Spin /> Processing…</> : 'Confirm →'}
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </main>
-
-                {/* ── Mobile bottom nav ── */}
-                <nav className="d-bottom-nav">
-                    <div className="d-bottom-nav-inner">
-                        {tabs.map(t => (
-                            <button key={t.id} className={`d-nav-item ${activeTab === t.id ? 'active' : ''}`} onClick={() => switchTab(t.id)}>
-                                <span className="d-nav-icon">{t.icon}</span>
-                                <span className="d-nav-label">{t.label}</span>
-                            </button>
-                        ))}
-                    </div>
-                </nav>
+        {/* ── Topbar ── */}
+        <header className="d-topbar">
+          <div className="d-topbar-left">
+            <button className="d-back-btn" onClick={onClose}>
+              <span>←</span>
+            </button>
+            <div className="d-logo">Festiver<span>se</span> <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--muted)' }}>'26</span></div>
+          </div>
+          <div className="d-topbar-right">
+            <div className="d-user-chip">
+              <div className="d-avatar" style={avatarUrl ? { backgroundImage: `url(${avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+                {!avatarUrl && initials}
+              </div>
+              <span className="d-user-chip-name">{user?.name}</span>
             </div>
-        </>
-    );
+            <button className="d-btn-icon" onClick={onLogout}>Logout</button>
+          </div>
+        </header>
+
+        {/* ── Main body ── */}
+        <main className="d-body">
+
+          <div className="d-header d-fade">
+            <h1>My <em>Dashboard</em></h1>
+            <p>Manage your profile and event registrations</p>
+          </div>
+
+          <div className="d-tabs-desktop d-fade" style={{ animationDelay: '.05s' }}>
+            {tabs.map(t => (
+              <button key={t.id} className={`d-tab ${activeTab === t.id ? 'active' : ''}`} onClick={() => switchTab(t.id)}>
+                <span className="d-tab-icon">{t.icon}</span> {t.label}
+                {t.id === 'my-events' && myEvents.length > 0 && (
+                  <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 99, padding: '1px 6px', fontSize: '0.7rem', marginLeft: 2 }}>{myEvents.length}</span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {msg.text && (
+            <div className={`d-msg ${msg.type}`}>
+              <span className="d-msg-icon">{msg.type === 'ok' ? '✓' : '!'}</span>
+              {msg.text}
+            </div>
+          )}
+
+          {/* ── PROFILE ── */}
+          {activeTab === 'profile' && (
+            <div className="d-fade">
+              <div className="d-stats">
+                <div className="d-stat">
+                  <div className="d-stat-val">{myEvents.length}</div>
+                  <div className="d-stat-lbl">Registered</div>
+                </div>
+                <div className="d-stat">
+                  <div className="d-stat-val">{allEvents.length}</div>
+                  <div className="d-stat-lbl">Total Events</div>
+                </div>
+                <div className="d-stat">
+                  <div className="d-stat-val" style={{ fontSize: '1rem', paddingTop: 4 }}>
+                    {profile.college ? profile.college.split(' ')[0] : '—'}
+                  </div>
+                  <div className="d-stat-lbl">College</div>
+                </div>
+              </div>
+
+              <div className="d-card">
+                {/* Avatar Section */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                  <div style={{
+                    width: 64, height: 64, borderRadius: '50%',
+                    background: avatarPreview || avatarUrl
+                      ? `url(${avatarPreview || avatarUrl}) center/cover`
+                      : 'linear-gradient(135deg, var(--accent), #f59e0b)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '1.3rem', fontWeight: 700, color: '#fff',
+                    border: '2px solid var(--border)', flexShrink: 0,
+                  }}>
+                    {!(avatarPreview || avatarUrl) && initials}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>Profile Photo</div>
+                    <label style={{
+                      display: 'inline-block', fontSize: '0.75rem', color: 'var(--accent)',
+                      cursor: 'pointer', padding: '4px 10px', borderRadius: 6,
+                      border: '1px solid rgba(249,115,22,0.3)', background: 'rgba(249,115,22,0.06)',
+                    }}>
+                      {avatarFile ? '✓ Photo selected' : '📷 Upload'}
+                      <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: 'none' }} />
+                    </label>
+                    {avatarFile && <span style={{ fontSize: '0.7rem', color: 'var(--muted)', marginLeft: 8 }}>{avatarFile.name}</span>}
+                  </div>
+                </div>
+
+                <div className="d-section-label">Personal Information</div>
+                <div className="d-form-grid">
+                  {[
+                    { label: 'Full Name', key: 'name', type: 'text', disabled: false },
+                    { label: 'Phone', key: 'phone', type: 'tel', disabled: true },
+                    { label: 'Email', key: 'email', type: 'email', disabled: false },
+                    { label: 'College', key: 'college', type: 'text', disabled: false },
+                  ].map(f => (
+                    <div key={f.key} className="d-field">
+                      <label>{f.label}{f.disabled && <span style={{ color: 'var(--muted2)', fontSize: '0.6rem', marginLeft: 5 }}>locked</span>}</label>
+                      <input
+                        type={f.type}
+                        value={profile[f.key]}
+                        disabled={f.disabled}
+                        onChange={e => !f.disabled && setProfile({ ...profile, [f.key]: e.target.value })}
+                        placeholder={f.disabled ? '—' : `Enter ${f.label.toLowerCase()}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="d-divider" />
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button className="d-btn-primary" disabled={saving} onClick={saveProfile}>
+                    {saving ? <><Spin /> Saving…</> : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── MY EVENTS ── */}
+          {activeTab === 'my-events' && (
+            <div className="d-fade">
+              {myEvents.length === 0 ? (
+                <div className="d-card">
+                  <div className="d-empty">
+                    <div className="d-empty-icon">🎟</div>
+                    <h3>No tickets yet</h3>
+                    <p>Register for events to see them here.</p>
+                    <button className="d-btn-primary" onClick={() => switchTab('register')}>
+                      Explore Events →
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="d-section-label" style={{ marginBottom: 14 }}>Your Registrations</div>
+                  {myEvents.map((reg, i) => (
+                    <div key={reg.id} className="d-my-ev d-fade" style={{ animationDelay: `${i * 0.05}s` }}>
+                      <div className="d-my-ev-dot" />
+                      <div className="d-my-ev-info">
+                        <div className="d-my-ev-name">{reg.events?.name || 'Event'} {reg.custom_id && <span style={{ fontSize: '0.65rem', padding: '1px 5px', background: 'var(--border)', borderRadius: 4, marginLeft: 6, color: 'var(--muted)', fontWeight: 'normal', letterSpacing: '0.05em' }}>{reg.custom_id}</span>}</div>
+                        <div className="d-my-ev-meta">
+                          {[reg.events?.location, reg.events?.date && new Date(reg.events.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })].filter(Boolean).join('  ·  ')}
+                        </div>
+                      </div>
+                      <button
+                        className="d-btn-ghost"
+                        style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                        onClick={() => showQr(reg.id)}
+                      >
+                        📱 QR
+                      </button>
+                      <span className="d-my-ev-badge">{reg.checked_in ? 'Checked In' : 'Confirmed'}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {/* QR Modal */}
+              {qrModal && (
+                <div style={{
+                  position: 'fixed', inset: 0, zIndex: 9999,
+                  background: 'rgba(0,0,0,0.85)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  animation: 'fadeUp .2s ease',
+                }} onClick={() => { setQrModal(null); setQrImage(''); }}>
+                  <div style={{
+                    background: '#fff', borderRadius: 16, padding: 32,
+                    textAlign: 'center', maxWidth: 340, width: '90%',
+                  }} onClick={e => e.stopPropagation()}>
+                    <h3 style={{ color: '#111', fontFamily: 'var(--font-h)', marginBottom: 8, fontSize: '1.1rem' }}>Your Event QR Code</h3>
+                    {myEvents.find(r => r.id === qrModal)?.custom_id && (
+                      <div style={{ background: '#f4f4f5', color: '#52525b', padding: '4px 10px', borderRadius: 6, display: 'inline-block', marginBottom: 16, fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.05em' }}>
+                        ID: {myEvents.find(r => r.id === qrModal).custom_id}
+                      </div>
+                    )}
+                    {qrLoading ? (
+                      <p style={{ color: '#666', padding: 20 }}>Generating QR code...</p>
+                    ) : qrImage ? (
+                      <img src={qrImage} alt="QR Code" style={{ width: 200, height: 200, margin: '0 auto' }} />
+                    ) : (
+                      <p style={{ color: '#999', padding: 20 }}>Could not generate QR code.</p>
+                    )}
+                    <p style={{ fontSize: '0.75rem', color: '#999', marginTop: 12 }}>Show this at the event entrance for check-in</p>
+                    <button onClick={() => { setQrModal(null); setQrImage(''); }}
+                      style={{
+                        marginTop: 16, padding: '8px 24px', borderRadius: 8,
+                        border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                        fontFamily: 'var(--font-b)', fontSize: '0.85rem',
+                      }}>Close</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── REGISTER ── */}
+          {activeTab === 'register' && (
+            <div className="d-fade">
+              <div className="d-section-label" style={{ marginBottom: 14 }}>
+                {allEvents.length} Events Available
+              </div>
+
+              {/* Search */}
+              <div style={{ marginBottom: 16 }}>
+                <input
+                  type="text"
+                  placeholder="🔍 Search events by name, location..."
+                  value={eventSearch}
+                  onChange={e => setEventSearch(e.target.value)}
+                  style={{
+                    width: '100%', padding: '10px 14px',
+                    background: 'var(--surface)', border: '1px solid var(--border)',
+                    borderRadius: 10, color: 'var(--text)', fontSize: '0.85rem',
+                    fontFamily: 'var(--font-b)', outline: 'none',
+                    transition: 'border-color .15s',
+                  }}
+                  onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+                  onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                />
+              </div>
+
+              <div className="d-events-grid">
+                {allEvents.filter(ev => {
+                  if (!eventSearch.trim()) return true;
+                  const q = eventSearch.toLowerCase();
+                  return (ev.name || '').toLowerCase().includes(q) ||
+                    (ev.location || '').toLowerCase().includes(q) ||
+                    (ev.category || '').toLowerCase().includes(q) ||
+                    (ev.description || '').toLowerCase().includes(q);
+                }).map((ev, i) => {
+                  const isReg = registeredIds.includes(ev.id);
+                  const isSel = selectedEvents.includes(ev.id);
+                  return (
+                    <div
+                      key={ev.id}
+                      className={`d-ev d-fade ${isReg ? 'd-ev-reg' : ''} ${isSel && !isReg ? 'd-ev-sel' : ''}`}
+                      style={{ animationDelay: `${i * 0.04}s` }}
+                    >
+                      <div onClick={() => !isReg && toggleEvent(ev.id)} style={{ cursor: isReg ? 'default' : 'pointer' }}>
+                        <div className="d-ev-head">
+                          <div className="d-ev-name">{ev.name}</div>
+                          <div className="d-ev-badges">
+                            {isReg && <span className="d-badge d-badge-green">Confirmed</span>}
+                            {isSel && !isReg && <span className="d-badge d-badge-orange">Selected</span>}
+                            {ev.team_size > 1 && <span className="d-badge d-badge-amber">Team ×{ev.team_size}</span>}
+                          </div>
+                        </div>
+
+                        {ev.location && <div className="d-ev-meta"><span>📍</span>{ev.location}</div>}
+                        {ev.date && <div className="d-ev-meta"><span>🗓</span>{new Date(ev.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</div>}
+
+                        {/* New View Details button */}
+                        <div style={{ marginTop: 12 }}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); navigate(`/events/${ev.id}`); }}
+                            style={{
+                              background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
+                              padding: '5px 12px', borderRadius: '8px', fontSize: '0.75rem',
+                              color: 'var(--text)', cursor: 'pointer', fontFamily: 'var(--font-b)',
+                              transition: 'all .2s'
+                            }}
+                            onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text)'; }}
+                          >
+                            View Details ↗
+                          </button>
+                        </div>
+
+                        {/* Short Description */}
+                        {ev.description && <div className="d-ev-desc" style={{ marginTop: 14, borderTop: 'none', paddingTop: 0 }}>{ev.description}</div>}
+
+                        {!isReg && (
+                          <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.78rem', color: isSel ? 'var(--accent)' : 'var(--muted)' }}>
+                            <div className={`d-checkbox ${isSel ? 'checked' : ''}`}>{isSel && <Check />}</div>
+                            {isSel ? 'Selected' : 'Click to select for Registration'}
+                          </div>
+                        )}
+                      </div>
+
+                      {isSel && !isReg && ev.team_size > 1 && teamMembers[ev.id] && (
+                        <div className="d-team-form" onClick={e => e.stopPropagation()}>
+                          <div className="d-team-title">
+                            <span>◈</span> Team Members — you + {ev.team_size - 1} others
+                          </div>
+                          {teamMembers[ev.id].map((m, idx) => (
+                            <div key={idx} className="d-team-row">
+                              <input
+                                placeholder={`Member ${idx + 2} name *`}
+                                value={m.name}
+                                onChange={e => updateMember(ev.id, idx, 'name', e.target.value)}
+                              />
+                              <input
+                                placeholder={`Member ${idx + 2} phone`}
+                                value={m.phone}
+                                onChange={e => updateMember(ev.id, idx, 'phone', e.target.value)}
+                              />
+                              <input
+                                placeholder={`Member ${idx + 2} email`}
+                                type="email"
+                                value={m.email || ''}
+                                onChange={e => updateMember(ev.id, idx, 'email', e.target.value)}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {selectedEvents.length > 0 && (
+                <div className="d-reg-bar">
+                  <div className="d-reg-bar-text">
+                    <strong>{selectedEvents.length} event{selectedEvents.length !== 1 ? 's' : ''} selected</strong>
+                    <span>Review your selections before confirming</span>
+                  </div>
+                  <button className="d-btn-primary" disabled={loading} onClick={registerEvents}>
+                    {loading ? <><Spin /> Processing…</> : 'Confirm →'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </main>
+
+        {/* ── Mobile bottom nav ── */}
+        <nav className="d-bottom-nav">
+          <div className="d-bottom-nav-inner">
+            {tabs.map(t => (
+              <button key={t.id} className={`d-nav-item ${activeTab === t.id ? 'active' : ''}`} onClick={() => switchTab(t.id)}>
+                <span className="d-nav-icon">{t.icon}</span>
+                <span className="d-nav-label">{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
+      </div>
+    </>
+  );
 };
 
 export default UserDashboard;

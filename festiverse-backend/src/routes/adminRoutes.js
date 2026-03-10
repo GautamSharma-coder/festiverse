@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const supabase = require('../config/supabaseClient');
 const { verifyToken, verifyAdmin } = require('../middlewares/authMiddleware');
+const { sendResultEmail } = require('../config/emailClient');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key';
@@ -377,12 +378,36 @@ router.delete('/team/:id', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 // POST /api/admin/events  — Add a new event
 // ───────────────────────────────────────────────────
-router.post('/events', verifyToken, verifyAdmin, async (req, res) => {
+router.post('/events', verifyToken, verifyAdmin, upload.single('image'), async (req, res) => {
     try {
-        const { name, location, date, description, rules, schedule, image_url, category } = req.body;
+        console.log('--- POST EVENT ---');
+        console.log('req.body:', req.body);
+        console.log('req.file:', req.file);
+        const { name, location, date, description, rules, schedule, category, prizes } = req.body;
 
         if (!name) {
             return res.status(400).json({ success: false, message: 'Event name is required.' });
+        }
+
+        let imageUrl = '';
+        if (req.file) {
+            const fileName = `events/${Date.now()}-${req.file.originalname.replace(/\s+/g, '_')}`;
+            const { error: uploadError } = await supabase.storage
+                .from('assets')
+                .upload(fileName, req.file.buffer, {
+                    contentType: req.file.mimetype,
+                    upsert: false,
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage.from('assets').getPublicUrl(fileName);
+            imageUrl = urlData.publicUrl;
+        }
+
+        let parsedSchedule = [];
+        if (schedule) {
+            try { parsedSchedule = JSON.parse(schedule); } catch (e) { parsedSchedule = [schedule]; }
         }
 
         const { data, error } = await supabase
@@ -393,9 +418,10 @@ router.post('/events', verifyToken, verifyAdmin, async (req, res) => {
                 date: date || null,
                 description: description || '',
                 rules: rules || '',
-                schedule: schedule || [],
-                image_url: image_url || '',
+                schedule: parsedSchedule,
+                image_url: imageUrl,
                 category: category || 'general',
+                prizes: prizes || ''
             }])
             .select()
             .single();
@@ -487,9 +513,12 @@ router.delete('/events/:id', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 // PUT /api/admin/events/:id
 // ───────────────────────────────────────────────────
-router.put('/events/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.put('/events/:id', verifyToken, verifyAdmin, upload.single('image'), async (req, res) => {
     try {
-        const { name, location, date, description, rules, schedule, image_url, category } = req.body;
+        console.log('--- PUT EVENT ---');
+        console.log('req.body:', req.body);
+        console.log('req.file:', req.file);
+        const { name, location, date, description, rules, schedule, category, prizes } = req.body;
 
         if (!name) {
             return res.status(400).json({ success: false, message: 'Event name is required.' });
@@ -501,10 +530,42 @@ router.put('/events/:id', verifyToken, verifyAdmin, async (req, res) => {
             date: date || null,
             description: description || '',
             rules: rules || '',
-            image_url: image_url || '',
             category: category || 'general',
+            prizes: prizes || ''
         };
-        if (schedule !== undefined) updates.schedule = schedule;
+
+        if (schedule !== undefined) {
+            try { updates.schedule = JSON.parse(schedule); } catch (e) { updates.schedule = schedule; }
+        }
+
+        if (req.file) {
+            // Get old image to delete
+            const { data: oldEvent } = await supabase
+                .from('events')
+                .select('image_url')
+                .eq('id', req.params.id)
+                .single();
+
+            if (oldEvent && oldEvent.image_url) {
+                const storagePath = oldEvent.image_url.split('/storage/v1/object/public/assets/')[1];
+                if (storagePath) {
+                    await supabase.storage.from('assets').remove([storagePath]);
+                }
+            }
+
+            const fileName = `events/${Date.now()}-${req.file.originalname.replace(/\s+/g, '_')}`;
+            const { error: uploadError } = await supabase.storage
+                .from('assets')
+                .upload(fileName, req.file.buffer, {
+                    contentType: req.file.mimetype,
+                    upsert: false,
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage.from('assets').getPublicUrl(fileName);
+            updates.image_url = urlData.publicUrl;
+        }
 
         const { data: updatedEvent, error } = await supabase
             .from('events')
@@ -605,11 +666,15 @@ router.post('/checkin', verifyToken, verifyAdmin, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Registration ID is required.' });
         }
 
+        // Determine if this is a UUID or a custom_id (e.g., F26D1234)
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(registrationId);
+        const matchColumn = isUuid ? 'id' : 'custom_id';
+
         // Get registration
         const { data: reg, error: fetchErr } = await supabase
             .from('event_registrations')
-            .select('*, users(name, phone), events(name)')
-            .eq('id', registrationId)
+            .select('*, users(name, phone, has_paid), events(name)')
+            .eq(matchColumn, registrationId)
             .single();
 
         if (fetchErr || !reg) {
@@ -628,8 +693,8 @@ router.post('/checkin', verifyToken, verifyAdmin, async (req, res) => {
         const { data: updated, error: updateErr } = await supabase
             .from('event_registrations')
             .update({ checked_in: true, checked_in_at: new Date().toISOString() })
-            .eq('id', registrationId)
-            .select('*, users(name, phone), events(name)')
+            .eq('id', reg.id) // Use the resolved ID just in case
+            .select('*, users(name, phone, has_paid), events(name)')
             .single();
 
         if (updateErr) throw updateErr;
@@ -661,6 +726,30 @@ router.post('/results', verifyToken, verifyAdmin, async (req, res) => {
             .select('*, events(name)')
             .single();
         if (error) throw error;
+
+        // Try to dispatch result email
+        // We look up the user by name who is registered for this event
+        try {
+            const { data: regUser } = await supabase
+                .from('event_registrations')
+                .select('users(name, email)')
+                .eq('event_id', event_id)
+                .ilike('users.name', participant_name)
+                .single();
+
+            if (regUser && regUser.users && regUser.users.email) {
+                const resultDetails = {
+                    title: data.events.name,
+                    position: position,
+                    score: score || 'N/A',
+                    certificateUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard`
+                };
+                sendResultEmail(regUser.users.email, regUser.users.name, resultDetails).catch(e => console.error('RESULT EMAIL ERR:', e.message));
+            }
+        } catch (emailErr) {
+            console.error('Failed to look up user for result email:', emailErr.message);
+        }
+
         res.status(201).json({ success: true, result: data });
     } catch (err) {
         console.error('RESULT ADD ERROR:', err);

@@ -16,9 +16,31 @@ undici.setGlobalDispatcher(agent);
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const logger = require('./src/config/logger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ─── Request/Response Logging Middleware ───
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        const logData = {
+            method: req.method,
+            path: req.path,
+            status: res.statusCode,
+            duration: `${duration}ms`,
+        };
+        if (res.statusCode >= 400) {
+            logger.warn('HTTP Request', logData);
+        } else {
+            logger.info('HTTP Request', logData);
+        }
+    });
+    next();
+});
 
 // ─── Validate required env vars ───
 const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'JWT_SECRET'];
@@ -51,6 +73,7 @@ app.use(cors({
     },
     credentials: true,
 }));
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
@@ -65,6 +88,7 @@ const adminRoutes = require('./src/routes/adminRoutes');
 const proxyRoutes = require('./src/routes/proxyRoutes');
 const resultRoutes = require('./src/routes/resultRoutes');
 const sponsorRoutes = require('./src/routes/sponsorRoutes');
+const paymentRoutes = require('./src/routes/paymentRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
@@ -76,6 +100,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/proxy', proxyRoutes);
 app.use('/api/results', resultRoutes);
 app.use('/api/sponsors', sponsorRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // ─── Health Check ───
 app.get('/', (req, res) => {
@@ -93,13 +118,13 @@ app.use((req, res) => {
 
 // ─── Error Handler ───
 app.use((err, req, res, next) => {
-    console.error('UNHANDLED ERROR:', err);
+    logger.error('Unhandled Error', { message: err.message, stack: err.stack });
     res.status(500).json({ success: false, message: 'Internal Server Error.' });
 });
 
 // ─── Start Server ───
 app.listen(PORT, () => {
-    console.log(`🚀 Festiverse Backend running on http://localhost:${PORT}`);
+    logger.info(`🚀 Festiverse Backend running on http://localhost:${PORT}`);
 });
 
 module.exports = app;

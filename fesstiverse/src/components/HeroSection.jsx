@@ -24,7 +24,7 @@ const HeroSection = () => {
                 <h1 className="text-5xl md:text-8xl font-serif italic font-bold tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-600 drop-shadow-2xl">
                     UDAAN
                 </h1>
-                <p className="text-lg md:text-xl text-zinc-400 font-light max-w-2xl mx-auto leading-relaxed">
+                <p className="text-lg md:text-xl text-zinc-400 font-light max-w-1xl mx-auto leading-relaxed " style={{ padding: '10px' }}>
                     Where culture meets creativity. The official Arts & Cultural Club.
                 </p>
             </div>

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Navbar = ({ isFestiverse, toggleUniverse }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const navNavigate = useNavigate();
+  const location = useLocation();
 
   const udaanLinks = [
     { href: '#home', label: 'Home' },
@@ -15,16 +16,44 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
   const festLinks = [
     { href: '#fest-home', label: 'Fest Home' },
     { href: '#register', label: 'Register' },
-    { href: '#gallery', label: 'Gallery' },
     { href: '#events', label: 'Events' },
-    { href: '/leaderboard', label: '🏆 Results', isRoute: true },
+    { href: '#gallery', label: 'Gallery' },
+    // { href: '/dashboard', label: 'Dashboard', isRoute: true },
+    { href: '/leaderboard', label: 'Results', isRoute: true },
   ];
 
   const links = isFestiverse ? festLinks : udaanLinks;
 
-  const handleLinkClick = () => {
+  const handleLinkClick = (e, link) => {
     setMenuOpen(false);
+    if (link.isRoute) {
+      e.preventDefault();
+      navNavigate(link.href);
+    } else {
+      e.preventDefault();
+      if (location.pathname !== '/') {
+        navNavigate('/' + link.href);
+      } else {
+        const el = document.querySelector(link.href);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
   };
+
+  useEffect(() => {
+    if (location.pathname === '/' && location.hash) {
+      setTimeout(() => {
+        const el = document.querySelector(location.hash);
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [location]);
+
+  // Asymmetric split: UDAAN=38%, FESTIVERSE'26=62%
+  const UDAAN_W = 38;
+  const FEST_W = 62;
+  const pillLeft = isFestiverse ? `${UDAAN_W + 1}%` : '2%';
+  const pillWidth = isFestiverse ? `${FEST_W - 3}%` : `${UDAAN_W - 3}%`;
 
   return (
     <nav style={{
@@ -45,17 +74,17 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
+
         {/* Logo */}
         <div
           style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
-          onClick={() => window.scrollTo(0, 0)}
+          onClick={() => { navNavigate('/'); window.scrollTo(0, 0); }}
         >
           <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '10%', overflow: 'hidden' }}>
             <img src="/udaan.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10%' }} />
           </div>
-
-          <span style={{ fontSize: '1.125rem', fontWeight: 500, letterSpacing: '-0.025em', color: '#fff' }}>
-            {isFestiverse ? "FEST'26" : "UDAAN"}
+          <span style={{ fontSize: '1.025rem', fontWeight: 500, letterSpacing: '-0.025em', color: '#fff' }}>
+            {isFestiverse ? "FESTIVERSE'26" : "UDAAN"}
           </span>
         </div>
 
@@ -68,8 +97,8 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
           color: '#a1a1aa',
         }} className="desktop-nav">
           {links.map((link) => (
-            <a key={link.href} href={link.isRoute ? undefined : link.href}
-              onClick={link.isRoute ? (e) => { e.preventDefault(); navNavigate(link.href); } : undefined}
+            <a key={link.href} href={link.isRoute ? link.href : `/${link.href}`}
+              onClick={(e) => handleLinkClick(e, link)}
               style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', cursor: 'pointer' }}
               onMouseEnter={(e) => e.target.style.color = '#fff'}
               onMouseLeave={(e) => e.target.style.color = '#a1a1aa'}>
@@ -80,78 +109,105 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
 
         {/* Right: Toggle + Badge + Hamburger */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
           {/* Universe Toggle */}
           <button
             onClick={toggleUniverse}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.25rem',
-              padding: '0.25rem',
+              padding: '0',
               borderRadius: '9999px',
               border: `1px solid ${isFestiverse ? '#7c3aed' : 'rgba(255,255,255,0.1)'}`,
-              width: '8rem',
+              width: '9.5rem',
+              height: '2.2rem',
               position: 'relative',
               overflow: 'hidden',
               background: 'linear-gradient(90deg, #18181b, #000)',
               boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)',
               cursor: 'pointer',
               transition: 'border-color 0.5s',
+              flexShrink: 0,
             }}
           >
+            {/* Sliding pill */}
             <div style={{
               position: 'absolute',
-              left: isFestiverse ? '52%' : '4%',
-              width: '45%',
-              height: '80%',
+              left: pillLeft,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: pillWidth,
+              height: '78%',
               backgroundColor: isFestiverse ? '#7c3aed' : '#991b1b',
               borderRadius: '9999px',
-              transition: 'all 0.5s',
+              transition: 'left 0.4s ease, width 0.4s ease, background-color 0.4s ease',
               boxShadow: isFestiverse ? '0 0 10px rgba(124,58,237,0.5)' : '0 0 10px rgba(153,27,27,0.5)',
               zIndex: 0,
             }} />
+
+            {/* Divider line between the two labels */}
+            <div style={{
+              position: 'absolute',
+              left: `${UDAAN_W}%`,
+              top: '20%',
+              height: '60%',
+              width: '1px',
+              background: 'rgba(255,255,255,0.08)',
+              zIndex: 5,
+            }} />
+
+            {/* UDAAN */}
             <span style={{
               position: 'relative',
               zIndex: 10,
-              width: '50%',
-              fontSize: '0.625rem',
-              fontWeight: 700,
+              width: `${UDAAN_W}%`,
+              fontSize: '0.48rem',
+              fontWeight: 800,
               textAlign: 'center',
               letterSpacing: '0.1em',
-              color: !isFestiverse ? '#fff' : '#71717a',
+              whiteSpace: 'nowrap',
+              padding: '0 0.25rem',
+              boxSizing: 'border-box',
+              color: !isFestiverse ? '#fff' : '#52525b',
               transition: 'color 0.3s',
-            }}>UDAAN</span>
+            }}>
+              UDAAN
+            </span>
+
+            {/* FESTIVERSE'26 */}
             <span style={{
               position: 'relative',
               zIndex: 10,
-              width: '50%',
-              fontSize: '0.625rem',
-              fontWeight: 700,
+              width: `${FEST_W}%`,
+              fontSize: '0.48rem',
+              fontWeight: 800,
               textAlign: 'center',
-              letterSpacing: '0.1em',
-              color: isFestiverse ? '#fff' : '#71717a',
+              letterSpacing: '0.05em',
+              whiteSpace: 'nowrap',
+              padding: '0 0.25rem',
+              boxSizing: 'border-box',
+              color: isFestiverse ? '#fff' : '#52525b',
               transition: 'color 0.3s',
-            }}>FEST'26</span>
+            }}>
+              FESTIVERSE'26
+            </span>
           </button>
 
-          {/* GEC Badge - hidden on mobile */}
+          {/* GEC Badge */}
           <a href="https://www.gecsamastipur.ac.in/" target="_blank">
             <div className="gec-badge" style={{
               width: '4.1rem',
               height: '3rem',
               borderRadius: '10%',
-              //background: 'rgba(255,255,255,0.05)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              // border: '1px solid rgba(255,255,255,0.1)',
             }} title="GEC Samastipur">
               <img src="/college_logo.png" alt="GEC" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '0%' }} />
             </div>
           </a>
 
-
-          {/* Hamburger Button - shown only on mobile */}
+          {/* Hamburger Button */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="hamburger-btn"
@@ -183,11 +239,8 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
           {links.map((link) => (
             <a
               key={link.href}
-              href={link.isRoute ? undefined : link.href}
-              onClick={(e) => {
-                if (link.isRoute) { e.preventDefault(); navNavigate(link.href); }
-                handleLinkClick();
-              }}
+              href={link.isRoute ? link.href : `/${link.href}`}
+              onClick={(e) => handleLinkClick(e, link)}
               style={{
                 color: '#a1a1aa',
                 textDecoration: 'none',

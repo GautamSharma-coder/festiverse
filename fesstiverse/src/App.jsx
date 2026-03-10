@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate } from 'react-router-dom';
 import './App.css';
 import { useToast } from './components/Toast';
 import { ScrollReveal } from './components/ScrollReveal';
+import { apiFetch } from './lib/api';
 
 // UDAAN Components
 import Navbar from './components/Navbar';
@@ -15,6 +16,7 @@ import NoticeBoard from './components/NoticeBoard';
 // FESTIVERSE Components
 import FestHero from './components/FestHero';
 import SponsorMarquee from './components/SponsorMarquee';
+import FestEvents from './components/FestEvents';
 import RegistrationForm from './components/RegistrationForm';
 import FestGallery from './components/FestGallery';
 import LoginModal from './components/LoginModal';
@@ -35,14 +37,14 @@ function App() {
 
   // Check for existing session on mount
   useEffect(() => {
-    const token = localStorage.getItem('festiverse_token');
+    // On initial load, try to restore user from localStorage cache
+    // The httpOnly cookie will be sent automatically with subsequent requests
     const savedUser = localStorage.getItem('festiverse_user');
-    if (token && savedUser) {
+    if (savedUser) {
       try {
         setUser(JSON.parse(savedUser));
         setIsLoggedIn(true);
       } catch {
-        localStorage.removeItem('festiverse_token');
         localStorage.removeItem('festiverse_user');
       }
     }
@@ -72,8 +74,14 @@ function App() {
     navigate('/dashboard'); // Navigate to dashboard after login
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('festiverse_token');
+  const handleLogout = async () => {
+    try {
+      // Call backend to clear cookie
+      await apiFetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
+    // Clear frontend state
     localStorage.removeItem('festiverse_user');
     setUser(null);
     setIsLoggedIn(false);
@@ -110,6 +118,9 @@ function App() {
           onDashboardClick={() => navigate('/dashboard')}
         />
         <SponsorMarquee />
+
+        {/* Featured Events Section */}
+        <ScrollReveal delay={100}><FestEvents /></ScrollReveal>
 
         {!isLoggedIn && (
           <ScrollReveal>

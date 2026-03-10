@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../lib/api';
+import { biharEngineeringColleges } from '../lib/colleges';
 
 const RegistrationForm = ({ onRegister, showToast }) => {
     const [otpSent, setOtpSent] = useState(false);
     const [otpBtnText, setOtpBtnText] = useState('Send OTP');
     const [otp, setOtp] = useState('');
     const [phone, setPhone] = useState('');
+    const [password, setPassword] = useState('');
     const [name, setName] = useState('');
     const [college, setCollege] = useState('');
     const [email, setEmail] = useState('');
@@ -33,22 +35,74 @@ const RegistrationForm = ({ onRegister, showToast }) => {
         e.preventDefault();
         if (!otp) return showToast?.('Please enter the OTP.', 'warning');
         setLoading(true);
-        setStatusMsg('');
+        setStatusMsg('Initiating secure payment...');
         try {
-            const data = await apiFetch('/api/auth/register', {
+            // STEP 1: Create Razorpay Order
+            const orderData = await apiFetch('/api/payment/create-order', {
                 method: 'POST',
-                body: JSON.stringify({ name, college, email, phone, otp }),
             });
-            setStatusMsg('✅ ' + data.message);
-            // Auto-login: store token and user, then redirect to dashboard
-            if (data.token && data.user) {
-                localStorage.setItem('festiverse_token', data.token);
-                localStorage.setItem('festiverse_user', JSON.stringify(data.user));
-                if (onRegister) onRegister(data.user);
+
+            if (!orderData || !orderData.orderId) {
+                throw new Error("Unable to create payment session.");
             }
+
+            // STEP 2: Open Razorpay Checkout
+            const options = {
+                key: orderData.keyId,
+                amount: orderData.amount,
+                currency: orderData.currency,
+                name: "Festiverse'26",
+                description: "Event Pass Fee",
+                order_id: orderData.orderId,
+                handler: async function (response) {
+                    try {
+                        setStatusMsg('Finishing registration...');
+                        // STEP 3: Register and verify signature
+                        const data = await apiFetch('/api/auth/register', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                name, college, email, phone, otp, password,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_signature: response.razorpay_signature
+                            }),
+                        });
+
+                        setStatusMsg('✅ ' + data.message);
+                        if (data.user) {
+                            localStorage.setItem('festiverse_user', JSON.stringify(data.user));
+                            if (onRegister) onRegister(data.user);
+                        }
+                    } catch (err) {
+                        setStatusMsg('❌ ' + err.message);
+                        setLoading(false);
+                    }
+                },
+                prefill: {
+                    name: name,
+                    email: email,
+                    contact: phone
+                },
+                theme: {
+                    color: "#9333ea"
+                },
+                modal: {
+                    ondismiss: function () {
+                        setStatusMsg('❌ Payment cancelled.');
+                        setLoading(false);
+                    }
+                }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                setStatusMsg('❌ Payment failed processing: ' + response.error.description);
+                setLoading(false);
+            });
+            rzp.open();
+
         } catch (err) {
             setStatusMsg('❌ ' + err.message);
-        } finally {
             setLoading(false);
         }
     };
@@ -98,7 +152,12 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                     </div>
                     <div>
                         <label style={labelStyle}>College Name</label>
-                        <input type="text" required style={inputStyle} value={college} onChange={(e) => setCollege(e.target.value)} />
+                        <select required style={inputStyle} value={college} onChange={(e) => setCollege(e.target.value)}>
+                            <option value="" disabled hidden>Select your college</option>
+                            {biharEngineeringColleges.map((c, i) => (
+                                <option key={i} value={c} style={{ background: '#000', color: '#fff' }}>{c}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 
@@ -138,6 +197,11 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                         />
                     </div>
                 )}
+
+                <div>
+                    <label style={labelStyle}>Create Password</label>
+                    <input type="password" required style={inputStyle} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Minimum 6 characters" minLength={6} />
+                </div>
 
                 <div>
                     <label style={labelStyle}>Phone Number</label>

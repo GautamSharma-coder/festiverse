@@ -12,7 +12,6 @@ router.get('/', async (req, res) => {
         const { data, error } = await supabase
             .from('notices')
             .select('*')
-            .eq('is_active', true)
             .order('created_at', { ascending: false });
 
         if (error) throw error;

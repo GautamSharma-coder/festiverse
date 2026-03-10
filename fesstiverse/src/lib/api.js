@@ -3,11 +3,9 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 /**
  * Helper function to make API calls.
- * Automatically attaches the JWT token if available.
+ * Automatically includes httpOnly cookies and supports Authorization header fallback.
  */
 export async function apiFetch(endpoint, options = {}) {
-    const token = localStorage.getItem('festiverse_token');
-
     const headers = {
         ...(options.headers || {}),
     };
@@ -17,13 +15,10 @@ export async function apiFetch(endpoint, options = {}) {
         headers['Content-Type'] = 'application/json';
     }
 
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers,
+        credentials: 'include', // Include httpOnly cookies automatically
     });
 
     const data = await res.json();

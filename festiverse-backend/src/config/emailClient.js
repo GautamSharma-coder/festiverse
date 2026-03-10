@@ -35,12 +35,7 @@ const GMAIL_REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
 const EMAIL_USER = process.env.EMAIL_USER;
 
 // ── Startup validation ─────────────────────────────────────────────────
-const requiredVars = {
-  GMAIL_CLIENT_ID,
-  GMAIL_CLIENT_SECRET,
-  GMAIL_REFRESH_TOKEN,
-  EMAIL_USER,
-};
+const requiredVars = { GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, EMAIL_USER };
 const missing = Object.entries(requiredVars).filter(([, v]) => !v).map(([k]) => k);
 
 if (missing.length === 0) {
@@ -49,8 +44,7 @@ if (missing.length === 0) {
 } else {
   console.error('❌ Gmail REST API NOT configured! Missing env vars:');
   missing.forEach(k => console.error(`   → ${k} is not set`));
-  console.error('');
-  console.error('   📖 SETUP GUIDE:');
+  console.error('\n   📖 SETUP GUIDE:');
   console.error('   1. Go to https://console.cloud.google.com');
   console.error('   2. Create project → Enable "Gmail API"');
   console.error('   3. Credentials → OAuth 2.0 Client ID (Web app)');
@@ -60,10 +54,8 @@ if (missing.length === 0) {
   console.error('      → Select scope: https://mail.google.com/');
   console.error('      → Authorize → Exchange → Copy Refresh Token');
   console.error('   5. Set these env vars on Render:');
-  console.error('      GMAIL_CLIENT_ID=xxxxx');
-  console.error('      GMAIL_CLIENT_SECRET=xxxxx');
-  console.error('      GMAIL_REFRESH_TOKEN=xxxxx');
-  console.error('      EMAIL_USER=your@gmail.com');
+  console.error('      GMAIL_CLIENT_ID=xxxxx  GMAIL_CLIENT_SECRET=xxxxx');
+  console.error('      GMAIL_REFRESH_TOKEN=xxxxx  EMAIL_USER=your@gmail.com');
 }
 
 // ── Gmail OAuth2 client ────────────────────────────────────────────────
@@ -93,11 +85,8 @@ async function sendEmail(to, subject, htmlBody) {
   console.log(`📧 [Gmail API] Sending to: ${to} | Subject: "${subject.substring(0, 50)}..."`);
 
   const oauth2Client = getOAuth2Client();
-
-  // MIME-encode subject for non-ASCII chars (RFC 2047)
   const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`;
 
-  // Build RFC 2822 email message
   const rawEmail = [
     `From: "Festiverse'26" <${EMAIL_USER}>`,
     `To: ${to}`,
@@ -108,7 +97,6 @@ async function sendEmail(to, subject, htmlBody) {
     htmlBody,
   ].join('\r\n');
 
-  // Base64url encode
   const encodedMessage = Buffer.from(rawEmail)
     .toString('base64')
     .replace(/\+/g, '-')
@@ -124,7 +112,6 @@ async function sendEmail(to, subject, htmlBody) {
     console.log(`✅ [Gmail API] Email sent successfully! ID: ${result.data.id}`);
     return result.data;
   } catch (err) {
-    // Developer-friendly error messages
     const status = err?.response?.status || err?.code;
     const message = err?.response?.data?.error?.message || err.message;
 
@@ -132,37 +119,29 @@ async function sendEmail(to, subject, htmlBody) {
       throw new Error(
         `[Gmail API] ❌ AUTHENTICATION FAILED (${status})\n` +
         `  → Your GMAIL_REFRESH_TOKEN is expired or invalid.\n` +
-        `  → Go to https://developers.google.com/oauthplayground\n` +
-        `  → ⚙️ Use your own OAuth credentials → Re-authorize → Get new Refresh Token\n` +
+        `  → Re-authorize at https://developers.google.com/oauthplayground\n` +
         `  → Update GMAIL_REFRESH_TOKEN on Render`
       );
     }
-
     if (status === 403) {
       throw new Error(
         `[Gmail API] ❌ PERMISSION DENIED (403): ${message}\n` +
-        `  → Make sure Gmail API is enabled in your Google Cloud project\n` +
-        `  → Go to https://console.cloud.google.com/apis/library/gmail.googleapis.com\n` +
-        `  → Also check that you authorized the scope: https://mail.google.com/`
+        `  → Enable Gmail API: https://console.cloud.google.com/apis/library/gmail.googleapis.com\n` +
+        `  → Confirm scope: https://mail.google.com/`
       );
     }
-
     if (status === 429) {
       throw new Error(
         `[Gmail API] ❌ RATE LIMIT HIT (429)\n` +
-        `  → Gmail API limit: ~100 emails/day for free accounts.\n` +
-        `  → Wait and try again later.`
+        `  → Gmail API limit: ~100 emails/day. Wait and retry.`
       );
     }
-
     if (err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT') {
       throw new Error(
         `[Gmail API] ❌ NETWORK ERROR: ${err.message}\n` +
-        `  → Cannot reach googleapis.com — check internet connection.\n` +
-        `  → This should NOT happen on Render (HTTPS is not blocked).`
+        `  → Cannot reach googleapis.com — check internet connection.`
       );
     }
-
     throw new Error(
       `[Gmail API] ❌ UNEXPECTED ERROR: ${message}\n` +
       `  → Status: ${status}\n` +
@@ -171,282 +150,668 @@ async function sendEmail(to, subject, htmlBody) {
   }
 }
 
-// ── Design tokens — Luxury Editorial ──────────────────────────────────
-const C = {
-  ink: '#0a0807',
-  paper: '#110f0d',
-  paperAlt: '#161210',
-  rule: '#2a2320',
-  ruleLight: '#3a3330',
-  cream: '#e8e0d4',
-  muted: '#7a6f65',
-  dim: '#3d3530',
-  crimson: '#c0392b',
-  crimsonLt: '#e84040',
-  gold: '#c9a84c',
-  goldDim: '#8a7030',
+// ══════════════════════════════════════════════════════════════════════
+//  DESIGN SYSTEM — Minimalist Editorial
+//  Palette : Warm parchment canvas · Deep ink · Single saffron accent
+//  Fonts   : Cormorant Garamond (display) + Outfit (body/UI)
+// ══════════════════════════════════════════════════════════════════════
+
+const T = {
+  bg: '#F7F5F2',   // warm parchment background
+  surface: '#FFFFFF',   // card surface
+  ink: '#141210',   // primary text / headlines
+  inkMid: '#3D3A37',   // body text
+  inkMute: '#9A958F',   // captions / labels
+  inkFaint: '#D4CFC9',   // borders / dividers
+  saffron: '#C9820A',   // accent — actions, numbers, highlights
+  saffronBg: '#FDF5E6',   // tinted saffron background
+  white: '#FFFFFF',
 };
 
-// ── Ornamental divider ─────────────────────────────────────────────────
-function ornaDivider(color = C.rule) {
-  return `
-    <table width="100%" cellpadding="0" cellspacing="0" border="0">
-      <tr>
-        <td style="padding:0 40px;">
-          <table width="100%" cellpadding="0" cellspacing="0" border="0">
-            <tr>
-              <td style="border-top:1px solid ${color};"></td>
-              <td style="width:8px;padding:0 8px;text-align:center;color:${color};font-size:10px;font-family:Georgia,serif;">◆</td>
-              <td style="border-top:1px solid ${color};"></td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>`;
-}
+// Google Fonts — degrades gracefully in clients that block external CSS
+const FONTS = `
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Outfit:wght@300;400;500;600&display=swap');
+  </style>`;
 
-// ── Shared header ──────────────────────────────────────────────────────
-function emailHeader() {
-  return `
-    <tr>
-      <td>
-        <div style="height:1px;background:linear-gradient(90deg,transparent,${C.gold},transparent);"></div>
-        <div style="height:3px;background:${C.crimson};"></div>
-        <table width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td style="background:${C.ink};padding:36px 40px 30px;">
-              <p style="margin:0 0 14px;color:${C.goldDim};font-size:9px;font-family:Georgia,serif;letter-spacing:5px;text-transform:uppercase;text-align:center;">— UDAAN Cultural Club &nbsp;·&nbsp; GEC Samastipur —</p>
-              <h1 style="margin:0;text-align:center;color:${C.cream};font-size:34px;font-family:Georgia,'Times New Roman',serif;font-weight:700;letter-spacing:6px;text-transform:uppercase;line-height:1;">
-                FESTIVERSE
-              </h1>
-              <p style="margin:4px 0 0;text-align:center;color:${C.crimson};font-size:13px;font-family:Georgia,serif;letter-spacing:8px;">&lsquo;26</p>
-              <div style="height:1px;background:linear-gradient(90deg,transparent,${C.goldDim},transparent);margin-top:20px;"></div>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>`;
-}
+// ── Shared email shell ─────────────────────────────────────────────────
+function shell(inner) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Festiverse '26</title>
+${FONTS}
+</head>
+<body style="margin:0;padding:0;background:${T.bg};">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${T.bg};">
+  <tr>
+    <td align="center" style="padding:48px 16px;">
+      <table width="540" cellpadding="0" cellspacing="0" border="0"
+        style="max-width:540px;width:100%;background:${T.surface};border-radius:2px;border:1px solid ${T.inkFaint};">
 
-// ── Shared footer ──────────────────────────────────────────────────────
-function emailFooter() {
-  return `
-    <tr>
-      <td style="background:${C.ink};padding:0;">
-        <div style="height:1px;background:linear-gradient(90deg,transparent,${C.goldDim},transparent);"></div>
-        <table width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td style="padding:20px 40px;">
-              <table width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td style="text-align:center;">
-                    <p style="margin:0 0 4px;color:${C.goldDim};font-size:9px;font-family:Georgia,serif;letter-spacing:4px;text-transform:uppercase;">FESTIVERSE &lsquo;26</p>
-                    <p style="margin:0;color:${C.dim};font-size:10px;font-family:Georgia,serif;letter-spacing:1px;">&copy; 2026 &nbsp;&middot;&nbsp; Government Engineering College, Samastipur</p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-        <div style="height:3px;background:${C.crimson};"></div>
-        <div style="height:1px;background:linear-gradient(90deg,transparent,${C.gold},transparent);"></div>
-      </td>
-    </tr>`;
+        <!-- ── HEADER ─────────────────────────────────────────── -->
+        <tr>
+          <td>
+            <div style="height:3px;background:${T.saffron};"></div>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding:36px 48px 28px;">
+                  <p style="margin:0 0 10px;color:${T.inkMute};font-size:10px;
+                    font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:500;
+                    letter-spacing:4px;text-transform:uppercase;text-align:center;">
+                    UDAAN &nbsp;·&nbsp; GEC Samastipur
+                  </p>
+                  <h1 style="margin:0;text-align:center;color:${T.ink};font-size:36px;
+                    font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;
+                    font-weight:600;letter-spacing:8px;text-transform:uppercase;line-height:1;">
+                    Festiverse
+                  </h1>
+                  <p style="margin:8px 0 0;text-align:center;color:${T.saffron};font-size:11px;
+                    font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:500;letter-spacing:6px;">
+                    ' 2 6
+                  </p>
+                </td>
+              </tr>
+            </table>
+            <div style="height:1px;background:${T.inkFaint};margin:0 48px;"></div>
+          </td>
+        </tr>
+
+        <!-- ── INNER CONTENT ──────────────────────────────────── -->
+        ${inner}
+
+        <!-- ── FOOTER ─────────────────────────────────────────── -->
+        <tr>
+          <td>
+            <div style="height:1px;background:${T.inkFaint};margin:0 48px;"></div>
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="padding:22px 48px;">
+                  <p style="margin:0;text-align:center;color:${T.inkMute};font-size:10px;
+                    font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:400;
+                    letter-spacing:1px;line-height:1.9;">
+                    Festiverse '26 &nbsp;·&nbsp; Government Engineering College, Samastipur<br>
+                    <span style="color:${T.inkFaint};">© 2026 UDAAN Cultural Club</span>
+                  </p>
+                </td>
+              </tr>
+            </table>
+            <div style="height:3px;background:${T.saffron};"></div>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
 }
 
 // ── OTP Email ──────────────────────────────────────────────────────────
 async function sendOTPEmail(toEmail, otp) {
   const digits = String(otp).split('');
 
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="dark">
-<title>Your Festiverse OTP</title>
-</head>
-<body style="margin:0;padding:0;background:#060504;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#060504;">
-  <tr>
-    <td align="center" style="padding:48px 16px;">
-      <table width="520" cellpadding="0" cellspacing="0" border="0"
-        style="max-width:520px;width:100%;background:${C.ink};border-radius:4px;overflow:hidden;border:1px solid ${C.rule};">
+  const body = `
+    <!-- Label -->
+    <tr>
+      <td style="padding:40px 48px 8px;">
+        <p style="margin:0;color:${T.inkMute};font-size:10px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:500;
+          letter-spacing:4px;text-transform:uppercase;text-align:center;">
+          Verification Code
+        </p>
+      </td>
+    </tr>
 
-        ${emailHeader()}
+    <!-- Heading -->
+    <tr>
+      <td style="padding:0 48px 32px;">
+        <h2 style="margin:0;text-align:center;color:${T.ink};font-size:24px;
+          font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;
+          font-weight:400;font-style:italic;line-height:1.5;">
+          Enter this code to confirm<br>your identity
+        </h2>
+      </td>
+    </tr>
 
-        <tr>
-          <td style="background:${C.ink};padding:40px 40px 12px;">
-            <p style="margin:0 0 4px;color:${C.goldDim};font-size:9px;font-family:Georgia,serif;letter-spacing:5px;text-transform:uppercase;text-align:center;">Verification</p>
-            <h2 style="margin:0 0 30px;color:${C.cream};font-size:20px;font-family:Georgia,'Times New Roman',serif;font-weight:400;text-align:center;line-height:1.5;font-style:italic;">
-              Present this code to<br>confirm your identity
-            </h2>
-          </td>
-        </tr>
+    <!-- OTP digit boxes -->
+    <tr>
+      <td style="padding:0 48px 32px;">
+        <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+          <tr>
+            ${digits.map(d => `
+            <td style="padding:0 5px;">
+              <div style="width:54px;height:66px;line-height:66px;
+                background:${T.bg};border:1px solid ${T.inkFaint};
+                border-bottom:2px solid ${T.saffron};border-radius:2px;
+                color:${T.ink};font-size:28px;font-weight:600;
+                font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;
+                text-align:center;">${d}</div>
+            </td>`).join('')}
+          </tr>
+        </table>
+      </td>
+    </tr>
 
-        <tr>
-          <td style="padding:0 40px 12px;">
-            <table cellpadding="0" cellspacing="0" border="0" style="width:100%;background:${C.paperAlt};border:1px solid ${C.rule};border-top:3px solid ${C.crimson};border-radius:2px;">
-              <tr>
-                <td style="padding:32px 20px;text-align:center;">
-                  <p style="margin:0 0 20px;color:${C.goldDim};font-size:10px;font-family:Georgia,serif;letter-spacing:4px;text-transform:uppercase;">Access Code</p>
-                  <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 20px;">
-                    <tr>
-                      ${digits.map(d => `
-                      <td style="padding:0 4px;">
-                        <span style="display:inline-block;width:58px;height:72px;line-height:72px;
-                          background:${C.ink};border:1px solid ${C.ruleLight};border-bottom:2px solid ${C.crimson};
-                          color:${C.cream};font-size:32px;font-weight:700;font-family:Georgia,'Times New Roman',serif;
-                          text-align:center;border-radius:2px;">${d}</span>
-                      </td>`).join('')}
-                    </tr>
-                  </table>
-                  <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
-                    <tr>
-                      <td style="border-top:1px solid ${C.rule};border-bottom:1px solid ${C.rule};padding:8px 20px;text-align:center;">
-                        <span style="color:${C.muted};font-size:11px;font-family:Georgia,serif;font-style:italic;">Valid for &nbsp;</span>
-                        <span style="color:${C.gold};font-size:11px;font-family:Georgia,serif;font-weight:700;">five minutes</span>
-                        <span style="color:${C.muted};font-size:11px;font-family:Georgia,serif;font-style:italic;">&nbsp; from issue</span>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
+    <!-- Validity badge -->
+    <tr>
+      <td style="padding:0 48px 32px;text-align:center;">
+        <span style="display:inline-block;padding:9px 22px;background:${T.saffronBg};
+          border-radius:2px;color:${T.saffron};font-size:11px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:500;
+          letter-spacing:2px;text-transform:uppercase;">
+          Valid for 5 minutes
+        </span>
+      </td>
+    </tr>
 
-        <tr>
-          <td style="padding:24px 40px 36px;">
-            <table cellpadding="0" cellspacing="0" border="0" style="width:100%;border-left:3px solid ${C.goldDim};background:${C.paperAlt};border-radius:2px;">
-              <tr>
-                <td style="padding:14px 18px;">
-                  <p style="margin:0;color:${C.muted};font-size:12px;font-family:Georgia,'Times New Roman',serif;font-style:italic;line-height:1.7;">
-                    This code is issued once and rendered void upon use. Should you not have requested this, disregard this correspondence — your account remains undisturbed.
-                  </p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
+    <!-- Disclaimer -->
+    <tr>
+      <td style="padding:0 48px 40px;">
+        <p style="margin:0;text-align:center;color:${T.inkMute};font-size:12px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:300;line-height:1.7;">
+          If you didn't request this, you can safely ignore this email.<br>Your account remains secure.
+        </p>
+      </td>
+    </tr>`;
 
-        ${ornaDivider()}
-        ${emailFooter()}
-      </table>
-    </td>
-  </tr>
-</table>
-</body>
-</html>`;
-
-  await sendEmail(toEmail, `Your Verification Code: ${otp} — Festiverse'26`, html);
+  await sendEmail(
+    toEmail,
+    `Your Verification Code: ${otp} — Festiverse'26`,
+    shell(body)
+  );
 }
 
 // ── Confirmation Email ─────────────────────────────────────────────────
 async function sendConfirmationEmail(toEmail, name) {
   const steps = [
-    { num: 'I', title: 'Discover Events', desc: 'Browse the complete programme of technical and cultural competitions.' },
-    { num: 'II', title: 'Form Your Ensemble', desc: 'Assemble a team for collaborative events and group challenges.' },
-    { num: 'III', title: 'Follow the Board', desc: 'Monitor schedules, rulebooks, and live announcements.' },
+    { n: '01', title: 'Explore Events', desc: 'Browse the full programme of technical and cultural competitions.' },
+    { n: '02', title: 'Build Your Team', desc: 'Assemble your ensemble for collaborative events and group challenges.' },
+    { n: '03', title: 'Follow the Board', desc: 'Stay updated on schedules, rulebooks, and live announcements.' },
   ];
 
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="dark">
-<title>Welcome to Festiverse'26</title>
-</head>
-<body style="margin:0;padding:0;background:#060504;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#060504;">
-  <tr>
-    <td align="center" style="padding:48px 16px;">
-      <table width="520" cellpadding="0" cellspacing="0" border="0"
-        style="max-width:520px;width:100%;background:${C.ink};border-radius:4px;overflow:hidden;border:1px solid ${C.rule};">
+  const body = `
+    <!-- Greeting -->
+    <tr>
+      <td style="padding:40px 48px 8px;">
+        <p style="margin:0 0 6px;color:${T.inkMute};font-size:10px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:500;
+          letter-spacing:4px;text-transform:uppercase;">
+          Registration Confirmed
+        </p>
+        <h2 style="margin:0 0 16px;color:${T.ink};font-size:30px;
+          font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;
+          font-weight:600;line-height:1.2;">
+          Welcome,&nbsp;<em style="color:${T.saffron};font-style:italic;">${name}.</em>
+        </h2>
+        <p style="margin:0;color:${T.inkMid};font-size:14px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:300;line-height:1.8;">
+          Your registration for Festiverse '26 has been received and confirmed.
+          Your seat is reserved at GEC Samastipur's grandest celebration of talent,
+          creativity, and competition.
+        </p>
+      </td>
+    </tr>
 
-        ${emailHeader()}
+    <!-- Rule -->
+    <tr>
+      <td style="padding:28px 48px 0;">
+        <div style="height:1px;background:${T.inkFaint};"></div>
+      </td>
+    </tr>
 
-        <tr>
-          <td style="background:${C.ink};padding:36px 40px 0;">
-            <table width="100%" cellpadding="0" cellspacing="0" border="0">
-              <tr>
-                <td style="width:4px;background:${C.crimson};border-radius:2px;"></td>
-                <td style="padding-left:20px;">
-                  <p style="margin:0 0 6px;color:${C.goldDim};font-size:9px;font-family:Georgia,serif;letter-spacing:5px;text-transform:uppercase;">Official Confirmation</p>
-                  <h2 style="margin:0 0 10px;color:${C.cream};font-size:26px;font-family:Georgia,'Times New Roman',serif;font-weight:700;line-height:1.2;">
-                    Welcome,<br><em style="color:${C.gold};">${name}.</em>
-                  </h2>
-                  <p style="margin:0;color:${C.muted};font-size:12px;font-family:Georgia,serif;font-style:italic;line-height:1.6;">
-                    Your registration for Festiverse&rsquo;26 has been received and confirmed.
-                  </p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
+    <!-- What's Next label -->
+    <tr>
+      <td style="padding:28px 48px 16px;">
+        <p style="margin:0;color:${T.inkMute};font-size:10px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:500;
+          letter-spacing:4px;text-transform:uppercase;">
+          What's Next
+        </p>
+      </td>
+    </tr>
 
-        <tr>
-          <td style="padding:28px 40px 0;">
-            <div style="height:1px;background:linear-gradient(90deg,transparent,${C.ruleLight},transparent);"></div>
-          </td>
-        </tr>
+    <!-- Steps -->
+    ${steps.map((s, i) => `
+    <tr>
+      <td style="padding:0 48px ${i < steps.length - 1 ? '16px' : '28px'};">
+        <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
+          <tr>
+            <td style="width:32px;vertical-align:top;padding-top:2px;">
+              <span style="color:${T.saffron};font-size:11px;font-weight:600;
+                font-family:'Outfit',Helvetica,Arial,sans-serif;letter-spacing:1px;">${s.n}</span>
+            </td>
+            <td style="vertical-align:top;border-left:1px solid ${T.inkFaint};padding-left:18px;">
+              <p style="margin:0 0 3px;color:${T.ink};font-size:14px;font-weight:500;
+                font-family:'Outfit',Helvetica,Arial,sans-serif;">${s.title}</p>
+              <p style="margin:0;color:${T.inkMute};font-size:13px;font-weight:300;
+                font-family:'Outfit',Helvetica,Arial,sans-serif;line-height:1.65;">${s.desc}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>`).join('')}
 
-        <tr>
-          <td style="padding:24px 40px 28px;">
-            <p style="margin:0;color:#9a8e82;font-size:14px;font-family:Georgia,'Times New Roman',serif;line-height:1.85;font-style:italic;">
-              &ldquo;The curtain rises. Your seat is reserved at the grandest celebration of talent, creativity, and competition that GEC Samastipur has ever staged. Make it count.&rdquo;
-            </p>
-          </td>
-        </tr>
+    <!-- Rule -->
+    <tr>
+      <td style="padding:4px 48px 0;">
+        <div style="height:1px;background:${T.inkFaint};"></div>
+      </td>
+    </tr>
 
-        ${ornaDivider()}
+    <!-- CTA -->
+    <tr>
+      <td style="padding:28px 48px 40px;">
+        <a href="#"
+          style="display:inline-block;padding:13px 36px;background:${T.ink};
+            color:${T.white};font-size:11px;font-weight:500;border-radius:2px;
+            font-family:'Outfit',Helvetica,Arial,sans-serif;
+            letter-spacing:3px;text-transform:uppercase;text-decoration:none;">
+          Enter the Festival &rarr;
+        </a>
+        <p style="margin:16px 0 0;color:${T.inkMute};font-size:12px;font-weight:300;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;">
+          Not your account? Simply disregard this email.
+        </p>
+      </td>
+    </tr>`;
 
-        <tr>
-          <td style="padding:28px 40px 8px;">
-            <p style="margin:0 0 20px;color:${C.goldDim};font-size:9px;font-family:Georgia,serif;letter-spacing:5px;text-transform:uppercase;text-align:center;">Your Programme</p>
-            <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
-              ${steps.map((s, i) => `
-              <tr>
-                <td style="padding-bottom:${i < steps.length - 1 ? '16px' : '4px'};">
-                  <table cellpadding="0" cellspacing="0" border="0" style="width:100%;background:${C.paperAlt};border:1px solid ${C.rule};border-radius:2px;overflow:hidden;">
-                    <tr>
-                      <td style="width:52px;background:${C.crimson};text-align:center;vertical-align:middle;padding:16px 0;">
-                        <span style="color:rgba(255,255,255,0.9);font-size:13px;font-family:Georgia,serif;font-weight:700;">${s.num}</span>
-                      </td>
-                      <td style="padding:14px 18px;vertical-align:middle;">
-                        <p style="margin:0 0 3px;color:${C.cream};font-size:13px;font-weight:700;font-family:Georgia,serif;">${s.title}</p>
-                        <p style="margin:0;color:${C.muted};font-size:12px;font-family:Georgia,serif;font-style:italic;line-height:1.5;">${s.desc}</p>
-                      </td>
-                    </tr>
-                  </table>
-                </td>
-              </tr>`).join('')}
-            </table>
-          </td>
-        </tr>
-
-        <tr>
-          <td style="padding:28px 40px 36px;text-align:center;">
-            <a href="#" style="display:inline-block;padding:14px 48px;background:${C.crimson};color:#fff;font-size:11px;font-weight:700;font-family:Georgia,serif;letter-spacing:4px;text-transform:uppercase;text-decoration:none;border-radius:2px;border-bottom:2px solid #8a1a10;">
-              Enter the Festival &rarr;
-            </a>
-            <p style="margin:20px 0 0;color:${C.dim};font-size:11px;font-family:Georgia,serif;font-style:italic;">
-              Not your account? Simply disregard this correspondence.
-            </p>
-          </td>
-        </tr>
-
-        ${ornaDivider()}
-        ${emailFooter()}
-      </table>
-    </td>
-  </tr>
-</table>
-</body>
-</html>`;
-
-  await sendEmail(toEmail, `Your Admission is Confirmed, ${name} — Festiverse'26`, html);
+  await sendEmail(
+    toEmail,
+    `You're Confirmed, ${name} — Festiverse'26`,
+    shell(body)
+  );
 }
 
-module.exports = { sendOTPEmail, sendConfirmationEmail };
+// ── Event Registration Email ───────────────────────────────────────────
+// Sent when a user successfully registers for a specific competition/event.
+// Params:
+//   toEmail  — recipient address
+//   name     — participant name
+//   event    — { title, category, date, venue, teamSize, registrationId }
+async function sendEventRegistrationEmail(toEmail, name, event) {
+  const meta = [
+    { label: 'Category', value: event.category },
+    { label: 'Date & Time', value: event.date },
+    { label: 'Venue', value: event.venue },
+    { label: 'Team Size', value: event.teamSize },
+    { label: 'Registration ID', value: event.registrationId },
+  ];
+
+  const body = `
+    <!-- Heading -->
+    <tr>
+      <td style="padding:40px 48px 0;">
+        <p style="margin:0 0 6px;color:${T.inkMute};font-size:10px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:500;
+          letter-spacing:4px;text-transform:uppercase;">
+          Event Registration
+        </p>
+        <h2 style="margin:0 0 14px;color:${T.ink};font-size:28px;
+          font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;
+          font-weight:600;line-height:1.25;">
+          You're in,&nbsp;<em style="color:${T.saffron};font-style:italic;">${name}.</em>
+        </h2>
+        <p style="margin:0;color:${T.inkMid};font-size:14px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:300;line-height:1.8;">
+          Your spot at <strong style="font-weight:500;color:${T.ink};">${event.title}</strong>
+          has been secured. Find your event details below.
+        </p>
+      </td>
+    </tr>
+
+    <!-- Rule -->
+    <tr><td style="padding:24px 48px 0;"><div style="height:1px;background:${T.inkFaint};"></div></td></tr>
+
+    <!-- Event title block -->
+    <tr>
+      <td style="padding:24px 48px 0;">
+        <table cellpadding="0" cellspacing="0" border="0"
+          style="width:100%;background:${T.bg};border-radius:2px;border:1px solid ${T.inkFaint};border-left:3px solid ${T.saffron};">
+          <tr>
+            <td style="padding:18px 24px;">
+              <p style="margin:0 0 4px;color:${T.inkMute};font-size:10px;
+                font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:500;letter-spacing:3px;text-transform:uppercase;">
+                Event
+              </p>
+              <p style="margin:0;color:${T.ink};font-size:20px;
+                font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;
+                font-weight:600;line-height:1.2;">
+                ${event.title}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- Meta table -->
+    <tr>
+      <td style="padding:16px 48px 0;">
+        <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
+          ${meta.map((m, i) => `
+          <tr>
+            <td style="padding:10px 0;border-bottom:1px solid ${T.inkFaint};">
+              <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
+                <tr>
+                  <td style="width:140px;color:${T.inkMute};font-size:11px;font-weight:500;
+                    font-family:'Outfit',Helvetica,Arial,sans-serif;letter-spacing:1px;">
+                    ${m.label}
+                  </td>
+                  <td style="color:${T.ink};font-size:13px;font-weight:400;
+                    font-family:'Outfit',Helvetica,Arial,sans-serif;
+                    ${m.label === 'Registration ID' ? `color:${T.saffron};font-weight:600;letter-spacing:1px;` : ''}">
+                    ${m.value}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`).join('')}
+        </table>
+      </td>
+    </tr>
+
+    <!-- CTA -->
+    <tr>
+      <td style="padding:28px 48px 40px;">
+        <a href="#"
+          style="display:inline-block;padding:13px 36px;background:${T.ink};
+            color:${T.white};font-size:11px;font-weight:500;border-radius:2px;
+            font-family:'Outfit',Helvetica,Arial,sans-serif;
+            letter-spacing:3px;text-transform:uppercase;text-decoration:none;">
+          View My Events &rarr;
+        </a>
+      </td>
+    </tr>`;
+
+  await sendEmail(
+    toEmail,
+    `Registered for ${event.title} — Festiverse'26`,
+    shell(body)
+  );
+}
+
+// ── Team Invitation Email ──────────────────────────────────────────────
+// Sent when a team leader invites someone to join their team for an event.
+// Params:
+//   toEmail     — recipient address
+//   inviteeName — name of the person being invited
+//   invite      — { fromName, teamName, eventTitle, message, acceptUrl, expiresIn }
+async function sendTeamInviteEmail(toEmail, inviteeName, invite) {
+  const body = `
+    <!-- Heading -->
+    <tr>
+      <td style="padding:40px 48px 0;">
+        <p style="margin:0 0 6px;color:${T.inkMute};font-size:10px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:500;
+          letter-spacing:4px;text-transform:uppercase;">
+          Team Invitation
+        </p>
+        <h2 style="margin:0 0 14px;color:${T.ink};font-size:28px;
+          font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;
+          font-weight:600;line-height:1.25;">
+          You've been invited,<br>
+          <em style="color:${T.saffron};font-style:italic;">${inviteeName}.</em>
+        </h2>
+        <p style="margin:0;color:${T.inkMid};font-size:14px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:300;line-height:1.8;">
+          <strong style="font-weight:500;color:${T.ink};">${invite.fromName}</strong>
+          has invited you to join their team for
+          <strong style="font-weight:500;color:${T.ink};">${invite.eventTitle}</strong>.
+        </p>
+      </td>
+    </tr>
+
+    <!-- Rule -->
+    <tr><td style="padding:24px 48px 0;"><div style="height:1px;background:${T.inkFaint};"></div></td></tr>
+
+    <!-- Team card -->
+    <tr>
+      <td style="padding:24px 48px 0;">
+        <table cellpadding="0" cellspacing="0" border="0"
+          style="width:100%;background:${T.bg};border-radius:2px;border:1px solid ${T.inkFaint};">
+          <tr>
+            <td style="padding:20px 24px;">
+              <p style="margin:0 0 3px;color:${T.inkMute};font-size:10px;font-weight:500;
+                font-family:'Outfit',Helvetica,Arial,sans-serif;letter-spacing:3px;text-transform:uppercase;">
+                Team Name
+              </p>
+              <p style="margin:0 0 14px;color:${T.ink};font-size:22px;
+                font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;font-weight:600;">
+                ${invite.teamName}
+              </p>
+              <p style="margin:0 0 3px;color:${T.inkMute};font-size:10px;font-weight:500;
+                font-family:'Outfit',Helvetica,Arial,sans-serif;letter-spacing:3px;text-transform:uppercase;">
+                Competing In
+              </p>
+              <p style="margin:0;color:${T.inkMid};font-size:13px;font-weight:400;
+                font-family:'Outfit',Helvetica,Arial,sans-serif;">
+                ${invite.eventTitle}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- Personal message (optional) -->
+    ${invite.message ? `
+    <tr>
+      <td style="padding:16px 48px 0;">
+        <table cellpadding="0" cellspacing="0" border="0"
+          style="width:100%;border-left:3px solid ${T.saffron};background:${T.saffronBg};border-radius:2px;">
+          <tr>
+            <td style="padding:14px 20px;">
+              <p style="margin:0 0 4px;color:${T.saffron};font-size:10px;font-weight:500;
+                font-family:'Outfit',Helvetica,Arial,sans-serif;letter-spacing:2px;text-transform:uppercase;">
+                Message from ${invite.fromName}
+              </p>
+              <p style="margin:0;color:${T.inkMid};font-size:13px;font-weight:300;
+                font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;
+                font-style:italic;line-height:1.7;">
+                &ldquo;${invite.message}&rdquo;
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>` : ''}
+
+    <!-- Expiry note -->
+    <tr>
+      <td style="padding:16px 48px 0;text-align:left;">
+        <span style="color:${T.inkMute};font-size:11px;font-weight:300;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;">
+          This invitation expires in
+          <strong style="color:${T.ink};font-weight:500;">${invite.expiresIn || '24 hours'}</strong>.
+        </span>
+      </td>
+    </tr>
+
+    <!-- CTAs -->
+    <tr>
+      <td style="padding:24px 48px 40px;">
+        <table cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="padding-right:12px;">
+              <a href="${invite.acceptUrl || '#'}"
+                style="display:inline-block;padding:13px 30px;background:${T.ink};
+                  color:${T.white};font-size:11px;font-weight:500;border-radius:2px;
+                  font-family:'Outfit',Helvetica,Arial,sans-serif;
+                  letter-spacing:3px;text-transform:uppercase;text-decoration:none;">
+                Accept Invite
+              </a>
+            </td>
+            <td>
+              <a href="#"
+                style="display:inline-block;padding:12px 30px;background:transparent;
+                  color:${T.inkMid};font-size:11px;font-weight:400;border-radius:2px;
+                  font-family:'Outfit',Helvetica,Arial,sans-serif;letter-spacing:3px;
+                  text-transform:uppercase;text-decoration:none;border:1px solid ${T.inkFaint};">
+                Decline
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>`;
+
+  await sendEmail(
+    toEmail,
+    `${invite.fromName} invited you to join ${invite.teamName} — Festiverse'26`,
+    shell(body)
+  );
+}
+
+// ── Result / Certificate Email ─────────────────────────────────────────
+// Sent after event results are declared — works for winners and participants.
+// Params:
+//   toEmail  — recipient address
+//   name     — participant name
+//   result   — { eventTitle, position, rank, score, certificateUrl, message }
+//              position: 'winner' | 'runner-up' | 'participant'
+async function sendResultEmail(toEmail, name, result) {
+  const isWinner = result.position === 'winner';
+  const isRunnerUp = result.position === 'runner-up';
+  const isParticipant = result.position === 'participant';
+
+  const badgeMap = {
+    'winner': { label: '1st Place', color: T.saffron, bg: T.saffronBg },
+    'runner-up': { label: '2nd Place', color: '#6B7280', bg: '#F3F4F6' },
+    'participant': { label: 'Participant', color: T.inkMute, bg: T.bg },
+  };
+  const badge = badgeMap[result.position] || badgeMap['participant'];
+
+  const headline = isWinner
+    ? `Congratulations,<br><em style="color:${T.saffron};font-style:italic;">${name}.</em>`
+    : isRunnerUp
+      ? `Well played,<br><em style="color:${T.ink};font-style:italic;">${name}.</em>`
+      : `Thank you,<br><em style="color:${T.ink};font-style:italic;">${name}.</em>`;
+
+  const subtext = isWinner
+    ? `You've claimed the top position at <strong style="font-weight:500;color:${T.ink};">${result.eventTitle}</strong>. A remarkable performance.`
+    : isRunnerUp
+      ? `A strong showing at <strong style="font-weight:500;color:${T.ink};">${result.eventTitle}</strong>. You made it count.`
+      : `Your participation at <strong style="font-weight:500;color:${T.ink};">${result.eventTitle}</strong> is appreciated. Every stage performance matters.`;
+
+  const body = `
+    <!-- Heading -->
+    <tr>
+      <td style="padding:40px 48px 0;">
+        <p style="margin:0 0 6px;color:${T.inkMute};font-size:10px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:500;
+          letter-spacing:4px;text-transform:uppercase;">
+          Results Declared
+        </p>
+        <h2 style="margin:0 0 14px;color:${T.ink};font-size:28px;
+          font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;
+          font-weight:600;line-height:1.3;">
+          ${headline}
+        </h2>
+        <p style="margin:0;color:${T.inkMid};font-size:14px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:300;line-height:1.8;">
+          ${subtext}
+        </p>
+      </td>
+    </tr>
+
+    <!-- Rule -->
+    <tr><td style="padding:24px 48px 0;"><div style="height:1px;background:${T.inkFaint};"></div></td></tr>
+
+    <!-- Result card -->
+    <tr>
+      <td style="padding:24px 48px 0;">
+        <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
+          <tr>
+            <!-- Event & badge -->
+            <td style="vertical-align:top;padding-right:16px;">
+              <table cellpadding="0" cellspacing="0" border="0"
+                style="width:100%;background:${T.bg};border-radius:2px;border:1px solid ${T.inkFaint};">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <p style="margin:0 0 3px;color:${T.inkMute};font-size:10px;font-weight:500;
+                      font-family:'Outfit',Helvetica,Arial,sans-serif;letter-spacing:3px;text-transform:uppercase;">
+                      Event
+                    </p>
+                    <p style="margin:0 0 18px;color:${T.ink};font-size:18px;
+                      font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;font-weight:600;">
+                      ${result.eventTitle}
+                    </p>
+                    <!-- Badge -->
+                    <span style="display:inline-block;padding:7px 16px;
+                      background:${badge.bg};border-radius:2px;
+                      color:${badge.color};font-size:10px;font-weight:600;
+                      font-family:'Outfit',Helvetica,Arial,sans-serif;
+                      letter-spacing:3px;text-transform:uppercase;">
+                      ${badge.label}
+                    </span>
+                    ${result.score ? `
+                    <p style="margin:14px 0 0;color:${T.inkMute};font-size:11px;font-weight:400;
+                      font-family:'Outfit',Helvetica,Arial,sans-serif;letter-spacing:1px;">
+                      Score: <span style="color:${T.ink};font-weight:500;">${result.score}</span>
+                    </p>` : ''}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- Personal message from organiser (optional) -->
+    ${result.message ? `
+    <tr>
+      <td style="padding:16px 48px 0;">
+        <p style="margin:0;color:${T.inkMid};font-size:14px;
+          font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;
+          font-style:italic;line-height:1.8;border-left:3px solid ${T.inkFaint};padding-left:18px;">
+          &ldquo;${result.message}&rdquo;
+        </p>
+      </td>
+    </tr>` : ''}
+
+    <!-- Certificate CTA -->
+    <tr>
+      <td style="padding:28px 48px 40px;">
+        <a href="${result.certificateUrl || '#'}"
+          style="display:inline-block;padding:13px 36px;background:${T.ink};
+            color:${T.white};font-size:11px;font-weight:500;border-radius:2px;
+            font-family:'Outfit',Helvetica,Arial,sans-serif;
+            letter-spacing:3px;text-transform:uppercase;text-decoration:none;">
+          Download Certificate &rarr;
+        </a>
+        <p style="margin:14px 0 0;color:${T.inkMute};font-size:12px;font-weight:300;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;line-height:1.7;">
+          Your certificate of ${isWinner ? 'achievement' : 'participation'} is ready for download.
+          Keep it as a memento of Festiverse&nbsp;'26.
+        </p>
+      </td>
+    </tr>`;
+
+  const subjectMap = {
+    'winner': `You Won — ${result.eventTitle} | Festiverse'26`,
+    'runner-up': `Runner-Up — ${result.eventTitle} | Festiverse'26`,
+    'participant': `Your Certificate — ${result.eventTitle} | Festiverse'26`,
+  };
+
+  await sendEmail(
+    toEmail,
+    subjectMap[result.position] || subjectMap['participant'],
+    shell(body)
+  );
+}
+
+module.exports = {
+  sendOTPEmail,
+  sendConfirmationEmail,
+  sendEventRegistrationEmail,
+  sendTeamInviteEmail,
+  sendResultEmail,
+};

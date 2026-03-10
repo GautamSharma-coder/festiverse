@@ -158,22 +158,25 @@ The app has two visual "universes" toggled by a pill switch in the navbar:
 
 ## 4. What's Left / To-Do 🚧
 
-### High Priority
+### High Priority ✅ COMPLETED
 - [x] **Real Email OTP** — replaced mock OTP with Nodemailer + Gmail (DNS-safe)
 - [x] **Removed `otp_hint`** — OTP is no longer leaked in API responses
-- [ ] **Payment gateway integration** — if registration requires a fee, integrate Razorpay / Stripe
+- [x] **Payment gateway integration** — Razorpay fully integrated with order creation and signature verification
 - [x] **Protected admin route** — added auth middleware and hid the UI entry point on mobile via tap area
+- [x] **Secure JWT storage** — Moved from localStorage to httpOnly cookies with backend cookie support
+- [x] **Error logging** — added Winston logger with console output, file rotation, and structured logging
+- [x] **Database migration tool** — set up db-migrate with migration CLI commands
 
 ### Security & Production Readiness
 - [x] **Rate limiting** — OTP (3/min), login (5/min) via in-memory rate limiter
 - [x] **Input validation** — email, phone (10-digit), OTP (4-digit) format checks on auth
 - [x] **Email notifications** — confirmation email on registration
-- [ ] **HTTPS & secure cookies** — JWT is stored in `localStorage` (XSS-vulnerable); consider `httpOnly` cookies
+- [x] **HTTPS & secure cookies** — JWT now uses httpOnly, secure, sameSite cookies
 - [ ] **Environment variable validation** — no startup checks for required env vars
 - [ ] **Remove hardcoded DNS workaround** — the undici agent forcing Supabase to `104.18.38.10` is a temporary ISP fix
 - [x] **CORS configuration** — allowlist for localhost + production origin, with `credentials: true`
 - [x] **Environment variable validation** — startup warnings for missing `SUPABASE_*`, `JWT_SECRET`, email credentials
-- [ ] **Error logging** — add a proper logging library (Winston / Pino) instead of `console.error`
+- [x] **Error logging** — Winston logger with file rotation and structured error tracking
 
 ### Features
 - [ ] **Event details page** — individual event pages with full descriptions, rules, schedule

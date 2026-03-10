@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const styles = `
@@ -25,11 +25,11 @@ const styles = `
   /* Big background word */
   .ff-bg-text {
     position: absolute;
-    bottom: -30px;
+    bottom: -20px;
     left: 50%;
     transform: translateX(-50%);
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(100px, 18vw, 240px);
+    font-size: clamp(80px, 18vw, 240px);
     letter-spacing: -0.02em;
     color: transparent;
     -webkit-text-stroke: 1px rgba(255, 140, 0, 0.05);
@@ -60,15 +60,19 @@ const styles = `
   /* ── TOP BAND ── */
   .ff-top {
     padding: 64px 0 48px;
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    align-items: start;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     gap: 40px;
+    flex-wrap: wrap;
     border-bottom: 1px solid rgba(255,255,255,0.05);
   }
 
   /* Brand block */
-  .ff-brand {}
+  .ff-brand {
+    flex: 1;
+    min-width: 280px;
+  }
 
   .ff-brand-eyebrow {
     font-family: 'Syne Mono', monospace;
@@ -113,6 +117,7 @@ const styles = `
     align-items: center;
     gap: 12px;
     padding-top: 8px;
+    flex: 0 0 auto;
   }
 
   .ff-year-badge {
@@ -133,12 +138,12 @@ const styles = `
 
   /* Links block */
   .ff-links-block {
+    flex: 1;
+    min-width: 280px;
     display: flex;
-    gap: 40px;
+    gap: 60px;
     justify-content: flex-end;
   }
-
-  .ff-links-col {}
 
   .ff-links-heading {
     font-family: 'Syne Mono', monospace;
@@ -156,12 +161,12 @@ const styles = `
     color: rgba(255,255,255,0.55);
     text-decoration: none;
     margin-bottom: 10px;
-    transition: color 0.2s, padding-left 0.2s;
+    transition: color 0.2s, transform 0.2s;
     letter-spacing: 0.02em;
   }
   .ff-link:hover {
     color: #FF8C00;
-    padding-left: 8px;
+    transform: translateX(4px);
   }
 
   /* ── SOCIAL STRIP ── */
@@ -171,7 +176,7 @@ const styles = `
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid rgba(255,255,255,0.05);
-    gap: 20px;
+    gap: 24px;
     flex-wrap: wrap;
   }
 
@@ -185,7 +190,9 @@ const styles = `
 
   .ff-socials {
     display: flex;
-    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
   }
 
   .ff-social-btn {
@@ -220,6 +227,7 @@ const styles = `
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-wrap: wrap;
   }
 
   .ff-nl-text {
@@ -232,6 +240,8 @@ const styles = `
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 2px;
     overflow: hidden;
+    width: 100%;
+    max-width: 320px;
   }
 
   .ff-nl-input {
@@ -242,7 +252,8 @@ const styles = `
     font-family: 'Syne Mono', monospace;
     font-size: 11px;
     color: rgba(255,255,255,0.6);
-    width: 180px;
+    flex: 1;
+    min-width: 120px;
   }
   .ff-nl-input::placeholder { color: rgba(255,255,255,0.2); }
 
@@ -258,6 +269,7 @@ const styles = `
     color: #000;
     cursor: pointer;
     transition: background 0.2s;
+    white-space: nowrap;
   }
   .ff-nl-btn:hover { background: #ffaa33; }
 
@@ -268,7 +280,7 @@ const styles = `
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 16px;
   }
 
   .ff-copy {
@@ -276,6 +288,7 @@ const styles = `
     font-size: 11px;
     color: rgba(255,255,255,0.2);
     letter-spacing: 0.12em;
+    cursor: pointer;
   }
   .ff-copy span { color: #FF8C00; }
 
@@ -285,6 +298,7 @@ const styles = `
     color: rgba(255,255,255,0.15);
     letter-spacing: 0.1em;
     text-transform: uppercase;
+    text-align: center;
   }
 
   .ff-back-top {
@@ -310,15 +324,27 @@ const styles = `
     background: rgba(255,140,0,0.06);
   }
 
-  @media (max-width: 768px) {
-    .ff-top {
-      grid-template-columns: 1fr;
-    }
-    .ff-center-col { display: none; }
+  /* ── RESPONSIVE BREAKPOINTS ── */
+  @media (max-width: 900px) {
+    .ff-center-col { display: none; } /* Hide center line on medium screens */
     .ff-links-block { justify-content: flex-start; }
+  }
+
+  @media (max-width: 650px) {
+    .ff-inner { padding: 0 24px; }
+    
+    .ff-top { flex-direction: column; gap: 48px; }
+    
+    .ff-links-block { width: 100%; justify-content: space-between; gap: 20px; }
+    
     .ff-social-strip { flex-direction: column; align-items: flex-start; }
-    .ff-newsletter { flex-direction: column; align-items: flex-start; }
-    .ff-nl-input { width: 140px; }
+    .ff-socials { width: 100%; }
+    .ff-social-btn { flex: 1; justify-content: center; }
+    
+    .ff-newsletter { width: 100%; flex-direction: column; align-items: flex-start; }
+    .ff-nl-form { max-width: 100%; }
+    
+    .ff-bottom { flex-direction: column; justify-content: center; text-align: center; }
   }
 `;
 
@@ -345,7 +371,6 @@ const FestFooter = ({ onAdminClick }) => {
 
           {/* Top section */}
           <div className="ff-top">
-
             {/* Brand */}
             <div className="ff-brand">
               <div className="ff-brand-eyebrow">Est. 2026</div>
@@ -432,7 +457,6 @@ const FestFooter = ({ onAdminClick }) => {
                   setTapCount(0);
                 }
               }}
-              style={{ cursor: 'pointer' }}
             >
               © 2026 FESTIVERSE — All rights reserved
             </div>
