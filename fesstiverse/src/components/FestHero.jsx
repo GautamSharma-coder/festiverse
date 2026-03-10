@@ -167,7 +167,7 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
                         }}>
                             Logout
                         </button>
-                    </div>
+                    </>
                 )}
             </div>
         </header>
