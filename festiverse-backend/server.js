@@ -63,6 +63,8 @@ const teamRoutes = require('./src/routes/teamRoutes');
 const noticeRoutes = require('./src/routes/noticeRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const proxyRoutes = require('./src/routes/proxyRoutes');
+const resultRoutes = require('./src/routes/resultRoutes');
+const sponsorRoutes = require('./src/routes/sponsorRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
@@ -72,6 +74,8 @@ app.use('/api/team', teamRoutes);
 app.use('/api/notices', noticeRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/proxy', proxyRoutes);
+app.use('/api/results', resultRoutes);
+app.use('/api/sponsors', sponsorRoutes);
 
 // ─── Health Check ───
 app.get('/', (req, res) => {

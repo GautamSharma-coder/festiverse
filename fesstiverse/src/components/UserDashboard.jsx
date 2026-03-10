@@ -31,6 +31,9 @@ const CSS = `
     color: var(--text);
     display: flex;
     flex-direction: column;
+    /* FIX: prevent horizontal overflow on root */
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   /* ── Topbar ── */
@@ -38,26 +41,49 @@ const CSS = `
     position: sticky; top: 0; z-index: 50;
     height: 56px;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 0 20px;
+    /* FIX: tighter padding on mobile, use gap instead of relying on space */
+    padding: 0 14px;
     background: rgba(14,14,16,0.85);
     border-bottom: 1px solid var(--border);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+    /* FIX: prevent topbar itself from overflowing */
+    width: 100%;
+    min-width: 0;
+  }
+  .d-topbar-left {
+    display: flex; align-items: center; gap: 8px;
+    /* FIX: allow shrink so right side isn't pushed off */
+    min-width: 0;
+    flex-shrink: 1;
+    overflow: hidden;
   }
   .d-logo {
     font-family: var(--font-h);
     font-size: 1rem; font-weight: 800;
     letter-spacing: -0.02em; color: var(--text);
+    /* FIX: don't let logo wrap or overflow */
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .d-logo span { color: var(--accent); }
-  .d-topbar-right { display: flex; align-items: center; gap: 10px; }
-  .d-user-chip {
+  .d-topbar-right {
     display: flex; align-items: center; gap: 8px;
+    /* FIX: prevent shrinking so logout stays visible */
+    flex-shrink: 0;
+    min-width: 0;
+  }
+  .d-user-chip {
+    display: flex; align-items: center; gap: 6px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 99px;
-    padding: 5px 12px 5px 5px;
+    padding: 5px 10px 5px 5px;
     font-size: 0.8rem; color: var(--muted);
+    /* FIX: hard cap width + ellipsis */
+    max-width: 130px;
+    min-width: 0;
+    overflow: hidden;
   }
   .d-avatar {
     width: 26px; height: 26px; border-radius: 50%;
@@ -66,21 +92,32 @@ const CSS = `
     font-size: 0.7rem; font-weight: 700; color: #fff;
     flex-shrink: 0;
   }
+  /* FIX: name inside chip must truncate */
+  .d-user-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
   .d-btn-icon {
     background: none; border: none; cursor: pointer;
     color: var(--muted); font-size: 0.78rem;
     padding: 6px 10px; border-radius: 8px;
     transition: color .15s, background .15s;
     font-family: var(--font-b);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .d-btn-icon:hover { background: var(--surface); color: var(--red); }
   .d-back-btn {
     background: none; border: none; cursor: pointer;
     color: var(--muted); font-size: 0.78rem;
-    padding: 6px 10px; border-radius: 8px;
-    display: flex; align-items: center; gap: 5px;
+    padding: 6px 8px; border-radius: 8px;
+    display: flex; align-items: center; gap: 4px;
     transition: color .15s, background .15s;
     font-family: var(--font-b);
+    flex-shrink: 0;
+    white-space: nowrap;
   }
   .d-back-btn:hover { background: var(--surface); color: var(--text); }
 
@@ -92,7 +129,10 @@ const CSS = `
     max-width: 900px;
     width: 100%;
     margin: 0 auto;
-    padding: 28px 20px 100px; /* bottom pad for mobile nav */
+    padding: 28px 20px 100px;
+    /* FIX: prevent inner content from escaping */
+    min-width: 0;
+    overflow-x: hidden;
   }
 
   /* ── Page header ── */
@@ -157,6 +197,8 @@ const CSS = `
     display: flex; align-items: flex-start; gap: 10px;
     padding: 12px 16px; border-radius: 10px; margin-bottom: 20px;
     font-size: 0.85rem; font-weight: 400; animation: fadeUp .25s ease;
+    /* FIX: wrap long error messages */
+    word-break: break-word;
   }
   .d-msg.ok  { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: #86efac; }
   .d-msg.err { background: rgba(239,68,68,0.08);  border: 1px solid rgba(239,68,68,0.25);  color: #fca5a5; }
@@ -168,6 +210,9 @@ const CSS = `
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 24px;
+    /* FIX: card must not overflow its container */
+    min-width: 0;
+    overflow: hidden;
   }
 
   /* ── Section label ── */
@@ -175,8 +220,9 @@ const CSS = `
     font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
     letter-spacing: 0.12em; color: var(--muted); margin-bottom: 16px;
     display: flex; align-items: center; gap: 8px;
+    overflow: hidden;
   }
-  .d-section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .d-section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); min-width: 0; }
 
   /* ── Form ── */
   .d-form-grid {
@@ -196,6 +242,9 @@ const CSS = `
     border-radius: 9px; color: var(--text); font-size: 0.88rem;
     font-family: var(--font-b); transition: border-color .15s, box-shadow .15s;
     outline: none;
+    /* FIX: inputs must not exceed their grid cell */
+    min-width: 0;
+    max-width: 100%;
   }
   .d-field input:focus {
     border-color: var(--accent);
@@ -218,6 +267,8 @@ const CSS = `
     font-family: var(--font-b); font-size: 0.875rem; font-weight: 600;
     transition: background .15s, transform .15s, box-shadow .15s;
     box-shadow: 0 2px 10px rgba(249,115,22,0.25);
+    max-width: 100%;
+    white-space: nowrap;
   }
   .d-btn-primary:hover:not(:disabled) {
     background: var(--accent2);
@@ -260,6 +311,8 @@ const CSS = `
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 12px;
     margin-bottom: 20px;
+    min-width: 0;
+    width: 100%;
   }
 
   /* ── Event card ── */
@@ -267,6 +320,9 @@ const CSS = `
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 16px;
     cursor: pointer; transition: all .2s; position: relative; overflow: hidden;
+    /* FIX: event cards must stay inside grid cell */
+    min-width: 0;
+    word-break: break-word;
   }
   .d-ev::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0;
@@ -279,19 +335,47 @@ const CSS = `
   .d-ev.d-ev-reg { border-color: rgba(34,197,94,0.3); background: rgba(34,197,94,0.04); cursor: default; transform: none; }
   .d-ev.d-ev-reg::before { background: linear-gradient(to right, var(--green), transparent); }
 
-  .d-ev-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
-  .d-ev-name { font-family: var(--font-h); font-size: 0.95rem; font-weight: 700; line-height: 1.3; }
-  .d-ev-badges { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; flex-shrink: 0; }
+  .d-ev-head {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 10px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .d-ev-name {
+    font-family: var(--font-h); font-size: 0.95rem; font-weight: 700; line-height: 1.3;
+    /* FIX: name must wrap, not push badges off screen */
+    min-width: 0;
+    word-break: break-word;
+    flex: 1;
+  }
+  .d-ev-badges {
+    display: flex; flex-direction: column; gap: 4px; align-items: flex-end;
+    flex-shrink: 0;
+    max-width: 50%;
+  }
   .d-badge {
     font-size: 0.62rem; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.07em; padding: 2px 7px; border-radius: 4px; white-space: nowrap;
+    letter-spacing: 0.07em; padding: 2px 7px; border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
   .d-badge-green { background: rgba(34,197,94,0.12); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
   .d-badge-amber { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
   .d-badge-orange { background: rgba(249,115,22,0.12); color: var(--accent); border: 1px solid rgba(249,115,22,0.25); }
 
-  .d-ev-meta { font-size: 0.78rem; color: var(--muted); margin: 3px 0; display: flex; align-items: center; gap: 5px; }
-  .d-ev-desc { font-size: 0.78rem; color: var(--muted2); line-height: 1.55; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .d-ev-meta {
+    font-size: 0.78rem; color: var(--muted); margin: 3px 0; display: flex; align-items: center; gap: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .d-ev-desc {
+    font-size: 0.78rem; color: var(--muted2); line-height: 1.55; margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--border);
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
 
   /* Checkbox */
   .d-checkbox {
@@ -307,26 +391,34 @@ const CSS = `
   .d-team-form {
     margin-top: 14px; padding: 14px; border-radius: 10px;
     background: var(--bg); border: 1px solid rgba(249,115,22,0.2);
+    overflow: hidden;
+    min-width: 0;
   }
   .d-team-title {
     font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
     letter-spacing: 0.1em; color: var(--accent); margin-bottom: 10px;
     display: flex; align-items: center; gap: 6px;
+    word-break: break-word;
   }
-  .d-team-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .d-team-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;
+    min-width: 0;
+  }
   .d-team-row input {
     width: 100%; padding: 8px 10px;
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 7px; color: var(--text);
     font-size: 0.8rem; font-family: var(--font-b); outline: none;
     transition: border-color .15s;
+    min-width: 0;
+    max-width: 100%;
   }
   .d-team-row input:focus { border-color: var(--accent); }
   .d-team-row input::placeholder { color: var(--muted2); }
 
   /* ── Sticky register bar ── */
   .d-reg-bar {
-    position: sticky; bottom: 88px; /* above mobile nav */
+    position: sticky; bottom: 88px;
     background: rgba(22,22,26,0.92);
     border: 1px solid var(--border);
     border-radius: 14px; padding: 14px 18px;
@@ -335,10 +427,23 @@ const CSS = `
     box-shadow: 0 16px 40px rgba(0,0,0,0.5);
     animation: slideUp .25s ease;
     z-index: 30;
+    max-width: 100%;
+    box-sizing: border-box;
   }
-  .d-reg-bar-text { font-size: 0.85rem; }
-  .d-reg-bar-text strong { font-family: var(--font-h); font-weight: 700; font-size: 1rem; display: block; }
-  .d-reg-bar-text span { color: var(--muted); font-size: 0.78rem; }
+  .d-reg-bar-text {
+    font-size: 0.85rem;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+  .d-reg-bar-text strong {
+    font-family: var(--font-h); font-weight: 700; font-size: 1rem; display: block;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .d-reg-bar-text span {
+    color: var(--muted); font-size: 0.78rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;
+  }
 
   /* ── My events list ── */
   .d-my-ev {
@@ -346,6 +451,8 @@ const CSS = `
     padding: 14px 16px; border-radius: 11px;
     background: var(--surface); border: 1px solid var(--border);
     margin-bottom: 8px; transition: border-color .15s;
+    min-width: 0;
+    overflow: hidden;
   }
   .d-my-ev:hover { border-color: var(--muted2); }
   .d-my-ev-dot {
@@ -353,10 +460,19 @@ const CSS = `
     background: var(--green); flex-shrink: 0;
     box-shadow: 0 0 8px rgba(34,197,94,0.5);
   }
-  .d-my-ev-info { flex: 1; min-width: 0; }
+  .d-my-ev-info { flex: 1; min-width: 0; overflow: hidden; }
   .d-my-ev-name { font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .d-my-ev-meta { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
-  .d-my-ev-badge { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 5px; background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); flex-shrink: 0; }
+  .d-my-ev-meta {
+    font-size: 0.75rem; color: var(--muted); margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .d-my-ev-badge {
+    font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 3px 8px; border-radius: 5px;
+    background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
 
   /* ── Stats strip ── */
   .d-stats {
@@ -366,8 +482,15 @@ const CSS = `
   .d-stat {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: 11px; padding: 14px 16px; text-align: center;
+    min-width: 0;
+    overflow: hidden;
   }
-  .d-stat-val { font-family: var(--font-h); font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+  .d-stat-val {
+    font-family: var(--font-h); font-size: 1.4rem; font-weight: 800; color: var(--accent);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .d-stat-lbl { font-size: 0.7rem; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
 
   /* ── Animations ── */
@@ -383,14 +506,37 @@ const CSS = `
     .d-events-grid { grid-template-columns: 1fr; }
     .d-tabs-desktop { display: none; }
     .d-bottom-nav { display: block; }
+
+    /* FIX: stats — 2-col on mobile, third spans full width */
     .d-stats { grid-template-columns: 1fr 1fr; }
     .d-stats .d-stat:last-child { grid-column: 1 / -1; }
-    .d-reg-bar { bottom: 88px; flex-direction: column; gap: 10px; }
+
+    /* FIX: register bar stacks vertically, constrained by body padding */
+    .d-reg-bar {
+      bottom: 88px;
+      flex-direction: column;
+      gap: 10px;
+      left: 14px;
+      right: 14px;
+      width: auto;
+    }
     .d-reg-bar .d-btn-primary { width: 100%; justify-content: center; }
+
+    /* FIX: team row goes single-column on mobile */
     .d-team-row { grid-template-columns: 1fr; }
+
     .d-card { padding: 18px 16px; }
     .d-header h1 { font-size: 1.4rem; }
+    .d-user-chip { max-width: 100px; }
+    .d-topbar { padding: 0 10px; }
   }
+
+  /* FIX: hide chip name text on very narrow screens */
+  @media (max-width: 380px) {
+    .d-user-chip-name { display: none; }
+    .d-user-chip { padding: 5px; }
+  }
+
   @media (min-width: 641px) {
     .d-bottom-nav { display: none; }
     .d-reg-bar { bottom: 24px; }
@@ -398,6 +544,7 @@ const CSS = `
   @media (min-width: 768px) {
     .d-body { padding: 36px 28px 80px; }
     .d-events-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+    .d-topbar { padding: 0 20px; }
   }
 `;
 
@@ -418,6 +565,9 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
         name: user?.name || '', email: user?.email || '',
         phone: user?.phone || '', college: user?.college || '',
     });
+    const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url || '');
+    const [avatarFile, setAvatarFile] = useState(null);
+    const [avatarPreview, setAvatarPreview] = useState('');
     const [myEvents, setMyEvents] = useState([]);
     const [allEvents, setAllEvents] = useState([]);
     const [selectedEvents, setSelectedEvents] = useState([]);
@@ -425,21 +575,45 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(false);
     const [msg, setMsg] = useState({ text: '', type: '' });
+    const [eventSearch, setEventSearch] = useState('');
+    const [qrModal, setQrModal] = useState(null); // registration id for QR
+    const [qrImage, setQrImage] = useState('');
+    const [qrLoading, setQrLoading] = useState(false);
 
     useEffect(() => { fetchProfile(); fetchMyEvents(); fetchAllEvents(); }, []);
 
-    const fetchProfile = async () => { try { const d = await apiFetch('/api/auth/profile'); if (d.user) setProfile({ name: d.user.name || '', email: d.user.email || '', phone: d.user.phone || '', college: d.user.college || '' }); } catch { } };
+    const fetchProfile = async () => { try { const d = await apiFetch('/api/auth/profile'); if (d.user) { setProfile({ name: d.user.name || '', email: d.user.email || '', phone: d.user.phone || '', college: d.user.college || '' }); if (d.user.avatar_url) setAvatarUrl(d.user.avatar_url); } } catch { } };
     const fetchMyEvents = async () => { try { const d = await apiFetch('/api/events/my-events'); setMyEvents(d.registrations || []); } catch { } };
     const fetchAllEvents = async () => { try { const d = await apiFetch('/api/events'); setAllEvents(d.events || []); } catch { } };
 
     const saveProfile = async () => {
         setSaving(true); setMsg({ text: '', type: '' });
         try {
-            const data = await apiFetch('/api/auth/profile', {
-                method: 'PUT',
-                body: JSON.stringify({ name: profile.name, email: profile.email, college: profile.college }),
-            });
+            let data;
+            if (avatarFile) {
+                // Use FormData for avatar upload
+                const formData = new FormData();
+                formData.append('name', profile.name);
+                formData.append('email', profile.email);
+                formData.append('college', profile.college);
+                formData.append('avatar', avatarFile);
+                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+                const token = localStorage.getItem('festiverse_token');
+                const res = await fetch(`${API_URL}/api/auth/profile`, {
+                    method: 'PUT',
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                    body: formData,
+                });
+                data = await res.json();
+                if (!res.ok) throw new Error(data.message || 'Upload failed');
+            } else {
+                data = await apiFetch('/api/auth/profile', {
+                    method: 'PUT',
+                    body: JSON.stringify({ name: profile.name, email: profile.email, college: profile.college }),
+                });
+            }
             setMsg({ text: 'Profile saved successfully.', type: 'ok' });
+            if (data.user?.avatar_url) { setAvatarUrl(data.user.avatar_url); setAvatarFile(null); setAvatarPreview(''); }
             if (onProfileUpdate && data.user) onProfileUpdate(data.user);
         } catch (e) { setMsg({ text: e.message, type: 'err' }); }
         finally { setSaving(false); }
@@ -490,6 +664,24 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
     const registeredIds = myEvents.map(r => r.event_id);
     const initials = (user?.name || 'U').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
 
+    const handleAvatarChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setAvatarFile(file);
+            setAvatarPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const showQr = async (regId) => {
+        setQrModal(regId); setQrLoading(true); setQrImage('');
+        try {
+            const d = await apiFetch(`/api/events/qr/${regId}`);
+            setQrImage(d.qrCode || '');
+        } catch (e) {
+            setQrImage('');
+        } finally { setQrLoading(false); }
+    };
+
     const tabs = [
         { id: 'profile', label: 'Profile', icon: '⊙' },
         { id: 'my-events', label: 'Tickets', icon: '◎' },
@@ -505,16 +697,18 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
 
                 {/* ── Topbar ── */}
                 <header className="d-topbar">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="d-topbar-left">
                         <button className="d-back-btn" onClick={onClose}>
-                            <span>←</span> <span style={{ display: 'none' }}>Back</span>
+                            <span>←</span>
                         </button>
                         <div className="d-logo">Festiver<span>se</span> <span style={{ fontWeight: 400, fontSize: '0.75rem', color: 'var(--muted)' }}>'26</span></div>
                     </div>
                     <div className="d-topbar-right">
                         <div className="d-user-chip">
-                            <div className="d-avatar">{initials}</div>
-                            <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</span>
+                            <div className="d-avatar" style={avatarUrl ? { backgroundImage: `url(${avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+                                {!avatarUrl && initials}
+                            </div>
+                            <span className="d-user-chip-name">{user?.name}</span>
                         </div>
                         <button className="d-btn-icon" onClick={onLogout}>Logout</button>
                     </div>
@@ -523,13 +717,11 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                 {/* ── Main body ── */}
                 <main className="d-body">
 
-                    {/* Page header */}
                     <div className="d-header d-fade">
                         <h1>My <em>Dashboard</em></h1>
                         <p>Manage your profile and event registrations</p>
                     </div>
 
-                    {/* Desktop tab bar */}
                     <div className="d-tabs-desktop d-fade" style={{ animationDelay: '.05s' }}>
                         {tabs.map(t => (
                             <button key={t.id} className={`d-tab ${activeTab === t.id ? 'active' : ''}`} onClick={() => switchTab(t.id)}>
@@ -541,7 +733,6 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                         ))}
                     </div>
 
-                    {/* Message */}
                     {msg.text && (
                         <div className={`d-msg ${msg.type}`}>
                             <span className="d-msg-icon">{msg.type === 'ok' ? '✓' : '!'}</span>
@@ -552,7 +743,6 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                     {/* ── PROFILE ── */}
                     {activeTab === 'profile' && (
                         <div className="d-fade">
-                            {/* Stats */}
                             <div className="d-stats">
                                 <div className="d-stat">
                                     <div className="d-stat-val">{myEvents.length}</div>
@@ -571,8 +761,34 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                             </div>
 
                             <div className="d-card">
-                                <div className="d-section-label">Personal Information</div>
+                                {/* Avatar Section */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                                    <div style={{
+                                        width: 64, height: 64, borderRadius: '50%',
+                                        background: avatarPreview || avatarUrl
+                                            ? `url(${avatarPreview || avatarUrl}) center/cover`
+                                            : 'linear-gradient(135deg, var(--accent), #f59e0b)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: '1.3rem', fontWeight: 700, color: '#fff',
+                                        border: '2px solid var(--border)', flexShrink: 0,
+                                    }}>
+                                        {!(avatarPreview || avatarUrl) && initials}
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>Profile Photo</div>
+                                        <label style={{
+                                            display: 'inline-block', fontSize: '0.75rem', color: 'var(--accent)',
+                                            cursor: 'pointer', padding: '4px 10px', borderRadius: 6,
+                                            border: '1px solid rgba(249,115,22,0.3)', background: 'rgba(249,115,22,0.06)',
+                                        }}>
+                                            {avatarFile ? '✓ Photo selected' : '📷 Upload'}
+                                            <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: 'none' }} />
+                                        </label>
+                                        {avatarFile && <span style={{ fontSize: '0.7rem', color: 'var(--muted)', marginLeft: 8 }}>{avatarFile.name}</span>}
+                                    </div>
+                                </div>
 
+                                <div className="d-section-label">Personal Information</div>
                                 <div className="d-form-grid">
                                     {[
                                         { label: 'Full Name', key: 'name', type: 'text', disabled: false },
@@ -592,7 +808,6 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                                         </div>
                                     ))}
                                 </div>
-
                                 <div className="d-divider" />
                                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                                     <button className="d-btn-primary" disabled={saving} onClick={saveProfile}>
@@ -629,10 +844,48 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                                                     {[reg.events?.location, reg.events?.date && new Date(reg.events.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })].filter(Boolean).join('  ·  ')}
                                                 </div>
                                             </div>
-                                            <span className="d-my-ev-badge">Confirmed</span>
+                                            <button
+                                                className="d-btn-ghost"
+                                                style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                                                onClick={() => showQr(reg.id)}
+                                            >
+                                                📱 QR
+                                            </button>
+                                            <span className="d-my-ev-badge">{reg.checked_in ? 'Checked In' : 'Confirmed'}</span>
                                         </div>
                                     ))}
                                 </>
+                            )}
+
+                            {/* QR Modal */}
+                            {qrModal && (
+                                <div style={{
+                                    position: 'fixed', inset: 0, zIndex: 9999,
+                                    background: 'rgba(0,0,0,0.85)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    animation: 'fadeUp .2s ease',
+                                }} onClick={() => { setQrModal(null); setQrImage(''); }}>
+                                    <div style={{
+                                        background: '#fff', borderRadius: 16, padding: 32,
+                                        textAlign: 'center', maxWidth: 340, width: '90%',
+                                    }} onClick={e => e.stopPropagation()}>
+                                        <h3 style={{ color: '#111', fontFamily: 'var(--font-h)', marginBottom: 16, fontSize: '1.1rem' }}>Your Event QR Code</h3>
+                                        {qrLoading ? (
+                                            <p style={{ color: '#666', padding: 20 }}>Generating QR code...</p>
+                                        ) : qrImage ? (
+                                            <img src={qrImage} alt="QR Code" style={{ width: 200, height: 200, margin: '0 auto' }} />
+                                        ) : (
+                                            <p style={{ color: '#999', padding: 20 }}>Could not generate QR code.</p>
+                                        )}
+                                        <p style={{ fontSize: '0.75rem', color: '#999', marginTop: 12 }}>Show this at the event entrance for check-in</p>
+                                        <button onClick={() => { setQrModal(null); setQrImage(''); }}
+                                            style={{
+                                                marginTop: 16, padding: '8px 24px', borderRadius: 8,
+                                                border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                                                fontFamily: 'var(--font-b)', fontSize: '0.85rem',
+                                            }}>Close</button>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     )}
@@ -643,8 +896,35 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                             <div className="d-section-label" style={{ marginBottom: 14 }}>
                                 {allEvents.length} Events Available
                             </div>
+
+                            {/* Search */}
+                            <div style={{ marginBottom: 16 }}>
+                                <input
+                                    type="text"
+                                    placeholder="🔍 Search events by name, location..."
+                                    value={eventSearch}
+                                    onChange={e => setEventSearch(e.target.value)}
+                                    style={{
+                                        width: '100%', padding: '10px 14px',
+                                        background: 'var(--surface)', border: '1px solid var(--border)',
+                                        borderRadius: 10, color: 'var(--text)', fontSize: '0.85rem',
+                                        fontFamily: 'var(--font-b)', outline: 'none',
+                                        transition: 'border-color .15s',
+                                    }}
+                                    onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+                                    onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                                />
+                            </div>
+
                             <div className="d-events-grid">
-                                {allEvents.map((ev, i) => {
+                                {allEvents.filter(ev => {
+                                    if (!eventSearch.trim()) return true;
+                                    const q = eventSearch.toLowerCase();
+                                    return (ev.name || '').toLowerCase().includes(q) ||
+                                        (ev.location || '').toLowerCase().includes(q) ||
+                                        (ev.category || '').toLowerCase().includes(q) ||
+                                        (ev.description || '').toLowerCase().includes(q);
+                                }).map((ev, i) => {
                                     const isReg = registeredIds.includes(ev.id);
                                     const isSel = selectedEvents.includes(ev.id);
                                     return (
@@ -653,7 +933,6 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                                             className={`d-ev d-fade ${isReg ? 'd-ev-reg' : ''} ${isSel && !isReg ? 'd-ev-sel' : ''}`}
                                             style={{ animationDelay: `${i * 0.04}s` }}
                                         >
-                                            {/* Card header — click to toggle */}
                                             <div onClick={() => !isReg && toggleEvent(ev.id)} style={{ cursor: isReg ? 'default' : 'pointer' }}>
                                                 <div className="d-ev-head">
                                                     <div className="d-ev-name">{ev.name}</div>
@@ -676,7 +955,6 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                                                 )}
                                             </div>
 
-                                            {/* Team member form */}
                                             {isSel && !isReg && ev.team_size > 1 && teamMembers[ev.id] && (
                                                 <div className="d-team-form" onClick={e => e.stopPropagation()}>
                                                     <div className="d-team-title">
@@ -703,7 +981,6 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                                 })}
                             </div>
 
-                            {/* Sticky register bar */}
                             {selectedEvents.length > 0 && (
                                 <div className="d-reg-bar">
                                     <div className="d-reg-bar-text">

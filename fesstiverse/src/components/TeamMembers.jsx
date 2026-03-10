@@ -16,6 +16,7 @@ const TeamMembers = () => {
     const [activeRole, setActiveRole] = useState('All');
     const [allMembers, setAllMembers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         fetch(`${API}/api/team`)
@@ -27,10 +28,19 @@ const TeamMembers = () => {
             .finally(() => setLoading(false));
     }, []);
 
-    // Filter by category — default unset members to 'Coordinator'
-    const members = activeRole === 'All'
+    // Filter by category and search
+    let members = activeRole === 'All'
         ? allMembers
         : allMembers.filter((m) => (m.category || 'Coordinator') === activeRole);
+
+    if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        members = members.filter(m =>
+            (m.name || '').toLowerCase().includes(q) ||
+            (m.role || '').toLowerCase().includes(q) ||
+            (m.society || '').toLowerCase().includes(q)
+        );
+    }
     const colors = roleColors[activeRole];
 
     return (
@@ -42,7 +52,27 @@ const TeamMembers = () => {
                 {/* Header */}
                 <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
                     <h2 style={{ fontSize: '2rem', fontWeight: 600, color: '#e4e4e7', marginBottom: '0.5rem' }}>The Team</h2>
-                    <p style={{ color: '#71717a', fontSize: '0.9rem' }}>The people who make it all happen</p>
+                    <p style={{ color: '#71717a', fontSize: '0.9rem', marginBottom: '1rem' }}>The people who make it all happen</p>
+                    <input
+                        type="text"
+                        placeholder="🔍 Search by name, role, or society..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        style={{
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: '10px',
+                            padding: '10px 16px',
+                            color: '#e4e4e7',
+                            fontSize: '0.85rem',
+                            width: '100%',
+                            maxWidth: '360px',
+                            outline: 'none',
+                            fontFamily: 'inherit',
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = 'rgba(249,115,22,0.4)'}
+                        onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+                    />
                 </div>
 
                 {/* Role Tabs */}

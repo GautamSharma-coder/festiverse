@@ -21,6 +21,9 @@ import LoginModal from './components/LoginModal';
 import FestFooter from './components/FestFooter';
 import AdminPanel from './components/AdminPanel';
 import UserDashboard from './components/UserDashboard';
+import AboutPage from './components/AboutPage';
+import EventDetails from './components/EventDetails';
+import Leaderboard from './components/Leaderboard';
 
 function App() {
   const [isFestiverse, setIsFestiverse] = useState(false);
@@ -153,6 +156,18 @@ function App() {
         <Route
           path="/admin"
           element={<AdminPanel onClose={() => navigate('/')} />}
+        />
+        <Route
+          path="/about"
+          element={<AboutPage onClose={() => navigate('/')} />}
+        />
+        <Route
+          path="/events/:id"
+          element={<EventDetails />}
+        />
+        <Route
+          path="/leaderboard"
+          element={<Leaderboard />}
         />
       </Routes>
     </div>

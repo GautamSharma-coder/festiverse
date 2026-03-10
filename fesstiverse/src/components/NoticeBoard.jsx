@@ -11,16 +11,28 @@ const fallbackNotices = [
 
 const NoticeBoard = () => {
     const [notices, setNotices] = useState(fallbackNotices);
+    const [hasNew, setHasNew] = useState(false);
+
+    const fetchNotices = async () => {
+        try {
+            const r = await fetch(`${API}/api/notices`);
+            const d = await r.json();
+            if (d.success && d.notices && d.notices.length > 0) {
+                const lastCount = parseInt(sessionStorage.getItem('fv_notice_count') || '0');
+                if (d.notices.length > lastCount && lastCount > 0) {
+                    setHasNew(true);
+                    setTimeout(() => setHasNew(false), 5000);
+                }
+                sessionStorage.setItem('fv_notice_count', d.notices.length.toString());
+                setNotices(d.notices);
+            }
+        } catch { }
+    };
 
     useEffect(() => {
-        fetch(`${API}/api/notices`)
-            .then((r) => r.json())
-            .then((d) => {
-                if (d.success && d.notices && d.notices.length > 0) {
-                    setNotices(d.notices);
-                }
-            })
-            .catch(() => { });
+        fetchNotices();
+        const interval = setInterval(fetchNotices, 30000); // Poll every 30s
+        return () => clearInterval(interval);
     }, []);
 
     return (

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Navbar = ({ isFestiverse, toggleUniverse }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navNavigate = useNavigate();
 
   const udaanLinks = [
     { href: '#home', label: 'Home' },
@@ -15,6 +17,7 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
     { href: '#register', label: 'Register' },
     { href: '#gallery', label: 'Gallery' },
     { href: '#events', label: 'Events' },
+    { href: '/leaderboard', label: '🏆 Results', isRoute: true },
   ];
 
   const links = isFestiverse ? festLinks : udaanLinks;
@@ -65,7 +68,9 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
           color: '#a1a1aa',
         }} className="desktop-nav">
           {links.map((link) => (
-            <a key={link.href} href={link.href} style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }}
+            <a key={link.href} href={link.isRoute ? undefined : link.href}
+              onClick={link.isRoute ? (e) => { e.preventDefault(); navNavigate(link.href); } : undefined}
+              style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', cursor: 'pointer' }}
               onMouseEnter={(e) => e.target.style.color = '#fff'}
               onMouseLeave={(e) => e.target.style.color = '#a1a1aa'}>
               {link.label}
@@ -178,8 +183,11 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
           {links.map((link) => (
             <a
               key={link.href}
-              href={link.href}
-              onClick={handleLinkClick}
+              href={link.isRoute ? undefined : link.href}
+              onClick={(e) => {
+                if (link.isRoute) { e.preventDefault(); navNavigate(link.href); }
+                handleLinkClick();
+              }}
               style={{
                 color: '#a1a1aa',
                 textDecoration: 'none',
@@ -187,6 +195,7 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
                 padding: '0.5rem 0',
                 borderBottom: '1px solid rgba(255,255,255,0.05)',
                 display: 'block',
+                cursor: 'pointer',
               }}
             >
               {link.label}

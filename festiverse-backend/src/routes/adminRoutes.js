@@ -379,7 +379,7 @@ router.delete('/team/:id', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 router.post('/events', verifyToken, verifyAdmin, async (req, res) => {
     try {
-        const { name, location, date, description } = req.body;
+        const { name, location, date, description, rules, schedule, image_url, category } = req.body;
 
         if (!name) {
             return res.status(400).json({ success: false, message: 'Event name is required.' });
@@ -387,7 +387,16 @@ router.post('/events', verifyToken, verifyAdmin, async (req, res) => {
 
         const { data, error } = await supabase
             .from('events')
-            .insert([{ name, location: location || '', date: date || null, description: description || '' }])
+            .insert([{
+                name,
+                location: location || '',
+                date: date || null,
+                description: description || '',
+                rules: rules || '',
+                schedule: schedule || [],
+                image_url: image_url || '',
+                category: category || 'general',
+            }])
             .select()
             .single();
 
@@ -480,15 +489,26 @@ router.delete('/events/:id', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 router.put('/events/:id', verifyToken, verifyAdmin, async (req, res) => {
     try {
-        const { name, location, date, description } = req.body;
+        const { name, location, date, description, rules, schedule, image_url, category } = req.body;
 
         if (!name) {
             return res.status(400).json({ success: false, message: 'Event name is required.' });
         }
 
+        const updates = {
+            name,
+            location: location || '',
+            date: date || null,
+            description: description || '',
+            rules: rules || '',
+            image_url: image_url || '',
+            category: category || 'general',
+        };
+        if (schedule !== undefined) updates.schedule = schedule;
+
         const { data: updatedEvent, error } = await supabase
             .from('events')
-            .update({ name, location: location || '', date: date || null, description: description || '' })
+            .update(updates)
             .eq('id', req.params.id)
             .select()
             .single();
@@ -568,6 +588,215 @@ router.delete('/notices/:id', verifyToken, verifyAdmin, async (req, res) => {
         const { error } = await supabase.from('notices').delete().eq('id', req.params.id);
         if (error) throw error;
         res.json({ success: true, message: 'Notice deleted.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Delete error.' });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+// QR CHECK-IN
+// ═══════════════════════════════════════════════════════════
+
+// POST /api/admin/checkin — Validate QR and mark attendance
+router.post('/checkin', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { registrationId } = req.body;
+        if (!registrationId) {
+            return res.status(400).json({ success: false, message: 'Registration ID is required.' });
+        }
+
+        // Get registration
+        const { data: reg, error: fetchErr } = await supabase
+            .from('event_registrations')
+            .select('*, users(name, phone), events(name)')
+            .eq('id', registrationId)
+            .single();
+
+        if (fetchErr || !reg) {
+            return res.status(404).json({ success: false, message: 'Registration not found.' });
+        }
+
+        if (reg.checked_in) {
+            return res.status(400).json({
+                success: false,
+                message: `Already checked in at ${new Date(reg.checked_in_at).toLocaleString()}`,
+                registration: reg,
+            });
+        }
+
+        // Mark as checked in
+        const { data: updated, error: updateErr } = await supabase
+            .from('event_registrations')
+            .update({ checked_in: true, checked_in_at: new Date().toISOString() })
+            .eq('id', registrationId)
+            .select('*, users(name, phone), events(name)')
+            .single();
+
+        if (updateErr) throw updateErr;
+
+        res.json({
+            success: true,
+            message: `✅ ${updated.users?.name} checked in for ${updated.events?.name}`,
+            registration: updated,
+        });
+    } catch (err) {
+        console.error('CHECKIN ERROR:', err);
+        res.status(500).json({ success: false, message: 'Check-in failed: ' + err.message });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+// RESULTS CRUD
+// ═══════════════════════════════════════════════════════════
+
+router.post('/results', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { event_id, position, participant_name, participant_college, score } = req.body;
+        if (!event_id || !position || !participant_name) {
+            return res.status(400).json({ success: false, message: 'Event, position, and participant name are required.' });
+        }
+        const { data, error } = await supabase
+            .from('results')
+            .insert([{ event_id, position, participant_name, participant_college: participant_college || '', score: score || '' }])
+            .select('*, events(name)')
+            .single();
+        if (error) throw error;
+        res.status(201).json({ success: true, result: data });
+    } catch (err) {
+        console.error('RESULT ADD ERROR:', err);
+        res.status(500).json({ success: false, message: 'Failed to add result.' });
+    }
+});
+
+router.put('/results/:id', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { event_id, position, participant_name, participant_college, score } = req.body;
+        const updates = {};
+        if (event_id !== undefined) updates.event_id = event_id;
+        if (position !== undefined) updates.position = position;
+        if (participant_name !== undefined) updates.participant_name = participant_name;
+        if (participant_college !== undefined) updates.participant_college = participant_college;
+        if (score !== undefined) updates.score = score;
+
+        const { data, error } = await supabase
+            .from('results')
+            .update(updates)
+            .eq('id', req.params.id)
+            .select('*, events(name)')
+            .single();
+        if (error) throw error;
+        res.json({ success: true, result: data });
+    } catch (err) {
+        console.error('RESULT UPDATE ERROR:', err);
+        res.status(500).json({ success: false, message: 'Failed to update result.' });
+    }
+});
+
+router.delete('/results/:id', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { error } = await supabase.from('results').delete().eq('id', req.params.id);
+        if (error) throw error;
+        res.json({ success: true, message: 'Result deleted.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Delete error.' });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════
+// SPONSORS CRUD
+// ═══════════════════════════════════════════════════════════
+
+router.get('/sponsors', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('sponsors')
+            .select('*')
+            .order('sort_order', { ascending: true });
+        if (error) throw error;
+        res.json({ success: true, sponsors: data });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Fetch error.' });
+    }
+});
+
+router.post('/sponsors', verifyToken, verifyAdmin, upload.single('logo'), async (req, res) => {
+    try {
+        const { name, tier, website, sort_order } = req.body;
+        if (!name) return res.status(400).json({ success: false, message: 'Sponsor name is required.' });
+
+        let logoUrl = '';
+        if (req.file) {
+            const fileName = `sponsors/${Date.now()}-${req.file.originalname.replace(/\s+/g, '_')}`;
+            const { error: uploadError } = await supabase.storage
+                .from('assets')
+                .upload(fileName, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+            if (uploadError) throw uploadError;
+            const { data: urlData } = supabase.storage.from('assets').getPublicUrl(fileName);
+            logoUrl = urlData.publicUrl;
+        }
+
+        const { data, error } = await supabase
+            .from('sponsors')
+            .insert([{ name, logo_url: logoUrl, tier: tier || 'bronze', website: website || '', sort_order: parseInt(sort_order) || 0 }])
+            .select()
+            .single();
+        if (error) throw error;
+        res.status(201).json({ success: true, sponsor: data });
+    } catch (err) {
+        console.error('SPONSOR ADD ERROR:', err);
+        res.status(500).json({ success: false, message: 'Failed to add sponsor.' });
+    }
+});
+
+router.put('/sponsors/:id', verifyToken, verifyAdmin, upload.single('logo'), async (req, res) => {
+    try {
+        const { name, tier, website, is_active, sort_order } = req.body;
+        if (!name) return res.status(400).json({ success: false, message: 'Sponsor name is required.' });
+
+        const updates = { name, tier: tier || 'bronze', website: website || '', sort_order: parseInt(sort_order) || 0 };
+        if (is_active !== undefined) updates.is_active = is_active === 'true' || is_active === true;
+
+        if (req.file) {
+            // Remove old logo
+            const { data: old } = await supabase.from('sponsors').select('logo_url').eq('id', req.params.id).single();
+            if (old && old.logo_url) {
+                const storagePath = old.logo_url.split('/storage/v1/object/public/assets/')[1];
+                if (storagePath) await supabase.storage.from('assets').remove([storagePath]);
+            }
+
+            const fileName = `sponsors/${Date.now()}-${req.file.originalname.replace(/\s+/g, '_')}`;
+            const { error: uploadError } = await supabase.storage
+                .from('assets')
+                .upload(fileName, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+            if (uploadError) throw uploadError;
+            const { data: urlData } = supabase.storage.from('assets').getPublicUrl(fileName);
+            updates.logo_url = urlData.publicUrl;
+        }
+
+        const { data, error } = await supabase
+            .from('sponsors')
+            .update(updates)
+            .eq('id', req.params.id)
+            .select()
+            .single();
+        if (error) throw error;
+        res.json({ success: true, sponsor: data });
+    } catch (err) {
+        console.error('SPONSOR UPDATE ERROR:', err);
+        res.status(500).json({ success: false, message: 'Failed to update sponsor.' });
+    }
+});
+
+router.delete('/sponsors/:id', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { data: sponsor } = await supabase.from('sponsors').select('logo_url').eq('id', req.params.id).single();
+        if (sponsor && sponsor.logo_url) {
+            const storagePath = sponsor.logo_url.split('/storage/v1/object/public/assets/')[1];
+            if (storagePath) await supabase.storage.from('assets').remove([storagePath]);
+        }
+        const { error } = await supabase.from('sponsors').delete().eq('id', req.params.id);
+        if (error) throw error;
+        res.json({ success: true, message: 'Sponsor deleted.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Delete error.' });
     }

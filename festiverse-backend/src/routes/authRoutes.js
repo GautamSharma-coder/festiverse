@@ -233,15 +233,58 @@ router.get('/profile', verifyToken, async (req, res) => {
 
 // ───────────────────────────────────────────────────
 // PUT /api/auth/profile
-// Update the logged-in user's profile
+// Update the logged-in user's profile (supports avatar upload)
 // ───────────────────────────────────────────────────
-router.put('/profile', verifyToken, async (req, res) => {
+const multer = require('multer');
+const pathModule = require('path');
+const avatarUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    fileFilter: (req, file, cb) => {
+        const allowed = /jpeg|jpg|png|webp|gif/;
+        const ext = allowed.test(pathModule.extname(file.originalname).toLowerCase());
+        const mime = allowed.test(file.mimetype);
+        if (ext && mime) return cb(null, true);
+        cb(new Error('Only image files are allowed.'));
+    },
+});
+
+router.put('/profile', verifyToken, avatarUpload.single('avatar'), async (req, res) => {
     try {
         const { name, email, college } = req.body;
         const updates = {};
         if (name !== undefined) updates.name = name;
         if (email !== undefined) updates.email = email;
         if (college !== undefined) updates.college = college;
+
+        // Handle avatar upload
+        if (req.file) {
+            // Get old avatar to remove
+            const { data: oldUser } = await supabase
+                .from('users')
+                .select('avatar_url')
+                .eq('id', req.user.id)
+                .single();
+
+            if (oldUser && oldUser.avatar_url) {
+                const storagePath = oldUser.avatar_url.split('/storage/v1/object/public/assets/')[1];
+                if (storagePath) {
+                    await supabase.storage.from('assets').remove([storagePath]);
+                }
+            }
+
+            const fileName = `avatars/${req.user.id}-${Date.now()}${pathModule.extname(req.file.originalname)}`;
+            const { error: uploadError } = await supabase.storage
+                .from('assets')
+                .upload(fileName, req.file.buffer, {
+                    contentType: req.file.mimetype,
+                    upsert: true,
+                });
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage.from('assets').getPublicUrl(fileName);
+            updates.avatar_url = urlData.publicUrl;
+        }
 
         const { data: updated, error } = await supabase
             .from('users')
@@ -260,3 +303,4 @@ router.put('/profile', verifyToken, async (req, res) => {
 });
 
 module.exports = router;
+

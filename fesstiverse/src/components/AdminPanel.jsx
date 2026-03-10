@@ -201,10 +201,13 @@ const NAV_ITEMS = [
     { id: 'registrations', icon: '⊞', label: 'Registrations', group: 'Data' },
     { id: 'users', icon: '⊙', label: 'Users' },
     { id: 'messages', icon: '◉', label: 'Messages' },
+    { id: 'checkin', icon: '✓', label: 'Check-In', group: 'Operations' },
     { id: 'events', icon: '◎', label: 'Events', group: 'Content' },
     { id: 'team', icon: '◇', label: 'Team Members' },
     { id: 'gallery', icon: '⊡', label: 'Gallery' },
     { id: 'notices', icon: '◆', label: 'Notices' },
+    { id: 'results', icon: '🏆', label: 'Results' },
+    { id: 'sponsors', icon: '★', label: 'Sponsors' },
 ];
 
 const isTokenValid = (token) => {
@@ -248,6 +251,16 @@ const AdminPanel = ({ onClose }) => {
     const [editingGallery, setEditingGallery] = useState(null);
     const [editingNotice, setEditingNotice] = useState(null);
     const [editingUser, setEditingUser] = useState(null);
+
+    // Check-in, Results, Sponsors
+    const [checkinId, setCheckinId] = useState('');
+    const [checkinResult, setCheckinResult] = useState(null);
+    const [checkinLoading, setCheckinLoading] = useState(false);
+    const [results, setResults] = useState([]);
+    const [newResult, setNewResult] = useState({ event_id: '', position: 1, participant_name: '', participant_college: '', score: '' });
+    const [sponsors, setSponsors] = useState([]);
+    const [newSponsor, setNewSponsor] = useState({ name: '', tier: 'bronze', website: '', sort_order: 0 });
+    const [sponsorLogo, setSponsorLogo] = useState(null);
 
     const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -323,6 +336,8 @@ const AdminPanel = ({ onClose }) => {
                 case 'team': { const d = await fetch(`${API}/api/team`).then(r => r.json()); setTeam(d.members || []); break; }
                 case 'gallery': { const d = await fetch(`${API}/api/gallery`).then(r => r.json()); setGallery(d.images || []); break; }
                 case 'notices': { const d = await adminFetch('/api/admin/notices'); setNotices(d.notices || []); break; }
+                case 'results': { const d = await fetch(`${API}/api/results`).then(r => r.json()); setResults(d.results || []); break; }
+                case 'sponsors': { const d = await adminFetch('/api/admin/sponsors'); setSponsors(d.sponsors || []); break; }
             }
         } catch { }
         finally { setLoading(false); }
@@ -458,6 +473,47 @@ const AdminPanel = ({ onClose }) => {
         } catch (err) { flash(err.message, 'err'); }
     };
 
+    // ── Check-in handler ──
+    const handleCheckin = async () => {
+        if (!checkinId.trim()) return flash('Enter a registration ID', 'err');
+        setCheckinLoading(true); setCheckinResult(null);
+        try {
+            const d = await adminFetch('/api/admin/checkin', { method: 'POST', body: JSON.stringify({ registrationId: checkinId.trim() }) });
+            setCheckinResult(d);
+            flash(d.message || 'Checked in!');
+            setCheckinId('');
+        } catch (err) { flash(err.message, 'err'); setCheckinResult({ success: false, message: err.message }); }
+        finally { setCheckinLoading(false); }
+    };
+
+    // ── Results CRUD ──
+    const addResult = async (e) => {
+        e.preventDefault();
+        try {
+            await adminFetch('/api/admin/results', { method: 'POST', body: JSON.stringify(newResult) });
+            setNewResult({ event_id: '', position: 1, participant_name: '', participant_college: '', score: '' });
+            flash('Result added'); fetchTabData();
+        } catch (err) { flash(err.message, 'err'); }
+    };
+    const deleteResult = async (id) => { if (!confirm('Delete this result?')) return; await adminFetch(`/api/admin/results/${id}`, { method: 'DELETE' }); flash('Result deleted'); fetchTabData(); };
+
+    // ── Sponsors CRUD ──
+    const addSponsor = async (e) => {
+        e.preventDefault();
+        try {
+            const formData = new FormData();
+            formData.append('name', newSponsor.name);
+            formData.append('tier', newSponsor.tier);
+            formData.append('website', newSponsor.website);
+            formData.append('sort_order', newSponsor.sort_order);
+            if (sponsorLogo) formData.append('logo', sponsorLogo);
+            await adminFetch('/api/admin/sponsors', { method: 'POST', body: formData });
+            setNewSponsor({ name: '', tier: 'bronze', website: '', sort_order: 0 }); setSponsorLogo(null);
+            flash('Sponsor added'); fetchTabData();
+        } catch (err) { flash(err.message, 'err'); }
+    };
+    const deleteSponsor = async (id) => { if (!confirm('Delete this sponsor?')) return; await adminFetch(`/api/admin/sponsors/${id}`, { method: 'DELETE' }); flash('Sponsor deleted'); fetchTabData(); };
+
 
     const switchTab = (id) => { setActiveTab(id); setSidebarOpen(false); setSearch(''); setMsg({ text: '', type: '' }); };
     const badgeClass = (cat) => cat === 'Senior Coordinator' ? 'ap-badge-senior' : cat === 'Sub Coordinator' ? 'ap-badge-sub' : 'ap-badge-coord';
@@ -490,7 +546,7 @@ const AdminPanel = ({ onClose }) => {
     }
 
     /* ── Dashboard ── */
-    const tabTitles = { overview: 'Overview', registrations: 'Registrations', messages: 'Messages', users: 'Users', events: 'Events', team: 'Team Members', gallery: 'Gallery', notices: 'Notices' };
+    const tabTitles = { overview: 'Overview', registrations: 'Registrations', messages: 'Messages', users: 'Users', events: 'Events', team: 'Team Members', gallery: 'Gallery', notices: 'Notices', checkin: 'Check-In', results: 'Results', sponsors: 'Sponsors' };
 
     return (
         <>
@@ -1076,6 +1132,132 @@ const AdminPanel = ({ onClose }) => {
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ─── CHECK-IN ─── */}
+                    {activeTab === 'checkin' && (
+                        <div className="ap-fade">
+                            <div className="ap-card">
+                                <div className="ap-card-title"><span>✓</span> QR Check-In</div>
+                                <p style={{ fontSize: '.82rem', color: 'var(--muted)', marginBottom: 16 }}>Enter or scan a registration ID to check in a participant.</p>
+                                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                                    <input className="ap-search" style={{ flex: 1, width: 'auto' }} placeholder="Registration ID..." value={checkinId} onChange={e => setCheckinId(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCheckin()} />
+                                    <button className="ap-btn-submit" disabled={checkinLoading} onClick={handleCheckin}>
+                                        {checkinLoading ? <><span className="ap-spin" /> Checking...</> : '✓ Check In'}
+                                    </button>
+                                </div>
+                                {checkinResult && (
+                                    <div className={`ap-msg ${checkinResult.success ? 'ok' : 'err'}`} style={{ marginTop: 8 }}>
+                                        {checkinResult.message}
+                                        {checkinResult.registration && (
+                                            <div style={{ marginTop: 8, fontSize: '.78rem' }}>
+                                                <div>Name: <strong>{checkinResult.registration.users?.name}</strong></div>
+                                                <div>Event: <strong>{checkinResult.registration.events?.name}</strong></div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ─── RESULTS ─── */}
+                    {activeTab === 'results' && (
+                        <div className="ap-fade">
+                            <div className="ap-card">
+                                <div className="ap-card-title"><span>+</span> Add Result</div>
+                                <form onSubmit={addResult}>
+                                    <div className="ap-form-grid">
+                                        <div className="ap-field">
+                                            <label>Event *</label>
+                                            <select required value={newResult.event_id} onChange={e => setNewResult({ ...newResult, event_id: e.target.value })}>
+                                                <option value="">Select event...</option>
+                                                {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="ap-field"><label>Position *</label><input type="number" min="1" required value={newResult.position} onChange={e => setNewResult({ ...newResult, position: parseInt(e.target.value) })} /></div>
+                                        <div className="ap-field"><label>Participant Name *</label><input required placeholder="Name" value={newResult.participant_name} onChange={e => setNewResult({ ...newResult, participant_name: e.target.value })} /></div>
+                                        <div className="ap-field"><label>College</label><input placeholder="College" value={newResult.participant_college} onChange={e => setNewResult({ ...newResult, participant_college: e.target.value })} /></div>
+                                        <div className="ap-field"><label>Score</label><input placeholder="e.g. 95" value={newResult.score} onChange={e => setNewResult({ ...newResult, score: e.target.value })} /></div>
+                                    </div>
+                                    <button type="submit" className="ap-btn-submit">Add Result</button>
+                                </form>
+                            </div>
+                            <div className="ap-sec-head"><div className="ap-sec-title">{results.length} Results</div></div>
+                            {results.length === 0 ? (
+                                <div className="ap-card"><div className="ap-empty"><div className="ap-empty-icon">🏆</div><h4>No results yet</h4></div></div>
+                            ) : (
+                                <div className="ap-card" style={{ padding: 0, overflow: 'hidden' }}>
+                                    <table className="ap-table">
+                                        <thead><tr><th>Event</th><th>Pos</th><th>Name</th><th>College</th><th>Score</th><th></th></tr></thead>
+                                        <tbody>
+                                            {results.map(r => (
+                                                <tr key={r.id}>
+                                                    <td>{r.events?.name || '—'}</td>
+                                                    <td><strong>{r.position}</strong></td>
+                                                    <td style={{ fontWeight: 600 }}>{r.participant_name}</td>
+                                                    <td style={{ color: 'var(--muted)' }}>{r.participant_college || '—'}</td>
+                                                    <td>{r.score || '—'}</td>
+                                                    <td><button className="ap-del" onClick={() => deleteResult(r.id)}>✕</button></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ─── SPONSORS ─── */}
+                    {activeTab === 'sponsors' && (
+                        <div className="ap-fade">
+                            <div className="ap-card">
+                                <div className="ap-card-title"><span>+</span> Add Sponsor</div>
+                                <form onSubmit={addSponsor}>
+                                    <div className="ap-form-grid">
+                                        <div className="ap-field"><label>Name *</label><input required placeholder="Sponsor name" value={newSponsor.name} onChange={e => setNewSponsor({ ...newSponsor, name: e.target.value })} /></div>
+                                        <div className="ap-field">
+                                            <label>Tier</label>
+                                            <select value={newSponsor.tier} onChange={e => setNewSponsor({ ...newSponsor, tier: e.target.value })}>
+                                                <option value="gold">Gold</option>
+                                                <option value="silver">Silver</option>
+                                                <option value="bronze">Bronze</option>
+                                            </select>
+                                        </div>
+                                        <div className="ap-field"><label>Website</label><input placeholder="https://..." value={newSponsor.website} onChange={e => setNewSponsor({ ...newSponsor, website: e.target.value })} /></div>
+                                        <div className="ap-field"><label>Sort Order</label><input type="number" value={newSponsor.sort_order} onChange={e => setNewSponsor({ ...newSponsor, sort_order: parseInt(e.target.value) || 0 })} /></div>
+                                        <div className="ap-field ap-field-file">
+                                            <label>Logo</label>
+                                            <input type="file" accept="image/*" onChange={e => setSponsorLogo(e.target.files[0])} />
+                                            <div className="ap-file-label">{sponsorLogo ? `✓ ${sponsorLogo.name}` : '📎 Choose logo image'}</div>
+                                        </div>
+                                    </div>
+                                    <button type="submit" className="ap-btn-submit">Add Sponsor</button>
+                                </form>
+                            </div>
+                            <div className="ap-sec-head"><div className="ap-sec-title">{sponsors.length} Sponsors</div></div>
+                            {sponsors.length === 0 ? (
+                                <div className="ap-card"><div className="ap-empty"><div className="ap-empty-icon">★</div><h4>No sponsors yet</h4></div></div>
+                            ) : (
+                                <div className="ap-card" style={{ padding: 0, overflow: 'hidden' }}>
+                                    <table className="ap-table">
+                                        <thead><tr><th>Logo</th><th>Name</th><th>Tier</th><th>Website</th><th>Order</th><th></th></tr></thead>
+                                        <tbody>
+                                            {sponsors.map(s => (
+                                                <tr key={s.id}>
+                                                    <td>{s.logo_url ? <img src={s.logo_url} alt="" style={{ height: 28, objectFit: 'contain' }} /> : '—'}</td>
+                                                    <td style={{ fontWeight: 600 }}>{s.name}</td>
+                                                    <td><span style={{ textTransform: 'capitalize', color: s.tier === 'gold' ? '#fbbf24' : s.tier === 'silver' ? '#9ca3af' : '#d97706' }}>{s.tier}</span></td>
+                                                    <td style={{ color: 'var(--muted)' }}>{s.website ? <a href={s.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Visit</a> : '—'}</td>
+                                                    <td>{s.sort_order}</td>
+                                                    <td><button className="ap-del" onClick={() => deleteSponsor(s.id)}>✕</button></td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             )}
                         </div>

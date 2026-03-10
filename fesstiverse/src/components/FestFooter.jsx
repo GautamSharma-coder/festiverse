@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;700;800&family=Syne+Mono&display=swap');
@@ -370,7 +371,10 @@ const FestFooter = ({ onAdminClick }) => {
               </div>
               <div className="ff-links-col">
                 <div className="ff-links-heading">Info</div>
-                {['About', 'Sponsors', 'Team', 'Contact'].map(l => (
+                {['About'].map(l => (
+                  <Link key={l} to={`/${l.toLowerCase()}`} className="ff-link">{l}</Link>
+                ))}
+                {['Sponsors', 'Team', 'Contact'].map(l => (
                   <a key={l} href={`#${l.toLowerCase()}`} className="ff-link">{l}</a>
                 ))}
               </div>
