@@ -137,31 +137,21 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
                         </button>
                     </>
                 ) : (
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '1.5rem',
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        padding: '0.5rem 0.5rem 0.5rem 1.5rem',
-                        borderRadius: '9999px',
-                        border: '1px solid rgba(255, 255, 255, 0.05)',
-                        backdropFilter: 'blur(12px)',
-                        boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
-                    }}>
-                        <span style={{ color: '#e2e8f0', fontSize: '0.95rem', fontWeight: 500 }}>
-                            Welcome back, <span style={{ color: '#22d3ee', fontWeight: 700 }}>{user?.name || 'Explorer'}</span>
-                        </span>
-
-                        <button onClick={onDashboardClick} className="btn-primary" style={{
-                            padding: '0.6rem 1.5rem',
-                            borderRadius: '9999px',
-                            color: '#fff',
-                            fontWeight: 600,
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: '0.875rem',
-                        }}>
-                            Dashboard
+                    <>
+                        <button
+                            onClick={onDashboardClick}
+                            style={{
+                                padding: '0.75rem 2rem',
+                                borderRadius: '9999px',
+                                background: 'linear-gradient(to right, #9333ea, #06b6d4)',
+                                color: '#fff',
+                                fontWeight: 700,
+                                border: 'none',
+                                cursor: 'pointer',
+                                boxShadow: '0 0 20px rgba(124,58,237,0.5)',
+                            }}
+                        >
+                            My Dashboard
                         </button>
 
                         <button onClick={onLogout} className="btn-logout" style={{
