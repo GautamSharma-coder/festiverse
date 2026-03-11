@@ -130,7 +130,7 @@ router.post('/register', async (req, res) => {
         res.cookie('festiverse_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             path: '/',
             maxAge: 24 * 60 * 60 * 1000, // 24 hours
         });
@@ -193,7 +193,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         res.cookie('festiverse_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             path: '/',
             maxAge: 24 * 60 * 60 * 1000, // 24 hours
         });
@@ -399,7 +399,11 @@ router.put('/profile', verifyToken, avatarUpload.single('avatar'), async (req, r
 // Clear the JWT cookie
 // ───────────────────────────────────────────────────
 router.post('/logout', (req, res) => {
-    res.clearCookie('festiverse_token', { path: '/' });
+    res.clearCookie('festiverse_token', {
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    });
     res.json({ success: true, message: 'Logged out successfully.' });
 });
 
