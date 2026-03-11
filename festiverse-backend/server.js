@@ -29,7 +29,7 @@ app.use((req, res, next) => {
         const duration = Date.now() - start;
         const logData = {
             method: req.method,
-            path: req.path,
+            path: req.originalUrl || req.path,
             status: res.statusCode,
             duration: `${duration}ms`,
         };

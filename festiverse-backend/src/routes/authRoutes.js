@@ -209,6 +209,96 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 });
 
+/**
+ * POST /api/auth/forgot-password-otp
+ * Sends an OTP to the user's email if they forgot their password.
+ */
+router.post('/forgot-password-otp', otpLimiter, async (req, res) => {
+    const { email } = req.body;
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ success: false, message: 'A valid email address is required.' });
+    }
+
+    try {
+        // Check if user exists
+        const { data: existingUser, error } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', email)
+            .single();
+
+        if (error || !existingUser) {
+            // For security, do not reveal if the email is registered or not (optional, but good practice)
+            // But for better UX, we can say "If an account exists, an OTP will be sent."
+            // However, to mimic standard app behavior where it fails fast:
+            return res.status(404).json({ success: false, message: 'No account found with this email address.' });
+        }
+
+        // Generate a 4-digit OTP
+        const otp = Math.floor(1000 + Math.random() * 9000).toString();
+        // Use a prefix to separate reset OTPs from registration OTPs (optional, but good)
+        // For simplicity, we can just overwrite any existing OTPs for the email in the store
+        otpStore[`reset_${email.toLowerCase()}`] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 }; // 5 min expiry
+
+        await sendOTPEmail(email, otp);
+        logger.info(`📧 Reset Password OTP sent to ${email}`);
+        res.json({ success: true, message: 'OTP sent to your email!' });
+    } catch (err) {
+        logger.error('FORGOT PASSWORD EMAIL SEND ERROR', { email, errorMessage: err.message });
+        delete otpStore[`reset_${email.toLowerCase()}`];
+        res.status(500).json({ success: false, message: 'Failed to send OTP email. Please try again.' });
+    }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Resets the password using the OTP sent to the user's email.
+ */
+router.post('/reset-password', async (req, res) => {
+    try {
+        const { email, otp, newPassword } = req.body;
+
+        if (!email || !otp || !newPassword) {
+            return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required.' });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+        }
+
+        const emailKey = email.toLowerCase();
+        const stored = otpStore[`reset_${emailKey}`];
+
+        if (!stored || stored.otp !== otp || Date.now() > stored.expiresAt) {
+            return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
+        }
+
+        // OTP is valid. Hash the new password.
+        const salt = await bcrypt.genSalt(10);
+        const password_hash = await bcrypt.hash(newPassword, salt);
+
+        // Update the user's password in the database
+        const { error } = await supabase
+            .from('users')
+            .update({ password_hash: password_hash })
+            .eq('email', email);
+
+        if (error) {
+            throw error;
+        }
+
+        // Clear the used OTP
+        delete otpStore[`reset_${emailKey}`];
+
+        logger.info(`🔑 Password reset successfully for ${email}`);
+        res.json({ success: true, message: 'Password has been reset successfully. You can now log in.' });
+
+    } catch (err) {
+        logger.error('RESET PASSWORD ERROR', { message: err.message, stack: err.stack });
+        res.status(500).json({ success: false, message: 'Server error. Please try again.' });
+    }
+});
+
 // ───────────────────────────────────────────────────
 // GET /api/auth/profile
 // Get the logged-in user's profile
