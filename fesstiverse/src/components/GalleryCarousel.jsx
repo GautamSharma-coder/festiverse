@@ -2,7 +2,6 @@ import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { proxyImageUrl } from '../lib/proxyImage';
 import { apiFetch } from '../lib/api';
 
-const CARD_WIDTH = 260;
 const AUTO_PLAY_SPEED = 3000;
 
 const GalleryCarousel = () => {
@@ -10,16 +9,32 @@ const GalleryCarousel = () => {
     const currentAngleRef = useRef(0);
     const autoPlayRef = useRef(null);
     const scrollTimeoutRef = useRef(null);
+    const touchStartXRef = useRef(null);
+    const touchStartYRef = useRef(null);
 
     const [images, setImages] = useState([]);
+    const [cardWidth, setCardWidth] = useState(260);
+
+    // Responsive card width based on viewport
+    useEffect(() => {
+        const updateCardWidth = () => {
+            const vw = window.innerWidth;
+            if (vw < 400) setCardWidth(140);
+            else if (vw < 600) setCardWidth(180);
+            else if (vw < 900) setCardWidth(220);
+            else setCardWidth(260);
+        };
+        updateCardWidth();
+        window.addEventListener('resize', updateCardWidth);
+        return () => window.removeEventListener('resize', updateCardWidth);
+    }, []);
 
     useEffect(() => {
         const loadImages = async () => {
             try {
                 const res = await apiFetch('/api/gallery');
                 if (res.images && res.images.length > 0) {
-                    // Take up to 10 images for the carousel to not overcrowd it
-                    setImages(res.images.slice(0, 10));
+                    setImages(res.images.slice(0, 20));
                 }
             } catch (err) {
                 console.error('Error fetching gallery images:', err);
@@ -28,9 +43,20 @@ const GalleryCarousel = () => {
         loadImages();
     }, []);
 
-    const numItems = Math.max(images.length, 1); // Avoid division by zero
+    const numItems = Math.max(images.length, 1);
     const angle = 360 / numItems;
-    const radius = Math.max(Math.round((CARD_WIDTH / 2) / Math.tan(Math.PI / numItems)) + 40, 200);
+
+    // Scale down card width further when there are many images
+    const effectiveCardWidth = numItems > 10
+        ? Math.max(Math.floor(cardWidth * (10 / numItems)), 100)
+        : cardWidth;
+
+    const cardHeight = Math.round(effectiveCardWidth * (340 / 260));
+
+    const radius = Math.max(
+        Math.round((effectiveCardWidth / 2) / Math.tan(Math.PI / numItems)) + 40,
+        180
+    );
 
     const rotateCarousel = useCallback((direction = -1, smooth = true) => {
         const track = trackRef.current;
@@ -58,17 +84,16 @@ const GalleryCarousel = () => {
         };
     }, [startAutoPlay]);
 
+    // Desktop scroll
     const handleWheel = useCallback((e) => {
         e.preventDefault();
         if (images.length <= 1) return;
-
         stopAutoPlay();
         const track = trackRef.current;
         if (!track) return;
         track.style.transition = 'none';
         currentAngleRef.current -= e.deltaY * 0.1;
         track.style.transform = `rotateY(${currentAngleRef.current}deg)`;
-
         clearTimeout(scrollTimeoutRef.current);
         scrollTimeoutRef.current = setTimeout(() => {
             track.style.transition = 'transform 1s ease-out';
@@ -76,21 +101,56 @@ const GalleryCarousel = () => {
         }, 500);
     }, [stopAutoPlay, startAutoPlay, images.length]);
 
+    // Touch swipe
+    const handleTouchStart = useCallback((e) => {
+        touchStartXRef.current = e.touches[0].clientX;
+        touchStartYRef.current = e.touches[0].clientY;
+        stopAutoPlay();
+    }, [stopAutoPlay]);
+
+    const handleTouchMove = useCallback((e) => {
+        if (touchStartXRef.current === null || images.length <= 1) return;
+        const dx = e.touches[0].clientX - touchStartXRef.current;
+        const dy = e.touches[0].clientY - touchStartYRef.current;
+        // Only handle horizontal swipes; let vertical scroll pass through
+        if (Math.abs(dx) < Math.abs(dy)) return;
+        e.preventDefault();
+        const track = trackRef.current;
+        if (!track) return;
+        track.style.transition = 'none';
+        currentAngleRef.current += dx * 0.3;
+        track.style.transform = `rotateY(${currentAngleRef.current}deg)`;
+        touchStartXRef.current = e.touches[0].clientX;
+        touchStartYRef.current = e.touches[0].clientY;
+    }, [images.length]);
+
+    const handleTouchEnd = useCallback(() => {
+        touchStartXRef.current = null;
+        touchStartYRef.current = null;
+        if (trackRef.current) {
+            trackRef.current.style.transition = 'transform 1s ease-out';
+        }
+        startAutoPlay();
+    }, [startAutoPlay]);
+
     useEffect(() => {
         const container = trackRef.current?.parentElement;
         if (!container) return;
         container.addEventListener('wheel', handleWheel, { passive: false });
-        return () => container.removeEventListener('wheel', handleWheel);
-    }, [handleWheel]);
-
-    const handleNext = () => { stopAutoPlay(); rotateCarousel(-1); startAutoPlay(); };
-    const handlePrev = () => { stopAutoPlay(); rotateCarousel(1); startAutoPlay(); };
+        container.addEventListener('touchmove', handleTouchMove, { passive: false });
+        return () => {
+            container.removeEventListener('wheel', handleWheel);
+            container.removeEventListener('touchmove', handleTouchMove);
+        };
+    }, [handleWheel, handleTouchMove]);
 
     if (images.length === 0) {
         return (
             <section style={{ padding: '5rem 0', textAlign: 'center' }}>
                 <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem' }}>
-                    <h2 style={{ fontSize: '1.875rem', fontWeight: 500, color: '#e4e4e7' }}>Gallery Perspectives</h2>
+                    <h2 style={{ fontSize: 'clamp(1.25rem, 4vw, 1.875rem)', fontWeight: 500, color: '#e4e4e7' }}>
+                        Gallery Perspectives
+                    </h2>
                     <p style={{ color: '#71717a', fontSize: '0.875rem', marginTop: '1rem' }}>No images to display yet.</p>
                 </div>
             </section>
@@ -109,51 +169,72 @@ const GalleryCarousel = () => {
                 overflow: 'hidden',
                 boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
                 border: '1px solid rgba(63, 63, 70, 0.5)',
-                transform: images.length > 1 ? `rotateY(${i * angle}deg) translateZ(${radius}px)` : 'none',
+                transform: images.length > 1
+                    ? `rotateY(${i * angle}deg) translateZ(${radius}px)`
+                    : 'none',
                 backfaceVisibility: 'hidden',
             }}
         >
             <img
                 src={proxyImageUrl(img.url)}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.8 }}
-                alt={img.title || "Gallery Art"}
+                alt={img.title || 'Gallery Art'}
             />
             <div style={{
                 position: 'absolute',
                 inset: 0,
                 background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent, transparent)',
                 pointerEvents: 'none',
-            }}></div>
+            }} />
         </div>
     ));
 
     return (
-        <section style={{ padding: '5rem 0', overflow: 'hidden', position: 'relative' }}>
-            <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem', marginBottom: '4rem', textAlign: 'center' }}>
-                <h2 style={{ fontSize: '1.875rem', fontWeight: 500, color: '#e4e4e7' }}>Gallery Perspectives</h2>
-                {images.length > 1 && <p style={{ color: '#71717a', fontSize: '0.875rem', marginTop: '0.5rem' }}>Scroll to rotate</p>}
+        <section style={{ padding: '3rem 0', overflow: 'hidden', position: 'relative' }}>
+            <div style={{
+                maxWidth: '80rem',
+                margin: '0 auto',
+                padding: '0 1rem',
+                marginBottom: '2.5rem',
+                textAlign: 'center',
+            }}>
+                <h2 style={{
+                    fontSize: 'clamp(1.25rem, 4vw, 1.875rem)',
+                    fontWeight: 500,
+                    color: '#e4e4e7',
+                }}>
+                    Gallery Perspectives
+                </h2>
+                {images.length > 1 && (
+                    <p style={{ color: '#71717a', fontSize: '0.8rem', marginTop: '0.4rem' }}>
+                        Swipe or scroll to rotate
+                    </p>
+                )}
             </div>
 
             <div
                 style={{
                     position: 'relative',
                     width: '100%',
-                    height: '420px',
+                    height: `${cardHeight + 80}px`,
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    perspective: '1200px',
+                    perspective: '1000px',
                     cursor: images.length > 1 ? 'grab' : 'default',
+                    touchAction: 'pan-y',
                 }}
                 onMouseEnter={stopAutoPlay}
                 onMouseLeave={startAutoPlay}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
             >
                 <div
                     ref={trackRef}
                     style={{
                         position: 'relative',
-                        width: `${CARD_WIDTH}px`,
-                        height: '340px',
+                        width: `${effectiveCardWidth}px`,
+                        height: `${cardHeight}px`,
                         transformStyle: 'preserve-3d',
                         transition: 'transform 1s ease-out',
                     }}
@@ -161,39 +242,6 @@ const GalleryCarousel = () => {
                     {cards}
                 </div>
             </div>
-
-            {images.length > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '2rem' }}>
-                    <button
-                        onClick={handlePrev}
-                        style={{
-                            padding: '0.5rem 1.5rem',
-                            borderRadius: '9999px',
-                            border: '1px solid #3f3f46',
-                            color: '#d4d4d8',
-                            background: 'transparent',
-                            cursor: 'pointer',
-                            fontSize: '0.875rem',
-                        }}
-                    >
-                        ← Prev
-                    </button>
-                    <button
-                        onClick={handleNext}
-                        style={{
-                            padding: '0.5rem 1.5rem',
-                            borderRadius: '9999px',
-                            border: '1px solid #3f3f46',
-                            color: '#d4d4d8',
-                            background: 'transparent',
-                            cursor: 'pointer',
-                            fontSize: '0.875rem',
-                        }}
-                    >
-                        Next →
-                    </button>
-                </div>
-            )}
         </section>
     );
 };
