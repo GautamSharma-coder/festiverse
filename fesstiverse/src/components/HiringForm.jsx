@@ -502,7 +502,7 @@ export default function HiringForm({ onBack }) {
 
                                 <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: mobile ? 22 : 18 }}>
                                     <Field label="Registration no." value={form.reg} onChange={e => set('reg', e.target.value)} placeholder="12345678" />
-                                    <Field label="Roll no." value={form.roll} onChange={e => set('roll', e.target.value)} placeholder="24CS01" />
+                                    <Field label="Roll no." value={form.roll} onChange={e => set('roll', e.target.value)} placeholder="S24CS01" />
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: mobile ? 22 : 18 }}>
