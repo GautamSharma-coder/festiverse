@@ -22,13 +22,13 @@ const CSS = `
   .ap-side-logo{font-family:var(--font-h);font-size:.95rem;font-weight:800;color:var(--text);letter-spacing:-.02em}
   .ap-side-logo span{color:var(--accent)}
   .ap-side-sub{font-size:.65rem;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.1em;font-weight:600}
-  .ap-side-nav{flex:1;padding:12px 10px;overflow-y:auto}
-  .ap-nav-label{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted2);padding:12px 10px 6px;margin-top:8px}
-  .ap-nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:none;background:none;color:var(--muted);font-family:var(--font-b);font-size:.82rem;font-weight:500;border-radius:9px;cursor:pointer;transition:all .15s;text-align:left}
+  .ap-side-nav{flex:1;padding:8px 10px;overflow-y:auto}
+  .ap-nav-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted2);padding:8px 10px 4px;margin-top:4px}
+  .ap-nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:7px 12px;border:none;background:none;color:var(--muted);font-family:var(--font-b);font-size:.8rem;font-weight:500;border-radius:9px;cursor:pointer;transition:all .15s;text-align:left}
   .ap-nav-btn:hover{background:var(--surface2);color:var(--text)}
   .ap-nav-btn.active{background:rgba(249,115,22,.1);color:var(--accent);font-weight:600}
   .ap-nav-icon{font-size:1rem;width:22px;text-align:center;flex-shrink:0}
-  .ap-side-foot{padding:14px;border-top:1px solid var(--border)}
+  .ap-side-foot{padding:10px 14px;border-top:1px solid var(--border)}
   .ap-logout-btn{width:100%;padding:9px 12px;border:1px solid rgba(239,68,68,.2);background:none;color:#fca5a5;border-radius:9px;font-family:var(--font-b);font-size:.8rem;font-weight:500;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:8px;justify-content:center}
   .ap-logout-btn:hover{background:rgba(239,68,68,.08);color:var(--red)}
 
@@ -632,7 +632,7 @@ const AdminPanel = ({ onClose }) => {
                         {msg.text && <div className={`ap-msg ${msg.type}`}>{msg.type === 'ok' ? '✓' : '!'} {msg.text}</div>}
 
                         {/* ─── Loading skeleton ─── */}
-                        {loading && activeTab !== 'overview' && (
+                        {loading && activeTab !== 'overview' && activeTab !== 'hiring' && (
                             <div className="ap-fade">
                                 <div className="ap-skel-row" style={{ marginBottom: 20 }}>
                                     <div className="ap-skel ap-skel-bar" style={{ width: '30%' }} />
