@@ -891,4 +891,35 @@ router.delete('/sponsors/:id', verifyToken, verifyAdmin, async (req, res) => {
     }
 });
 
+// ═══════════════════════════════════════════════════════════
+// HIRING APPLICATIONS
+// ═══════════════════════════════════════════════════════════
+
+router.get('/hiring', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('hiring_applications')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+        res.json({ success: true, applications: data });
+    } catch (err) {
+        console.error('ADMIN HIRING ERROR:', err);
+        res.status(500).json({ success: false, message: 'Fetch error.' });
+    }
+});
+
+router.delete('/hiring/:id', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from('hiring_applications')
+            .delete()
+            .eq('id', req.params.id);
+        if (error) throw error;
+        res.json({ success: true, message: 'Application deleted.' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: 'Delete error.' });
+    }
+});
+
 module.exports = router;
