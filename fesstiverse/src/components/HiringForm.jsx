@@ -366,7 +366,7 @@ export default function HiringForm({ onBack }) {
                     <div>
                         <div style={{ marginBottom: 56 }}>
                             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 600, color: C.black }}>
-                                Festiverse
+                                UDAAN-Recruitment
                             </span>
                             <div style={{ fontSize: 14, color: C.muted, marginTop: 4 }}>Hiring '26</div>
                         </div>
@@ -438,8 +438,8 @@ export default function HiringForm({ onBack }) {
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                 {[
-                                    { id: 'coordinator', title: 'Coordinator', desc: 'Own a domain end-to-end. ~8–10 hrs / week from February.' },
-                                    { id: 'volunteer', title: 'Volunteer', desc: 'Support teams on the ground. Event day commitment only.' },
+                                    { id: 'coordinator', title: 'Coordinator', desc: '' },
+                                    { id: 'volunteer', title: 'Volunteer', desc: '' },
                                 ].map(role => {
                                     const active = form.role === role.id;
                                     return (
