@@ -373,7 +373,7 @@ export default function HiringForm({ onBack }) {
                     body.append(k, v);
                 }
             });
-            const url = import.meta?.env?.VITE_BACKEND_URL || 'http://localhost:3000';
+            const url = import.meta?.env?.VITE_API_URL || 'http://localhost:3000';
             const res = await fetch(`${url}/api/hiring/submit`, { method: 'POST', body });
             if (!res.ok) { const e = await res.json(); throw new Error(e.message || 'Submission failed'); }
             setSubmitted(true);
