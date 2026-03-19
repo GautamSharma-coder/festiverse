@@ -327,28 +327,28 @@ export default function HiringForm({ onBack }) {
                 <div style={{
                     background: C.white,
                     borderBottom: `1px solid ${C.border}`,
-                    padding: '13px 20px',
+                    padding: '18px 24px',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     position: 'sticky', top: 0, zIndex: 20,
                 }}>
-                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 500, color: C.black }}>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 16, fontWeight: 600, color: C.black }}>
                         UDAAN-Recruitment
                     </span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         {steps.map((s, i) => {
                             const done = step > s.n, active = step === s.n;
                             return (
                                 <React.Fragment key={s.n}>
                                     <div style={{
-                                        width: 22, height: 22, borderRadius: '50%',
+                                        width: 28, height: 28, borderRadius: '50%',
                                         background: done ? C.black : active ? C.accent : 'transparent',
                                         border: `1.5px solid ${done ? C.black : active ? C.accent : C.border}`,
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: 9, fontWeight: 600, color: done || active ? C.white : C.muted,
+                                        fontSize: 12, fontWeight: 600, color: done || active ? C.white : C.muted,
                                         transition: 'all 0.2s',
                                     }}>{done ? '✓' : s.n}</div>
                                     {i < steps.length - 1 && (
-                                        <div style={{ width: 10, height: 1, background: step > s.n ? C.black : C.border, transition: 'background 0.3s' }} />
+                                        <div style={{ width: 14, height: 1.5, background: step > s.n ? C.black : C.border, transition: 'background 0.3s' }} />
                                     )}
                                 </React.Fragment>
                             );
@@ -358,39 +358,39 @@ export default function HiringForm({ onBack }) {
             ) : (
                 /* ── DESKTOP: left sidebar ── */
                 <div style={{
-                    width: 200, minHeight: '100vh', padding: '44px 28px',
+                    width: 260, minHeight: '100vh', padding: '52px 36px',
                     borderRight: `1px solid ${C.border}`,
                     display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                     position: 'sticky', top: 0, height: '100vh', flexShrink: 0,
                 }}>
                     <div>
-                        <div style={{ marginBottom: 48 }}>
-                            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 500, color: C.black }}>
+                        <div style={{ marginBottom: 56 }}>
+                            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 18, fontWeight: 600, color: C.black }}>
                                 Festiverse
                             </span>
-                            <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>Hiring '26</div>
+                            <div style={{ fontSize: 14, color: C.muted, marginTop: 4 }}>Hiring '26</div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             {steps.map((s, i) => {
                                 const done = step > s.n, active = step === s.n;
                                 return (
-                                    <div key={s.n} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 16, flexShrink: 0 }}>
+                                    <div key={s.n} style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24, flexShrink: 0 }}>
                                             <div style={{
-                                                width: 16, height: 16, borderRadius: '50%',
+                                                width: 24, height: 24, borderRadius: '50%',
                                                 background: done ? C.black : active ? C.accent : 'transparent',
                                                 border: `1.5px solid ${done ? C.black : active ? C.accent : C.border}`,
                                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: 8, color: C.white, fontWeight: 700,
-                                                transition: 'all 0.2s', marginTop: 2,
+                                                fontSize: 11, color: C.white, fontWeight: 700,
+                                                transition: 'all 0.2s', marginTop: 1,
                                             }}>{done && '✓'}</div>
                                             {i < steps.length - 1 && (
-                                                <div style={{ width: 1, height: 34, background: done ? C.black : C.border, transition: 'background 0.3s', marginTop: 4 }} />
+                                                <div style={{ width: 1.5, height: 42, background: done ? C.black : C.border, transition: 'background 0.3s', marginTop: 6 }} />
                                             )}
                                         </div>
-                                        <div style={{ paddingBottom: i < steps.length - 1 ? 34 : 0 }}>
+                                        <div style={{ paddingBottom: i < steps.length - 1 ? 42 : 0 }}>
                                             <div style={{
-                                                fontSize: 13, fontWeight: active ? 500 : 400,
+                                                fontSize: 17, fontWeight: active ? 500 : 400,
                                                 color: active ? C.ink : done ? C.stone : C.muted,
                                                 transition: 'color 0.2s', marginTop: 1,
                                             }}>{s.label}</div>
@@ -400,7 +400,7 @@ export default function HiringForm({ onBack }) {
                             })}
                         </div>
                     </div>
-                    <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.7 }}>
+                    <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.7 }}>
                         Closes <span style={{ color: C.stone, fontWeight: 500 }}>March 31, 2026</span>
                     </p>
                 </div>
