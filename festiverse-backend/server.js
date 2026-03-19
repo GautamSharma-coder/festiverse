@@ -89,6 +89,7 @@ const proxyRoutes = require('./src/routes/proxyRoutes');
 const resultRoutes = require('./src/routes/resultRoutes');
 const sponsorRoutes = require('./src/routes/sponsorRoutes');
 const paymentRoutes = require('./src/routes/paymentRoutes');
+const hiringRoutes = require('./src/routes/hiringRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
@@ -101,6 +102,7 @@ app.use('/api/proxy', proxyRoutes);
 app.use('/api/results', resultRoutes);
 app.use('/api/sponsors', sponsorRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/hiring', hiringRoutes);
 
 // ─── Health Check ───
 app.get('/', (req, res) => {
