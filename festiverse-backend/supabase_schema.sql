@@ -63,6 +63,21 @@ CREATE TABLE IF NOT EXISTS team (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 7. HIRING APPLICATIONS
+CREATE TABLE IF NOT EXISTS hiring_applications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  role TEXT NOT NULL,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  reg_no TEXT NOT NULL,
+  roll_no TEXT NOT NULL,
+  branch TEXT NOT NULL,
+  batch TEXT NOT NULL,
+  resume_url TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- ═══════════════════════════════════════════════════════════
 -- SEED DATA: Sample Events
 -- ═══════════════════════════════════════════════════════════

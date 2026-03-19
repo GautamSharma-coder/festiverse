@@ -190,6 +190,108 @@ const BranchSelect = ({ value, onChange }) => {
     );
 };
 
+// ── BatchSelect ───────────────────────────────────────────────────────────────
+const BATCHES = [
+    { id: '2024', label: '2024' },
+    { id: '2025', label: '2025' }
+];
+
+const BatchSelect = ({ value, onChange }) => {
+    const [open, setOpen] = useState(false);
+    const ref = useRef();
+
+    useEffect(() => {
+        if (!open) return;
+        const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [open]);
+
+    const selected = BATCHES.find(b => b.id === value);
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }} ref={ref}>
+            <label style={{ fontSize: 11, fontWeight: 500, color: C.stone, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                Batch year<span style={{ color: C.error, marginLeft: 2 }}>*</span>
+            </label>
+
+            <button
+                type="button"
+                onClick={() => setOpen(o => !o)}
+                style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '11px 0',
+                    background: 'transparent',
+                    border: 'none',
+                    borderBottom: `1.5px solid ${open ? C.accent : value ? C.border : C.border}`,
+                    fontSize: 15, color: selected ? C.ink : '#c8c8c8',
+                    cursor: 'pointer', textAlign: 'left', width: '100%',
+                    fontFamily: "'DM Sans', sans-serif",
+                    transition: 'border-color 0.15s',
+                    outline: 'none',
+                }}
+            >
+                <span>
+                    {selected ? <strong style={{ fontWeight: 500 }}>{selected.label}</strong> : 'Select batch'}
+                </span>
+                <svg
+                    width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke={C.muted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    style={{ transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0 }}
+                >
+                    <polyline points="6 9 12 15 18 9" />
+                </svg>
+            </button>
+
+            {open && (
+                <div style={{
+                    position: 'absolute', zIndex: 100,
+                    background: C.white,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 8,
+                    boxShadow: '0 8px 28px rgba(0,0,0,0.09)',
+                    overflow: 'hidden',
+                    marginTop: 2,
+                    width: '100%',
+                    animation: 'fadeUp 0.16s ease both',
+                }}>
+                    {BATCHES.map((b, i) => {
+                        const active = value === b.id;
+                        return (
+                            <button
+                                key={b.id}
+                                type="button"
+                                onClick={() => { onChange(b.id); setOpen(false); }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    width: '100%', padding: '11px 14px',
+                                    background: active ? C.accentL : 'transparent',
+                                    border: 'none',
+                                    borderBottom: i < BATCHES.length - 1 ? `1px solid ${C.border}` : 'none',
+                                    cursor: 'pointer', textAlign: 'left',
+                                    fontFamily: "'DM Sans', sans-serif",
+                                    transition: 'background 0.1s',
+                                }}
+                                onMouseEnter={e => { if (!active) e.currentTarget.style.background = C.surface; }}
+                                onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                            >
+                                <span style={{ fontSize: 14, fontWeight: 500, color: active ? C.accent : C.ink }}>
+                                    {b.label}
+                                </span>
+                                {active && (
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2.5" strokeLinecap="round">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+};
+
 // ── useBreakpoint ─────────────────────────────────────────────────────────────
 function useBreakpoint() {
     const [mobile, setMobile] = useState(() =>
@@ -502,14 +604,16 @@ export default function HiringForm({ onBack }) {
 
                                 <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: mobile ? 22 : 18 }}>
                                     <Field label="Registration no." value={form.reg} onChange={e => set('reg', e.target.value)} placeholder="12345678" />
-                                    <Field label="Roll no." value={form.roll} onChange={e => set('roll', e.target.value)} placeholder="S24CS01" />
+                                    <Field label="Roll no." value={form.roll} onChange={e => set('roll', e.target.value.toUpperCase())} placeholder="S24CS01" />
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: mobile ? 22 : 18 }}>
                                     <div style={{ position: 'relative' }}>
                                         <BranchSelect value={form.branch} onChange={v => set('branch', v)} />
                                     </div>
-                                    <Field label="Batch year" value={form.batch} onChange={e => set('batch', e.target.value)} placeholder="2025" />
+                                    <div style={{ position: 'relative' }}>
+                                        <BatchSelect value={form.batch} onChange={v => set('batch', v)} />
+                                    </div>
                                 </div>
                             </div>
 
