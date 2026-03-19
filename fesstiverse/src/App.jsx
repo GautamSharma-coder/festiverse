@@ -26,6 +26,8 @@ import UserDashboard from './components/UserDashboard';
 import AboutPage from './components/AboutPage';
 import EventDetails from './components/EventDetails';
 import Leaderboard from './components/Leaderboard';
+import HiringForm from './components/HiringForm';
+import GalleryPage from './components/GalleryPage';
 
 function App() {
   const [isFestiverse, setIsFestiverse] = useState(false);
