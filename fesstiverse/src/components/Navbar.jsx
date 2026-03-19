@@ -64,9 +64,46 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
       background: 'rgba(5, 5, 5, 0.85)',
       backdropFilter: 'blur(20px)',
       borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+      display: 'flex',
+      flexDirection: 'column',
     }}>
+      {/* Announcement Banner */}
+      <div style={{
+        background: 'linear-gradient(90deg, #7c3aed, #db2777)',
+        color: 'white',
+        textAlign: 'center',
+        padding: '0.4rem 1rem',
+        fontSize: '0.85rem',
+        fontWeight: 500,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '0.75rem',
+        width: '100%'
+      }}>
+        <span>🚀 We are hiring for Festiverse'26! Join the team.</span>
+        <button onClick={() => navNavigate('/hiring')} style={{
+          background: 'rgba(255,255,255,0.2)',
+          border: '1px solid rgba(255,255,255,0.3)',
+          padding: '0.2rem 0.6rem',
+          borderRadius: '999px',
+          color: 'white',
+          fontSize: '0.75rem',
+          fontWeight: 600,
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          whiteSpace: 'nowrap'
+        }}
+        onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.3)'; e.target.style.transform = 'scale(1.05)'; }}
+        onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.2)'; e.target.style.transform = 'scale(1)'; }}
+        >
+          Apply Now
+        </button>
+      </div>
+
       <div style={{
         maxWidth: '80rem',
+        width: '100%',
         margin: '0 auto',
         padding: '0 1rem',
         height: '4.5rem',
