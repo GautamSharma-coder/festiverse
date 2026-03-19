@@ -181,6 +181,15 @@ function App() {
           element={<Leaderboard />}
         />
       </Routes>
+      <Route
+          path="/hiring"
+          element={<HiringForm onBack={() => navigate('/')} />}
+        />
+        <Route
+          path="/gallery"
+          element={<GalleryPage />}
+        />
+      </Routes>
     </div>
   );
 }
