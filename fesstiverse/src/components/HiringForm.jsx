@@ -595,7 +595,7 @@ export default function HiringForm({ onBack }) {
                             </p>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-                                <Field label="Full name" value={form.name} onChange={e => set('name', e.target.value)} placeholder="Anjali Sharma" />
+                                <Field label="Full name" value={form.name} onChange={e => set('name', e.target.value)} placeholder="XYZ Kumar" />
 
                                 <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : '1fr 1fr', gap: mobile ? 22 : 18 }}>
                                     <Field label="Email" type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="you@example.com" />

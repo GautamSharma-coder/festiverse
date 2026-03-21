@@ -81,7 +81,7 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
         gap: '0.75rem',
         width: '100%'
       }}>
-        <span>🚀 We are hiring for Festiverse'26! Join the team.</span>
+        <span>🚀 We are hiring for UDAAN volunteer! Join the team.</span>
         <button onClick={() => navNavigate('/hiring')} style={{
           background: 'rgba(255,255,255,0.2)',
           border: '1px solid rgba(255,255,255,0.3)',
@@ -94,8 +94,8 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
           transition: 'all 0.2s',
           whiteSpace: 'nowrap'
         }}
-        onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.3)'; e.target.style.transform = 'scale(1.05)'; }}
-        onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.2)'; e.target.style.transform = 'scale(1)'; }}
+          onMouseEnter={e => { e.target.style.background = 'rgba(255,255,255,0.3)'; e.target.style.transform = 'scale(1.05)'; }}
+          onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.2)'; e.target.style.transform = 'scale(1)'; }}
         >
           Apply Now
         </button>
