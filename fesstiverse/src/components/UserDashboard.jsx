@@ -417,9 +417,10 @@ const CSS = `
   .d-team-row input:focus { border-color: var(--accent); }
   .d-team-row input::placeholder { color: var(--muted2); }
 
-  /* ── Sticky register bar ── */
+  /* ── Fixed register bar ── */
   .d-reg-bar {
-    position: sticky; bottom: 88px;
+    position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%);
+    width: calc(100% - 28px); max-width: 800px;
     background: rgba(22,22,26,0.92);
     border: 1px solid var(--border);
     border-radius: 14px; padding: 14px 18px;
@@ -428,7 +429,6 @@ const CSS = `
     box-shadow: 0 16px 40px rgba(0,0,0,0.5);
     animation: slideUp .25s ease;
     z-index: 30;
-    max-width: 100%;
     box-sizing: border-box;
   }
   .d-reg-bar-text {
@@ -517,9 +517,6 @@ const CSS = `
       bottom: 88px;
       flex-direction: column;
       gap: 10px;
-      left: 14px;
-      right: 14px;
-      width: auto;
     }
     .d-reg-bar .d-btn-primary { width: 100%; justify-content: center; }
 
@@ -754,8 +751,8 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                   <div className="d-stat-lbl">Total Events</div>
                 </div>
                 <div className="d-stat">
-                  <div className="d-stat-val" style={{ fontSize: '1rem', paddingTop: 4 }}>
-                    {profile.college ? profile.college.split(' ')[0] : '—'}
+                  <div className="d-stat-val" style={{ fontSize: '0.95rem', paddingTop: 4, whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.2 }}>
+                    {profile.college ? profile.college : '—'}
                   </div>
                   <div className="d-stat-lbl">College</div>
                 </div>
@@ -898,7 +895,8 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
 
           {/* ── REGISTER ── */}
           {activeTab === 'register' && (
-            <div className="d-fade">
+            <>
+              <div className="d-fade">
               <div className="d-section-label" style={{ marginBottom: 14 }}>
                 {allEvents.length} Events Available
               </div>
@@ -973,9 +971,25 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                         {ev.description && <div className="d-ev-desc" style={{ marginTop: 14, borderTop: 'none', paddingTop: 0 }}>{ev.description}</div>}
 
                         {!isReg && (
-                          <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.78rem', color: isSel ? 'var(--accent)' : 'var(--muted)' }}>
-                            <div className={`d-checkbox ${isSel ? 'checked' : ''}`}>{isSel && <Check />}</div>
-                            {isSel ? 'Selected' : 'Click to select for Registration'}
+                          <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ fontSize: '0.78rem', color: isSel ? 'var(--accent)' : 'var(--muted)' }}>
+                               {isSel ? 'Event Selected' : 'Registration Open'}
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleEvent(ev.id); }}
+                              style={{
+                                background: isSel ? 'var(--accent)' : 'var(--surface)',
+                                color: isSel ? '#fff' : 'var(--text)',
+                                border: `1px solid ${isSel ? 'var(--accent)' : 'var(--border)'}`,
+                                padding: '6px 16px', borderRadius: '8px', fontSize: '0.75rem',
+                                fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-b)',
+                                transition: 'all .2s'
+                              }}
+                              onMouseOver={(e) => { if (!isSel) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; } }}
+                              onMouseOut={(e) => { if (!isSel) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text)'; } }}
+                            >
+                              {isSel ? '✓ Selected' : '+ Select'}
+                            </button>
                           </div>
                         )}
                       </div>
@@ -1011,19 +1025,20 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                   );
                 })}
               </div>
+            </div>
 
               {selectedEvents.length > 0 && (
                 <div className="d-reg-bar">
                   <div className="d-reg-bar-text">
                     <strong>{selectedEvents.length} event{selectedEvents.length !== 1 ? 's' : ''} selected</strong>
-                    <span>Review your selections before confirming</span>
+                    <span>Review your selections before registering</span>
                   </div>
                   <button className="d-btn-primary" disabled={loading} onClick={registerEvents}>
-                    {loading ? <><Spin /> Processing…</> : 'Confirm →'}
+                    {loading ? <><Spin /> Processing…</> : 'Register Now →'}
                   </button>
                 </div>
               )}
-            </div>
+            </>
           )}
         </main>
 
