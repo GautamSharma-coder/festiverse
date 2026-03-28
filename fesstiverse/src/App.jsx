@@ -9,6 +9,7 @@ import { apiFetch } from './lib/api';
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import Societies from './components/Societies';
+import Faculty from './components/Faculty';
 import GalleryCarousel from './components/GalleryCarousel';
 import TeamMembers from './components/TeamMembers';
 import NoticeBoard from './components/NoticeBoard';
@@ -106,6 +107,7 @@ function App() {
         <HeroSection />
         <ScrollReveal><Societies /></ScrollReveal>
         <ScrollReveal delay={100}><GalleryCarousel /></ScrollReveal>
+        <ScrollReveal delay={100}><Faculty /></ScrollReveal>
         <ScrollReveal delay={100}><TeamMembers /></ScrollReveal>
         <ScrollReveal delay={100}><NoticeBoard /></ScrollReveal>
       </main>

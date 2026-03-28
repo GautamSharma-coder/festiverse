@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { proxyImageUrl } from '../lib/proxyImage';
 
-const roles = ['All', 'Senior Coordinator', 'Coordinator', 'Sub Coordinator'];
+const roles = ['Senior Coordinator', 'Coordinator', 'Sub Coordinator'];
 
 const roleColors = {
-    'All': { bg: '#1e1e24', border: 'rgba(249,115,22,0.3)', text: '#f4f4f5', accent: '#f97316', tabBg: 'rgba(249,115,22,0.12)', tabBorder: 'rgba(249,115,22,0.25)' },
     'Senior Coordinator': { bg: '#7f1d1d', border: 'rgba(239,68,68,0.3)', text: '#fecaca', accent: '#f87171', tabBg: 'rgba(239,68,68,0.12)', tabBorder: 'rgba(239,68,68,0.25)' },
     'Coordinator': { bg: '#4c1d95', border: 'rgba(168,85,247,0.3)', text: '#e9d5ff', accent: '#c084fc', tabBg: 'rgba(168,85,247,0.12)', tabBorder: 'rgba(168,85,247,0.25)' },
     'Sub Coordinator': { bg: '#164e63', border: 'rgba(6,182,212,0.3)', text: '#a5f3fc', accent: '#22d3ee', tabBg: 'rgba(6,182,212,0.12)', tabBorder: 'rgba(6,182,212,0.25)' },
@@ -13,7 +12,7 @@ const roleColors = {
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const TeamMembers = () => {
-    const [activeRole, setActiveRole] = useState('All');
+    const [activeRole, setActiveRole] = useState('Senior Coordinator');
     const [allMembers, setAllMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -29,9 +28,7 @@ const TeamMembers = () => {
     }, []);
 
     // Filter by category and search
-    let members = activeRole === 'All'
-        ? allMembers
-        : allMembers.filter((m) => (m.category || 'Coordinator') === activeRole);
+    let members = allMembers.filter((m) => (m.category || 'Coordinator') === activeRole);
 
     if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -47,6 +44,17 @@ const TeamMembers = () => {
         <section id="members" style={{ padding: '6rem 0', background: 'rgba(24, 24, 27, 0.3)' }}>
             <style>{`
                 .flip-card:hover .flip-inner { transform: rotateY(180deg); }
+                .members-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+                    gap: 1.5rem;
+                }
+                @media (max-width: 640px) {
+                    .members-grid {
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 1rem;
+                    }
+                }
             `}</style>
             <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem' }}>
                 {/* Header */}
@@ -119,11 +127,7 @@ const TeamMembers = () => {
                 )}
 
                 {/* Member Grid */}
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
-                    gap: '1.5rem',
-                }}>
+                <div className="members-grid">
                     {members.map((m) => (
                         <div key={m.id} className="flip-card" style={{ height: '16rem', perspective: '1000px', cursor: 'pointer' }}>
                             <div className="flip-inner" style={{

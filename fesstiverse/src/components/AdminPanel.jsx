@@ -205,6 +205,7 @@ const NAV_ITEMS = [
     { id: 'checkin', icon: '✓', label: 'Check-In', group: 'Operations' },
     { id: 'events', icon: '◎', label: 'Events', group: 'Content' },
     { id: 'team', icon: '◇', label: 'Team Members' },
+    { id: 'faculty', icon: '🎓', label: 'Faculty' },
     { id: 'gallery', icon: '⊡', label: 'Gallery' },
     { id: 'notices', icon: '◆', label: 'Notices' },
     { id: 'results', icon: '🏆', label: 'Results' },
@@ -233,6 +234,7 @@ const AdminPanel = ({ onClose }) => {
     const [users, setUsers] = useState([]);
     const [events, setEvents] = useState([]);
     const [team, setTeam] = useState([]);
+    const [faculty, setFaculty] = useState([]);
     const [gallery, setGallery] = useState([]);
     const [notices, setNotices] = useState([]);
     const [hiringApps, setHiringApps] = useState([]);
@@ -244,6 +246,8 @@ const AdminPanel = ({ onClose }) => {
     const [newEvent, setNewEvent] = useState({ name: '', location: '', date: '', description: '', rules: '', schedule: '', prizes: '' });
     const [newTeam, setNewTeam] = useState({ name: '', role: '', bio: '', social_link: '', society: '', category: 'Coordinator' });
     const [teamImage, setTeamImage] = useState(null);
+    const [newFaculty, setNewFaculty] = useState({ name: '', role: '', department: '' });
+    const [facultyImage, setFacultyImage] = useState(null);
     const [galleryImage, setGalleryImage] = useState(null);
     const [eventImage, setEventImage] = useState(null);
     const [galleryMeta, setGalleryMeta] = useState({ title: '', category: '' });
@@ -251,6 +255,7 @@ const AdminPanel = ({ onClose }) => {
     // Editing states
     const [editingEvent, setEditingEvent] = useState(null);
     const [editingTeam, setEditingTeam] = useState(null);
+    const [editingFaculty, setEditingFaculty] = useState(null);
     const [editingGallery, setEditingGallery] = useState(null);
     const [editingNotice, setEditingNotice] = useState(null);
     const [editingUser, setEditingUser] = useState(null);
@@ -309,12 +314,13 @@ const AdminPanel = ({ onClose }) => {
 
     const fetchAll = async () => {
         try {
-            const [r, m, u, e, t, g, n] = await Promise.all([
+            const [r, m, u, e, t, f, g, n] = await Promise.all([
                 adminFetch('/api/admin/registrations').catch(() => ({})),
                 adminFetch('/api/admin/messages').catch(() => ({})),
                 adminFetch('/api/admin/users').catch(() => ({})),
                 fetch(`${API}/api/events`).then(r => r.json()).catch(() => ({})),
                 fetch(`${API}/api/team`).then(r => r.json()).catch(() => ({})),
+                fetch(`${API}/api/faculty`).then(r => r.json()).catch(() => ({})),
                 fetch(`${API}/api/gallery`).then(r => r.json()).catch(() => ({})),
                 adminFetch('/api/admin/notices').catch(() => ({})),
             ]);
@@ -323,6 +329,7 @@ const AdminPanel = ({ onClose }) => {
             setUsers(u.users || []);
             setEvents(e.events || []);
             setTeam(t.members || []);
+            setFaculty(f.faculty || []);
             setGallery(g.images || []);
             setNotices(n.notices || []);
         } catch { }
@@ -337,6 +344,7 @@ const AdminPanel = ({ onClose }) => {
                 case 'users': { const d = await adminFetch('/api/admin/users'); setUsers(d.users || []); break; }
                 case 'events': { const d = await fetch(`${API}/api/events`).then(r => r.json()); setEvents(d.events || []); break; }
                 case 'team': { const d = await fetch(`${API}/api/team`).then(r => r.json()); setTeam(d.members || []); break; }
+                case 'faculty': { const d = await fetch(`${API}/api/faculty`).then(r => r.json()); setFaculty(d.faculty || []); break; }
                 case 'gallery': { const d = await fetch(`${API}/api/gallery`).then(r => r.json()); setGallery(d.images || []); break; }
                 case 'notices': { const d = await adminFetch('/api/admin/notices'); setNotices(d.notices || []); break; }
                 case 'results': { const d = await fetch(`${API}/api/results`).then(r => r.json()); setResults(d.results || []); break; }
@@ -353,6 +361,7 @@ const AdminPanel = ({ onClose }) => {
     const deleteMessage = async (id) => { if (!confirm('Delete this message?')) return; await adminFetch(`/api/admin/messages/${id}`, { method: 'DELETE' }); flash('Message deleted'); fetchTabData(); };
     const deleteEvent = async (id) => { if (!confirm('Delete this event?')) return; await adminFetch(`/api/admin/events/${id}`, { method: 'DELETE' }); flash('Event deleted'); fetchTabData(); };
     const deleteTeamMember = async (id) => { if (!confirm('Remove this team member?')) return; await adminFetch(`/api/admin/team/${id}`, { method: 'DELETE' }); flash('Team member removed'); fetchTabData(); };
+    const deleteFacultyMember = async (id) => { if (!confirm('Remove this faculty member?')) return; await adminFetch(`/api/admin/faculty/${id}`, { method: 'DELETE' }); flash('Faculty member removed'); fetchTabData(); };
     const deleteGalleryImage = async (id) => { if (!confirm('Delete this image?')) return; await adminFetch(`/api/admin/gallery/${id}`, { method: 'DELETE' }); flash('Image deleted'); fetchTabData(); };
     const deleteNotice = async (id) => { if (!confirm('Delete this notice?')) return; await adminFetch(`/api/admin/notices/${id}`, { method: 'DELETE' }); flash('Notice deleted'); fetchTabData(); };
     const deleteHiringApp = async (id) => { if (!confirm('Delete this application?')) return; await adminFetch(`/api/admin/hiring/${id}`, { method: 'DELETE' }); flash('Application deleted'); fetchTabData(); };
@@ -480,6 +489,39 @@ const AdminPanel = ({ onClose }) => {
         } catch (err) { flash(err.message, 'err'); }
     };
 
+    const addFacultyMember = async (e) => {
+        e.preventDefault();
+        try {
+            const formData = new FormData();
+            formData.append('name', newFaculty.name);
+            formData.append('role', newFaculty.role);
+            formData.append('department', newFaculty.department);
+            if (facultyImage) formData.append('image', facultyImage);
+            await adminFetch('/api/admin/faculty', { method: 'POST', body: formData });
+            setNewFaculty({ name: '', role: '', department: '' });
+            setFacultyImage(null);
+            flash('Faculty member added');
+            fetchTabData();
+        } catch (err) { flash(err.message, 'err'); }
+    };
+
+    const updateFacultyMember = async (e) => {
+        e.preventDefault();
+        try {
+            const formData = new FormData();
+            formData.append('name', editingFaculty.name);
+            formData.append('role', editingFaculty.role);
+            formData.append('department', editingFaculty.department);
+            if (facultyImage) formData.append('image', facultyImage);
+
+            await adminFetch(`/api/admin/faculty/${editingFaculty.id}`, { method: 'PUT', body: formData });
+            setEditingFaculty(null);
+            setFacultyImage(null);
+            flash('Faculty member updated');
+            fetchTabData();
+        } catch (err) { flash(err.message, 'err'); }
+    };
+
     const updateGalleryImage = async (e) => {
         e.preventDefault();
         try {
@@ -579,7 +621,7 @@ const AdminPanel = ({ onClose }) => {
     }
 
     /* ── Dashboard ── */
-    const tabTitles = { overview: 'Overview', registrations: 'Registrations', messages: 'Messages', users: 'Users', events: 'Events', team: 'Team Members', gallery: 'Gallery', notices: 'Notices', checkin: 'Check-In', results: 'Results', sponsors: 'Sponsors', hiring: 'Hiring Applications' };
+    const tabTitles = { overview: 'Overview', registrations: 'Registrations', messages: 'Messages', users: 'Users', events: 'Events', team: 'Team Members', faculty: 'Faculty', gallery: 'Gallery', notices: 'Notices', checkin: 'Check-In', results: 'Results', sponsors: 'Sponsors', hiring: 'Hiring Applications' };
 
     return (
         <>
@@ -1036,6 +1078,74 @@ const AdminPanel = ({ onClose }) => {
                                                 <div className="ap-actions" style={{ marginTop: 10, justifyContent: 'center' }}>
                                                     <button className="ap-edit" onClick={() => { setEditingTeam({ ...m, name: m.name || '', role: m.role || '', category: m.category || 'Coordinator', society: m.society || '', bio: m.bio || '', social_link: m.social_link || '' }); window.scrollTo(0, 0); }}>Edit</button>
                                                     <button className="ap-del" onClick={() => deleteTeamMember(m.id)}>Remove</button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ─── FACULTY ─── */}
+                        {activeTab === 'faculty' && (
+                            <div className="ap-fade">
+                                {editingFaculty ? (
+                                    <div className="ap-edit-wrap">
+                                        <div className="ap-edit-wrap-title">✎ Edit Faculty Member</div>
+                                        <form onSubmit={updateFacultyMember}>
+                                            <div className="ap-form-grid">
+                                                <div className="ap-field"><label>Name *</label><input required placeholder="Full name" value={editingFaculty.name} onChange={e => setEditingFaculty({ ...editingFaculty, name: e.target.value })} /></div>
+                                                <div className="ap-field"><label>Role / Title *</label><input required placeholder="e.g. Chief Coordinator" value={editingFaculty.role} onChange={e => setEditingFaculty({ ...editingFaculty, role: e.target.value })} /></div>
+                                                <div className="ap-field"><label>Department</label><input placeholder="e.g. Department of Arts" value={editingFaculty.department} onChange={e => setEditingFaculty({ ...editingFaculty, department: e.target.value })} /></div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+                                                <div className="ap-field ap-field-file" style={{ flex: 1 }}>
+                                                    <input type="file" accept="image/*" onChange={e => setFacultyImage(e.target.files[0])} />
+                                                    <div className="ap-file-label">
+                                                        {facultyImage ? `📷 ${facultyImage.name}` : '📷 Choose photo to replace (optional)'}
+                                                    </div>
+                                                </div>
+                                                <button type="submit" className="ap-btn-submit">Save</button>
+                                                <button type="button" className="ap-btn-ghost" onClick={() => { setEditingFaculty(null); setFacultyImage(null); }}>Cancel</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                ) : (
+                                    <div className="ap-card">
+                                        <div className="ap-card-title"><span>+</span> Add Faculty Member</div>
+                                        <form onSubmit={addFacultyMember}>
+                                            <div className="ap-form-grid">
+                                                <div className="ap-field"><label>Name *</label><input required placeholder="Full name" value={newFaculty.name} onChange={e => setNewFaculty({ ...newFaculty, name: e.target.value })} /></div>
+                                                <div className="ap-field"><label>Role / Title *</label><input required placeholder="e.g. Chief Coordinator" value={newFaculty.role} onChange={e => setNewFaculty({ ...newFaculty, role: e.target.value })} /></div>
+                                                <div className="ap-field"><label>Department</label><input placeholder="e.g. Department of Arts" value={newFaculty.department} onChange={e => setNewFaculty({ ...newFaculty, department: e.target.value })} /></div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+                                                <div className="ap-field ap-field-file" style={{ flex: 1 }}>
+                                                    <input type="file" accept="image/*" onChange={e => setFacultyImage(e.target.files[0])} />
+                                                    <div className="ap-file-label">
+                                                        {facultyImage ? `📷 ${facultyImage.name}` : '📷 Choose photo (optional)'}
+                                                    </div>
+                                                </div>
+                                                <button type="submit" className="ap-btn-submit">+ Add Member</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                )}
+
+                                <div className="ap-sec-head"><div className="ap-sec-title">{faculty.length} Faculty Members</div></div>
+                                {faculty.length === 0 ? (
+                                    <div className="ap-card"><div className="ap-empty"><div className="ap-empty-icon">🎓</div><h4>No faculty members</h4><p style={{ fontSize: '.82rem' }}>Add members using the form above.</p></div></div>
+                                ) : (
+                                    <div className="ap-team-grid">
+                                        {faculty.map(m => (
+                                            <div key={m.id} className="ap-team-card">
+                                                <img className="ap-team-avatar" src={proxyImageUrl(m.image_url) || `https://api.dicebear.com/7.x/notionists/svg?seed=${m.id}`} onError={e => { e.target.onerror = null; e.target.src = `https://api.dicebear.com/7.x/notionists/svg?seed=${m.id}`; }} alt={m.name} />
+                                                <div className="ap-team-name">{m.name}</div>
+                                                <div className="ap-team-role">{m.role}</div>
+                                                {m.department && <div className="ap-team-society">{m.department}</div>}
+                                                <div className="ap-actions" style={{ marginTop: 10, justifyContent: 'center' }}>
+                                                    <button className="ap-edit" onClick={() => { setEditingFaculty({ ...m, name: m.name || '', role: m.role || '', department: m.department || '' }); window.scrollTo(0, 0); }}>Edit</button>
+                                                    <button className="ap-del" onClick={() => deleteFacultyMember(m.id)}>Remove</button>
                                                 </div>
                                             </div>
                                         ))}

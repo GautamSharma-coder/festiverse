@@ -376,6 +376,149 @@ router.delete('/team/:id', verifyToken, verifyAdmin, async (req, res) => {
 });
 
 // ───────────────────────────────────────────────────
+// POST /api/admin/faculty  — Add a faculty member with image
+// ───────────────────────────────────────────────────
+router.post('/faculty', verifyToken, verifyAdmin, upload.single('image'), async (req, res) => {
+    try {
+        const { name, role, department } = req.body;
+
+        if (!name || !role) {
+            return res.status(400).json({ success: false, message: 'Name and role are required.' });
+        }
+
+        let imageUrl = null;
+
+        if (req.file) {
+            const fileName = `faculty/${Date.now()}-${req.file.originalname.replace(/\s+/g, '_')}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('assets')
+                .upload(fileName, req.file.buffer, {
+                    contentType: req.file.mimetype,
+                    upsert: false,
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage.from('assets').getPublicUrl(fileName);
+            imageUrl = urlData.publicUrl;
+        }
+
+        const { data: member, error: dbError } = await supabase
+            .from('faculty')
+            .insert([{
+                name,
+                role,
+                department: department || '',
+                image_url: imageUrl,
+            }])
+            .select()
+            .single();
+
+        if (dbError) throw dbError;
+
+        res.status(201).json({ success: true, member });
+    } catch (err) {
+        console.error('FACULTY ADD ERROR:', err);
+        res.status(500).json({ success: false, message: 'Failed to add faculty member: ' + err.message });
+    }
+});
+
+// ───────────────────────────────────────────────────
+// PUT /api/admin/faculty/:id
+// ───────────────────────────────────────────────────
+router.put('/faculty/:id', verifyToken, verifyAdmin, upload.single('image'), async (req, res) => {
+    try {
+        const { name, role, department } = req.body;
+
+        if (!name || !role) {
+            return res.status(400).json({ success: false, message: 'Name and role are required.' });
+        }
+
+        const updates = { name, role, department: department || '' };
+
+        if (req.file) {
+            const { data: oldMember } = await supabase
+                .from('faculty')
+                .select('image_url')
+                .eq('id', req.params.id)
+                .single();
+
+            if (oldMember && oldMember.image_url) {
+                const storagePath = oldMember.image_url.split('/storage/v1/object/public/assets/')[1];
+                if (storagePath) {
+                    await supabase.storage.from('assets').remove([storagePath]);
+                }
+            }
+
+            const fileName = `faculty/${Date.now()}-${req.file.originalname.replace(/\s+/g, '_')}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('assets')
+                .upload(fileName, req.file.buffer, {
+                    contentType: req.file.mimetype,
+                    upsert: false,
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data: urlData } = supabase.storage.from('assets').getPublicUrl(fileName);
+            updates.image_url = urlData.publicUrl;
+        }
+
+        const { data: updatedMember, error: dbError } = await supabase
+            .from('faculty')
+            .update(updates)
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (dbError) throw dbError;
+
+        res.json({ success: true, member: updatedMember });
+    } catch (err) {
+        console.error('FACULTY UPDATE ERROR:', err);
+        res.status(500).json({ success: false, message: 'Failed to update faculty member: ' + err.message });
+    }
+});
+
+// ───────────────────────────────────────────────────
+// DELETE /api/admin/faculty/:id
+// ───────────────────────────────────────────────────
+router.delete('/faculty/:id', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { data: member, error: fetchErr } = await supabase
+            .from('faculty')
+            .select('image_url')
+            .eq('id', req.params.id)
+            .single();
+
+        if (fetchErr || !member) {
+            return res.status(404).json({ success: false, message: 'Faculty member not found.' });
+        }
+
+        if (member.image_url) {
+            const storagePath = member.image_url.split('/storage/v1/object/public/assets/')[1];
+            if (storagePath) {
+                await supabase.storage.from('assets').remove([storagePath]);
+            }
+        }
+
+        const { error: delErr } = await supabase
+            .from('faculty')
+            .delete()
+            .eq('id', req.params.id);
+
+        if (delErr) throw delErr;
+
+        res.json({ success: true, message: 'Faculty member removed.' });
+    } catch (err) {
+        console.error('FACULTY DELETE ERROR:', err);
+        res.status(500).json({ success: false, message: 'Delete error.' });
+    }
+});
+
+// ───────────────────────────────────────────────────
 // POST /api/admin/events  — Add a new event
 // ───────────────────────────────────────────────────
 router.post('/events', verifyToken, verifyAdmin, upload.single('image'), async (req, res) => {
