@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import rubikPuddlesFont from '../assets/RubikPuddles-Regular.ttf';
+import mandalaPattern from '../assets/mandala-pattern.png';
 
 const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }) => {
     const [entered, setEntered] = useState(false);
@@ -40,7 +42,7 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
                 {`
                     @font-face {
                         font-family: 'HigherJump';
-                        src: url('/src/assets/RubikPuddles-Regular.ttf') format('truetype');
+                        src: url(${rubikPuddlesFont}) format('truetype');
                         font-weight: normal;
                         font-style: normal;
                     }
@@ -211,7 +213,7 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
             <div style={{
                 position: 'absolute',
                 inset: 0,
-                backgroundImage: "url('/src/assets/mandala-pattern.png')",
+                backgroundImage: `url(${mandalaPattern})`,
                 backgroundSize: '400px 400px',
                 backgroundRepeat: 'repeat',
                 animation: 'panMandala 40s linear infinite',
