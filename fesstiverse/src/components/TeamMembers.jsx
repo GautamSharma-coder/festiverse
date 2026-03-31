@@ -11,11 +11,14 @@ const roleColors = {
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+const ITEMS_PER_PAGE = 8;
+
 const TeamMembers = () => {
     const [activeRole, setActiveRole] = useState('Senior Coordinator');
     const [allMembers, setAllMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         fetch(`${API}/api/team`)
@@ -26,6 +29,9 @@ const TeamMembers = () => {
             .catch(() => { })
             .finally(() => setLoading(false));
     }, []);
+
+    // Reset page when role or search changes
+    useEffect(() => { setCurrentPage(1); }, [activeRole, searchQuery]);
 
     // Filter by category and search
     let members = allMembers.filter((m) => (m.category || 'Coordinator') === activeRole);
@@ -38,6 +44,13 @@ const TeamMembers = () => {
             (m.society || '').toLowerCase().includes(q)
         );
     }
+
+    const totalPages = Math.ceil(members.length / ITEMS_PER_PAGE);
+    const paginatedMembers = members.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
+
     const colors = roleColors[activeRole];
 
     return (
@@ -128,7 +141,7 @@ const TeamMembers = () => {
 
                 {/* Member Grid */}
                 <div className="members-grid">
-                    {members.map((m) => (
+                    {paginatedMembers.map((m) => (
                         <div key={m.id} className="flip-card" style={{ height: '16rem', perspective: '1000px', cursor: 'pointer' }}>
                             <div className="flip-inner" style={{
                                 position: 'relative',
@@ -211,6 +224,73 @@ const TeamMembers = () => {
                         </div>
                     ))}
                 </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', marginTop: '2.5rem', flexWrap: 'wrap' }}>
+                        {/* Prev */}
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            style={{
+                                padding: '0.4rem 1rem',
+                                borderRadius: '9999px',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                                background: 'transparent',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                color: currentPage === 1 ? '#52525b' : '#a1a1aa',
+                                transition: 'all 0.2s',
+                            }}
+                        >
+                            ← Prev
+                        </button>
+
+                        {/* Page numbers */}
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <button
+                                key={page}
+                                onClick={() => setCurrentPage(page)}
+                                style={{
+                                    width: '2.25rem',
+                                    height: '2.25rem',
+                                    borderRadius: '50%',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    background: currentPage === page ? colors.tabBg : 'transparent',
+                                    color: currentPage === page ? colors.accent : '#71717a',
+                                    border: currentPage === page
+                                        ? `1px solid ${colors.tabBorder}`
+                                        : '1px solid rgba(255,255,255,0.06)',
+                                }}
+                            >
+                                {page}
+                            </button>
+                        ))}
+
+                        {/* Next */}
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            style={{
+                                padding: '0.4rem 1rem',
+                                borderRadius: '9999px',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                                background: 'transparent',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                color: currentPage === totalPages ? '#52525b' : '#a1a1aa',
+                                transition: 'all 0.2s',
+                            }}
+                        >
+                            Next →
+                        </button>
+                    </div>
+                )}
             </div>
         </section>
     );
