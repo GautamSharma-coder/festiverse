@@ -29,6 +29,7 @@ import EventDetails from './components/EventDetails';
 import Leaderboard from './components/Leaderboard';
 import HiringForm from './components/HiringForm';
 import GalleryPage from './components/GalleryPage';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 function App() {
   const [isFestiverse, setIsFestiverse] = useState(false);
@@ -145,6 +146,7 @@ function App() {
 
   return (
     <div className="antialiased">
+      <PWAInstallPrompt />
       <ToastContainer />
       <Routes>
         <Route path="/" element={<HomePage />} />
