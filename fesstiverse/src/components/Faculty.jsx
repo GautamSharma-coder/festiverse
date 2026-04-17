@@ -60,10 +60,11 @@ const Faculty = () => {
                 ) : facultyMembers.length === 0 ? (
                     <div style={{ textAlign: 'center', color: '#71717a', padding: '2rem' }}>No faculty members to display.</div>
                 ) : (
-                    /* Faculty Grid — Flip Cards */
+                    /* Faculty Flex Container — Flip Cards */
                     <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        justifyContent: 'center',
                         gap: '1.5rem',
                     }}>
                         {facultyMembers.map((m, index) => {
@@ -72,7 +73,7 @@ const Faculty = () => {
                             const isFallback = !m.image_url;
 
                             return (
-                                <div key={m.id} className="faculty-flip-card" style={{ height: '16rem', perspective: '1000px', cursor: 'pointer' }}>
+                                <div key={m.id} className="faculty-flip-card" style={{ width: '180px', flexShrink: 0, height: '16rem', perspective: '1000px', cursor: 'pointer' }}>
                                     <div className="faculty-flip-inner" style={{
                                         position: 'relative',
                                         width: '100%',

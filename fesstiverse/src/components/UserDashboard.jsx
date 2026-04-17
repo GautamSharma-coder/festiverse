@@ -813,6 +813,31 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                   </button>
                 </div>
               </div>
+
+              {/* Payment Information */}
+              <div className="d-card" style={{ marginTop: '24px' }}>
+                <div className="d-section-label">Payment Information</div>
+                {user?.payment_status === 'paid' ? (
+                  <div style={{ padding: '16px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '10px' }}>
+                    <div style={{ color: '#4ade80', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.2rem' }}>✓</span> Complete Festival Pass Active
+                    </div>
+                    <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '8px' }}>Your transaction was successful. You have full access to registered events.</p>
+                  </div>
+                ) : (
+                  <div style={{ padding: '16px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '10px' }}>
+                    <div style={{ color: '#fca5a5', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.2rem' }}>!</span> Payment Pending
+                    </div>
+                    <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '8px', marginBottom: '16px' }}>
+                      You need to complete your payment to get your festival pass and confirm event registrations. Please complete the payment process with the coordinators.
+                    </p>
+                    <button className="d-btn-ghost" style={{ padding: '8px 16px', fontSize: '0.8rem', color: '#fca5a5', borderColor: 'rgba(239,68,68,0.3)' }} onClick={() => setMsg({text: 'Redirecting to payment gateway...', type: 'ok'})}>
+                      Pay Now
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

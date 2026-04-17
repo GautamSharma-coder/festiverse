@@ -9,6 +9,9 @@ const HeroSection = () => {
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat'
         }}>
+            {/* Mild blur overlay for the background image */}
+            <div className="absolute inset-0 backdrop-blur-[2px]"></div>
+
             {/* Radial gradient background overlay */}
             <div className="absolute inset-0" style={{
                 background: 'radial-gradient(circle at center, rgba(127, 29, 29, 0.4), black, black)',
@@ -25,9 +28,11 @@ const HeroSection = () => {
 
             {/* Main content */}
             <div className="z-10 text-center space-y-6 max-w-5xl px-4">
-                <span className="inline-block px-3 py-1 rounded-full border border-red-500/30 text-red-500 text-xs tracking-[0.2em] uppercase bg-red-500/5 backdrop-blur-sm mb-4">
-                    Est. 2019 • GEC Samastipur
-                </span>
+                <div className="inline-block rounded-full border border-red-500/30 bg-red-500/10 mb-6" style={{ padding: '4px 16px' }}>
+                    <span className="text-red-500 text-xs font-semibold uppercase tracking-[0.15em]" style={{ marginLeft: '0.15em' }}>
+                        Est. 2019 • GEC Samastipur
+                    </span>
+                </div>
                 <h1 className="text-6xl md:text-8xl font-serif italic font-bold tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-600 drop-shadow-2xl">
                     UDAAN
                 </h1>

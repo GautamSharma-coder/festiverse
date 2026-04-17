@@ -1,30 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const Navbar = ({ isFestiverse, toggleUniverse }) => {
-  const [menuOpen, setMenuOpen] = useState(false);
+const TopFloatingNavbar = ({ isFestiverse, toggleUniverse }) => {
   const navNavigate = useNavigate();
   const location = useLocation();
 
   const udaanLinks = [
-    { href: '#home', label: 'Home' },
-    { href: '#society', label: 'Societies' },
-    { href: '#members', label: 'Members' },
-    { href: '#notice', label: 'Notices' },
+    { href: '#home', label: 'Home', icon: 'solar:home-smile-linear' },
+    { href: '#society', label: 'Societies', icon: 'solar:users-group-rounded-linear' },
+    { href: '#members', label: 'Members', icon: 'solar:user-linear' },
+    { href: '#notice', label: 'Notices', icon: 'solar:bell-linear' },
   ];
 
   const festLinks = [
-    { href: '#fest-home', label: 'Fest Home' },
-    { href: '/register', label: 'Register', isRoute: true },
-    { href: '#events', label: 'Events' },
-    { href: '#gallery', label: 'Gallery' },
-    { href: '/leaderboard', label: 'Results', isRoute: true },
+    { href: '#fest-home', label: 'Fest Home', icon: 'solar:home-smile-linear' },
+    { href: '/register', label: 'Register', isRoute: true, icon: 'solar:pen-new-square-linear' },
+    { href: '#events', label: 'Events', icon: 'solar:calendar-linear' },
+    { href: '#gallery', label: 'Gallery', icon: 'solar:gallery-linear' },
+    { href: '/leaderboard', label: 'Results', isRoute: true, icon: 'lucide:trophy' },
   ];
 
   const links = isFestiverse ? festLinks : udaanLinks;
 
   const handleLinkClick = (e, link) => {
-    setMenuOpen(false);
     if (link.isRoute) {
       e.preventDefault();
       navNavigate(link.href);
@@ -48,264 +46,242 @@ const Navbar = ({ isFestiverse, toggleUniverse }) => {
     }
   }, [location]);
 
-  // Asymmetric split: UDAAN=38%, FESTIVERSE'26=62%
+  // Toggle calculation variables
   const UDAAN_W = 38;
   const FEST_W = 62;
   const pillLeft = isFestiverse ? `${UDAAN_W + 1}%` : '2%';
   const pillWidth = isFestiverse ? `${FEST_W - 3}%` : `${UDAAN_W - 3}%`;
 
+  // Extracted mapping function so we can render links in two different DOM locations easily
+  const renderedLinks = links.map((link) => (
+    <a
+      key={link.href}
+      href={link.isRoute ? link.href : `/${link.href}`}
+      onClick={(e) => handleLinkClick(e, link)}
+      className="nav-link"
+      title={link.label}
+    >
+      <iconify-icon icon={link.icon} width="22"></iconify-icon>
+      <span className="nav-text">{link.label}</span>
+    </a>
+  ));
+
   return (
-    <nav style={{
-      position: 'fixed',
-      top: 0,
-      width: '100%',
-      zIndex: 50,
-      /* --- Apple Glassy Effect Start --- */
-      background: 'rgba(18, 18, 18, 0.65)',
-      WebkitBackdropFilter: 'saturate(180%) blur(20px)', // Safari support
-      backdropFilter: 'saturate(180%) blur(20px)',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-      boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
-      /* --- Apple Glassy Effect End --- */
-      display: 'flex',
-      flexDirection: 'column',
-    }}>
-      <style>
-        {`
-          @keyframes slideFadeSwitch {
-            0% { opacity: 0; transform: translateY(8px); }
-            100% { opacity: 1; transform: translateY(0); }
+    <>
+      <style>{`
+        /* --- BASE STYLES --- */
+        .top-floating-nav {
+          position: fixed;
+          top: 1.25rem;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 50;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.5rem 0.75rem;
+          border-radius: 9999px;
+          background: rgba(18, 18, 18, 0.65);
+          -webkit-backdrop-filter: saturate(180%) blur(20px);
+          backdrop-filter: saturate(180%) blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+          max-width: 95vw;
+        }
+
+        .nav-links-container {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+        }
+
+        .desktop-divider {
+          width: 1px;
+          height: 1.5rem;
+          background: rgba(255,255,255,0.1);
+        }
+
+        .mobile-bottom-nav {
+          display: none; /* Hidden on desktop */
+        }
+
+        .nav-link {
+          display: flex;
+          align-items: center;
+          color: #a1a1aa;
+          text-decoration: none;
+          padding: 0.5rem;
+          border-radius: 9999px;
+          background: transparent;
+          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+          cursor: pointer;
+        }
+
+        .nav-link:hover {
+          color: #fff;
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-text {
+          max-width: 0px;
+          opacity: 0;
+          margin-left: 0px;
+          overflow: hidden;
+          white-space: nowrap;
+          font-size: 0.875rem;
+          font-weight: 500;
+          transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .universe-toggle {
+          display: flex;
+          align-items: center;
+          padding: 0;
+          border-radius: 9999px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          width: 8.5rem;
+          height: 2.2rem;
+          position: relative;
+          overflow: hidden;
+          background: rgba(255, 255, 255, 0.05);
+          box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+          cursor: pointer;
+          transition: border-color 0.5s;
+          flex-shrink: 0;
+        }
+
+        .logo-container {
+          width: 2.5rem;
+          height: 2.5rem;
+          border-radius: 50%;
+          overflow: hidden;
+          cursor: pointer;
+          flex-shrink: 0;
+        }
+
+        /* --- DESKTOP HOVER LOGIC --- */
+        @media (min-width: 768px) {
+          .nav-link:hover .nav-text {
+            max-width: 100px;
+            opacity: 1;
+            margin-left: 0.5rem;
           }
-        `}
-      </style>
-      <div style={{
-        maxWidth: '80rem',
-        width: '100%',
-        margin: '0 auto',
-        padding: '0 1rem',
-        height: '4.5rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      }}>
+        }
 
-        {/* Logo */}
-        <div
-          style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
-          onClick={() => { navNavigate('/'); window.scrollTo(0, 0); }}
-        >
-          <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '22%', overflow: 'hidden' }}> {/* Increased border-radius slightly for Apple look */}
-            <img src="/udaan.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          </div>
-          <div style={{ display: 'grid', alignItems: 'center' }}>
-            <span style={{
-              gridArea: '1/1',
-              fontSize: '1.025rem', fontWeight: 600, letterSpacing: '-0.025em', color: '#fff',
-              opacity: !isFestiverse ? 1 : 0,
-              transform: !isFestiverse ? 'translateY(0)' : 'translateY(-10px)',
-              transition: 'all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)',
-              pointerEvents: !isFestiverse ? 'auto' : 'none',
-            }}>
-              UDAAN
-            </span>
-            <span style={{
-              gridArea: '1/1',
-              fontSize: '1.025rem', fontWeight: 600, letterSpacing: '-0.025em', color: '#fff',
-              opacity: isFestiverse ? 1 : 0,
-              transform: isFestiverse ? 'translateY(0)' : 'translateY(10px)',
-              transition: 'all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)',
-              pointerEvents: isFestiverse ? 'auto' : 'none',
-            }}>
-              FESTIVERSE'26
-            </span>
-          </div>
+        /* --- MOBILE RESPONSIVE LOGIC --- */
+        /* --- MOBILE RESPONSIVE LOGIC --- */
+        @media (max-width: 767px) {
+          .top-floating-nav {
+            padding: 0.4rem 0.75rem;
+            width: 85vw; /* Sets the bar width to 85% of the screen */
+            justify-content: space-between; /* Pushes items to opposite ends */
+          }
+
+          /* Hide elements from the top nav that belong at the bottom now */
+          .desktop-links, .desktop-divider {
+            display: none !important;
+          }
+
+          .logo-container {
+            width: 2.1rem;
+            height: 2.1rem;
+          }
+
+          .universe-toggle {
+            width: 7.5rem; 
+            height: 2rem;
+          }
+
+          /* Style the completely separate bottom navbar */
+          .mobile-bottom-nav {
+            display: flex;
+            position: fixed;
+            bottom: 1.25rem; /* Will now accurately calculate relative to viewport */
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            align-items: center;
+            background: rgba(18, 18, 18, 0.65);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            backdrop-filter: saturate(180%) blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2);
+            border-radius: 9999px;
+            padding: 0.35rem 0.5rem;
+            gap: 0.2rem;
+            width: max-content;
+            max-width: 95vw;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .mobile-bottom-nav::-webkit-scrollbar {
+            display: none;
+          }
+          
+          .mobile-bottom-nav {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+
+          .nav-link {
+            padding: 0.5rem;
+          }
+        }
+      `}</style>
+
+      {/* --- TOP NAVBAR --- */}
+      <nav className="top-floating-nav">
+        {/* College Logo */}
+        <div className="logo-container" onClick={() => { navNavigate('/'); window.scrollTo(0, 0); }} title="Home">
+          <img src="/udaan.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
 
-        {/* Desktop Links */}
-        <div key={isFestiverse ? 'fest' : 'udaan'} style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '2rem',
-          fontSize: '0.875rem',
-          color: '#a1a1aa',
-          fontWeight: 500, // Slightly bolder for better readability on glass
-          animation: 'slideFadeSwitch 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards'
-        }} className="desktop-nav">
-          {links.map((link) => (
-            <a key={link.href} href={link.isRoute ? link.href : `/${link.href}`}
-              onClick={(e) => handleLinkClick(e, link)}
-              style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s', cursor: 'pointer' }}
-              onMouseEnter={(e) => e.target.style.color = '#fff'}
-              onMouseLeave={(e) => e.target.style.color = '#a1a1aa'}>
-              {link.label}
-            </a>
-          ))}
+        {/* Desktop Divider */}
+        <div className="desktop-divider"></div>
+
+        {/* Desktop Nav Links */}
+        <div className="nav-links-container desktop-links">
+          {renderedLinks}
         </div>
 
-        {/* Right: Toggle + Badge + Hamburger */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        {/* Desktop Divider */}
+        <div className="desktop-divider"></div>
 
-          {/* Universe Toggle - Updated for iOS style */}
-          <button
-            onClick={toggleUniverse}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '0',
-              borderRadius: '9999px',
-              border: `1px solid rgba(255, 255, 255, 0.1)`,
-              width: '9.5rem',
-              height: '2.2rem',
-              position: 'relative',
-              overflow: 'hidden',
-              background: 'rgba(255, 255, 255, 0.05)', // iOS style inner dark background
-              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.2)',
-              cursor: 'pointer',
-              transition: 'border-color 0.5s',
-              flexShrink: 0,
-            }}
-          >
-            {/* Sliding pill */}
-            <div style={{
-              position: 'absolute',
-              left: pillLeft,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: pillWidth,
-              height: '82%',
-              backgroundColor: isFestiverse ? '#7c3aed' : '#991b1b',
-              borderRadius: '9999px',
-              transition: 'all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)', // Apple spring animation
-              boxShadow: '0 2px 8px rgba(0,0,0,0.3)', // Solid shadow on the pill itself
-              zIndex: 0,
-            }} />
+        {/* Universe Toggle */}
+        <button onClick={toggleUniverse} className="universe-toggle">
+          <div style={{
+            position: 'absolute', left: pillLeft, top: '50%', transform: 'translateY(-50%)',
+            width: pillWidth, height: '82%', backgroundColor: isFestiverse ? '#7c3aed' : '#991b1b',
+            borderRadius: '9999px', transition: 'all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)', zIndex: 0,
+          }} />
 
-            {/* Divider line between the two labels */}
-            <div style={{
-              position: 'absolute',
-              left: `${UDAAN_W}%`,
-              top: '25%',
-              height: '50%',
-              width: '1px',
-              background: 'rgba(255,255,255,0.1)',
-              zIndex: 5,
-              opacity: isFestiverse ? 0 : 1, // Optional: hide divider when festiverse is active
-              transition: 'opacity 0.3s',
-            }} />
+          <span style={{
+            position: 'relative', zIndex: 10, width: `${UDAAN_W}%`,
+            fontSize: '0.45rem', fontWeight: 700, textAlign: 'center', letterSpacing: '0.1em',
+            whiteSpace: 'nowrap', color: !isFestiverse ? '#fff' : '#a1a1aa', transition: 'color 0.3s',
+          }}>
+            UDAAN
+          </span>
 
-            {/* UDAAN */}
-            <span style={{
-              position: 'relative',
-              zIndex: 10,
-              width: `${UDAAN_W}%`,
-              fontSize: '0.5rem',
-              fontWeight: 700,
-              textAlign: 'center',
-              letterSpacing: '0.1em',
-              whiteSpace: 'nowrap',
-              padding: '0 0.25rem',
-              boxSizing: 'border-box',
-              color: !isFestiverse ? '#fff' : '#a1a1aa',
-              transition: 'color 0.3s',
-            }}>
-              UDAAN
-            </span>
+          <span style={{
+            position: 'relative', zIndex: 10, width: `${FEST_W}%`,
+            fontSize: '0.45rem', fontWeight: 700, textAlign: 'center', letterSpacing: '0.05em',
+            whiteSpace: 'nowrap', color: isFestiverse ? '#fff' : '#a1a1aa', transition: 'color 0.3s',
+          }}>
+            FESTIVERSE'26
+          </span>
+        </button>
+      </nav>
 
-            {/* FESTIVERSE'26 */}
-            <span style={{
-              position: 'relative',
-              zIndex: 10,
-              width: `${FEST_W}%`,
-              fontSize: '0.5rem',
-              fontWeight: 700,
-              textAlign: 'center',
-              letterSpacing: '0.05em',
-              whiteSpace: 'nowrap',
-              padding: '0 0.25rem',
-              boxSizing: 'border-box',
-              color: isFestiverse ? '#fff' : '#a1a1aa',
-              transition: 'color 0.3s',
-            }}>
-              FESTIVERSE'26
-            </span>
-          </button>
-
-          {/* GEC Badge */}
-          <a href="https://www.gecsamastipur.ac.in/" target="_blank" rel="noreferrer">
-            <div className="gec-badge" style={{
-              width: '4.1rem',
-              height: '3rem',
-              borderRadius: '8px', // Slightly softer corners
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              overflow: 'hidden',
-            }} title="GEC Samastipur">
-              <img src="/college_logo.png" alt="GEC" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-          </a>
-
-          {/* Hamburger Button */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="hamburger-btn"
-            style={{
-              display: 'none',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '0.25rem',
-              color: '#fff',
-            }}
-          >
-            <iconify-icon icon={menuOpen ? "solar:close-circle-linear" : "solar:hamburger-menu-linear"} width="24"></iconify-icon>
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Drawer */}
-      <div
-        className="mobile-drawer"
-        style={{
-          maxHeight: menuOpen ? '300px' : '0',
-          overflow: 'hidden',
-          transition: 'max-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)', // Apple-style spring ease
-          borderTop: menuOpen ? '1px solid rgba(255,255,255,0.08)' : 'none',
-          /* Extend glass effect to drawer */
-          background: 'rgba(18, 18, 18, 0.65)',
-          WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-        }}
-      >
-        <div key={isFestiverse ? 'fest-mobile' : 'udaan-mobile'} style={{
-          padding: '1rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem',
-          animation: menuOpen ? 'slideFadeSwitch 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards' : 'none'
-        }}>
-          {links.map((link) => (
-            <a
-              key={link.href}
-              href={link.isRoute ? link.href : `/${link.href}`}
-              onClick={(e) => handleLinkClick(e, link)}
-              style={{
-                color: '#e4e4e7',
-                textDecoration: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                padding: '0.75rem 0', // slightly larger tap targets for mobile
-                borderBottom: '1px solid rgba(255,255,255,0.05)',
-                display: 'block',
-                cursor: 'pointer',
-              }}
-            >
-              {link.label}
-            </a>
-          ))}
-        </div>
-      </div>
-    </nav>
+      {/* --- BOTTOM NAVBAR (Mobile Only) --- */}
+      {/* Lives completely outside the top nav so it isn't trapped by the CSS containing block */}
+      <nav className="mobile-bottom-nav">
+        {renderedLinks}
+      </nav>
+    </>
   );
 };
 
-export default Navbar;
+export default TopFloatingNavbar;
