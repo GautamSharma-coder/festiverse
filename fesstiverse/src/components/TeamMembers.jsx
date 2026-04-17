@@ -45,6 +45,9 @@ const TeamMembers = () => {
         );
     }
 
+    // Sort alphabetically by name
+    members.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
     const totalPages = Math.ceil(members.length / ITEMS_PER_PAGE);
     const paginatedMembers = members.slice(
         (currentPage - 1) * ITEMS_PER_PAGE,
