@@ -72,9 +72,9 @@ const TeamMembers = () => {
             <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem' }}>
                 {/* Header */}
                 <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-                    <h2 style={{ fontSize: '2rem', fontWeight: 600, color: '#e4e4e7', marginBottom: '0.5rem' }}>The Team</h2>
+                    <h2 style={{ fontSize: '2rem', fontWeight: 600, color: '#e4e4e7', marginBottom: '0.5rem' }}>Our Team</h2>
                     <p style={{ color: '#71717a', fontSize: '0.9rem', marginBottom: '1rem' }}>The people who make it all happen</p>
-                    <input
+                    {/* <input
                         type="text"
                         placeholder="🔍 Search by name, role, or society..."
                         value={searchQuery}
@@ -93,7 +93,7 @@ const TeamMembers = () => {
                         }}
                         onFocus={(e) => e.target.style.borderColor = 'rgba(249,115,22,0.4)'}
                         onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
-                    />
+                    /> */}
                 </div>
 
                 {/* Role Tabs */}

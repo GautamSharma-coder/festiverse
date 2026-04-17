@@ -462,7 +462,7 @@ const FestGallery2 = () => {
             </div>
             <div className="fg2-header-right">
               <div className="fg2-count">0{galleryImages.length} PHOTOGRAPHS</div>
-              <button className="fg2-cta">
+              <button className="fg2-cta" onClick={() => navigate('/gallery')}>
                 View All
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M1 7h12M8 2l5 5-5 5" />

@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import rubikPuddlesFont from '../assets/RubikPuddles-Regular.ttf';
 import mandalaPattern from '../assets/mandala-pattern.png';
+import festHeroImage from '../assets/festHeroImage.png';
+import GlassSurface from './GlassSurface';
 
-const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }) => {
-    const [entered, setEntered] = useState(false);
-
-    useEffect(() => {
-        // After entrance animation finishes, switch to idle wave
-        const timer = setTimeout(() => setEntered(true), 1200);
-        return () => clearTimeout(timer);
-    }, []);
-
+const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, user, onLogout, onDashboardClick }) => {
     return (
-        <header id="fest-home" className="fest-hero-header animated-bg" style={{
+        <header id="fest-home" className="fest-hero-header" style={{
+            backgroundImage: `url(${festHeroImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
             minHeight: '100vh',
             display: 'flex',
             flexDirection: 'column',
@@ -30,9 +28,9 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
                 left: 0,
                 right: 0,
                 bottom: 0,
-                backdropFilter: 'blur(3px)',
-                WebkitBackdropFilter: 'blur(3px)',
-                backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                backdropFilter: 'blur(2px)',
+                WebkitBackdropFilter: 'blur(2x)',
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
                 zIndex: 3,
                 pointerEvents: 'none'
             }}></div>
@@ -78,7 +76,6 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
                         animation: dynamicGradient 20s ease infinite;
                     }
 
-                    /* Asset 1: Cyber Grid Pattern */
                     .cyber-grid {
                         position: absolute;
                         inset: 0;
@@ -92,10 +89,6 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
                         pointer-events: none;
                     }
 
-                    @keyframes panMandala {
-                        0% { background-position: 0px 0px; }
-                        100% { background-position: -400px -400px; }
-                    }
                     .fire-text {
                         text-shadow: 0 0 10px rgba(255, 215, 0, 0.3), 
                                      0 0 20px rgba(212, 175, 55, 0.5), 
@@ -104,21 +97,11 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
                                      0 10px 30px rgba(0,0,0,0.9);
                     }
 
-                    /* Interactive Letter Animations */
-                    @keyframes letterEntrance {
-                        0% { opacity: 0; transform: translateY(80px) scale(0.3) rotate(-15deg); filter: blur(12px); }
-                        60% { opacity: 1; transform: translateY(-15px) scale(1.1) rotate(5deg); filter: blur(0px); }
-                        100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); filter: blur(0px); }
-                    }
-                    @keyframes idleWave {
-                        0%, 100% { transform: translateY(0px); }
-                        50% { transform: translateY(-6px); }
-                    }
+                    /* Interactive Letters */
                     .hero-letter {
                         display: inline-block;
                         cursor: pointer;
                         transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-                        animation: letterEntrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
                         position: relative;
                     }
                     .hero-letter:hover {
@@ -127,9 +110,42 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
                         text-shadow: 0 0 20px #ffeb3b, 0 0 40px #ff9800, 0 0 60px #ff5722, 0 0 100px #e64a19, 0 5px 30px rgba(255,87,34,0.8);
                         filter: brightness(1.5);
                     }
-                    .hero-letter.idle-wave {
-                        animation: idleWave 3s ease-in-out infinite;
-                        opacity: 1;
+
+                    /* Moving Border Button */
+                    .moving-border-btn {
+                        position: relative;
+                        display: inline-flex;
+                        border-radius: 9999px;
+                        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    }
+                    .moving-border-btn:hover {
+                        transform: scale(1.05);
+                    }
+                    .moving-border-glow {
+                        position: absolute;
+                        inset: -2px;
+                        border-radius: 9999px;
+                        padding: 3px;
+                        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+                        -webkit-mask-composite: xor;
+                        mask-composite: exclude;
+                        pointer-events: none;
+                        z-index: 10;
+                        overflow: hidden;
+                    }
+                    .moving-border-glow::before {
+                        content: '';
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        width: 150%;
+                        aspect-ratio: 1;
+                        background: conic-gradient(from 0deg, transparent 0 280deg, #ff9800 320deg, #ff5722 360deg);
+                        transform: translate(-50%, -50%);
+                        animation: spin-conic 2s linear infinite;
+                    }
+                    @keyframes spin-conic {
+                        100% { transform: translate(-50%, -50%) rotate(360deg); }
                     }
                     
                     /* Enhanced Buttons */
@@ -216,7 +232,6 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
                 backgroundImage: `url(${mandalaPattern})`,
                 backgroundSize: '400px 400px',
                 backgroundRepeat: 'repeat',
-                animation: 'panMandala 40s linear infinite',
                 opacity: 0.15,
                 zIndex: 2,
                 pointerEvents: 'none'
@@ -239,10 +254,7 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
                     {'FESTIVERSE'.split('').map((letter, i) => (
                         <span
                             key={i}
-                            className={`hero-letter ${entered ? 'idle-wave' : ''}`}
-                            style={{
-                                animationDelay: entered ? `${i * 0.15}s` : `${i * 0.08}s`,
-                            }}
+                            className={`hero-letter`}
                             onMouseEnter={(e) => {
                                 e.target.style.transform = 'translateY(-12px) scale(1.25)';
                                 e.target.style.WebkitTextFillColor = '#ff5722';
@@ -258,7 +270,7 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
                         </span>
                     ))}
                     <span
-                        className={`hero-letter ${entered ? 'idle-wave' : ''}`}
+                        className={`hero-letter`}
                         style={{
                             fontSize: '0.7em',
                             verticalAlign: 'top',
@@ -266,7 +278,6 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
                             WebkitTextFillColor: '#ffb300',
                             WebkitTextStroke: 'none',
                             textShadow: '0 0 20px rgba(255, 179, 0, 0.8)',
-                            animationDelay: entered ? `${10 * 0.15}s` : `${10 * 0.08}s`,
                         }}
                         onMouseEnter={(e) => {
                             e.target.style.transform = 'translateY(-12px) scale(1.3)';
@@ -295,18 +306,33 @@ const FestHero = ({ onLoginClick, isLoggedIn, user, onLogout, onDashboardClick }
             }}>
                 {!isLoggedIn ? (
                     <>
-                        <a href="#register" className="btn-primary" style={{
-                            padding: '1rem 3rem',
-                            borderRadius: '9999px',
-                            color: '#fff',
-                            fontWeight: 700,
-                            textDecoration: 'none',
-                            letterSpacing: '1px',
-                            textTransform: 'uppercase',
-                            fontSize: '0.9rem'
-                        }}>
-                            Register Now
-                        </a>
+                        <button onClick={onRegisterClick} className="moving-border-btn" style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}>
+                            <div className="moving-border-glow"></div>
+                            <GlassSurface
+                                width={200}
+                                height={50}
+                                borderRadius={9999}
+                                displace={15}
+                                distortionScale={-150}
+                                redOffset={5}
+                                greenOffset={15}
+                                blueOffset={25}
+                                mixBlendMode="screen"
+                                brightness={60}
+                                opacity={0.8}
+                            >
+                                <span style={{
+                                    color: '#fff',
+                                    fontWeight: 700,
+                                    letterSpacing: '1px',
+                                    textTransform: 'uppercase',
+                                    fontSize: '0.9rem',
+                                    textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+                                }}>
+                                    Register Now
+                                </span>
+                            </GlassSurface>
+                        </button>
                         <button onClick={onLoginClick} className="btn-secondary" style={{
                             padding: '0.9rem 2.5rem',
                             borderRadius: '9999px',

@@ -98,7 +98,7 @@ const Input = ({ type = 'text', value, onChange, onKeyDown, placeholder, require
 };
 
 /* ── Progress step bar ───────────────────────────────────────── */
-const steps = ['Identity', 'Contact', 'Security'];
+const steps = ['Details', 'Verification'];
 const StepBar = ({ current }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: '2rem' }}>
         {steps.map((s, i) => {
@@ -181,8 +181,17 @@ const RegistrationForm = ({ onRegister, showToast }) => {
     };
 
     const nextStep = () => {
-        if (step === 0 && (!name || !college)) { setStatusType('error'); setStatusMsg('Please fill in your name and college.'); return; }
-        if (step === 1 && (!email || !otpSent)) { setStatusType('error'); setStatusMsg('Please verify your email with OTP.'); return; }
+        if (step === 0) {
+            if (!name || !college || !email || !phone || !password) { 
+                setStatusType('error'); setStatusMsg('Please fill in all details.'); return; 
+            }
+            if (phone.length < 10) { 
+                setStatusType('error'); setStatusMsg('Enter a valid 10-digit phone number.'); return; 
+            }
+            if (password.length < 6) { 
+                setStatusType('error'); setStatusMsg('Password must be at least 6 characters.'); return; 
+            }
+        }
         setStatusMsg(''); setStep(s => s + 1);
     };
     const prevStep = () => { setStatusMsg(''); setStep(s => s - 1); };
@@ -295,75 +304,49 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    {/* STEP 0 — Identity */}
+                    {/* STEP 0 — Details */}
                     {step === 0 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', animation: 'fadeUp 0.25s ease' }}>
-                            <Field label="Full Name" icon={<UserIcon />}>
-                                <Input type="text" placeholder="Your full name" value={name}
-                                    onChange={e => setName(e.target.value)} required autoComplete="name" />
-                            </Field>
+                            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                                <div style={{ flex: '1 1 200px' }}>
+                                    <Field label="Full Name" icon={<UserIcon />}>
+                                        <Input type="text" placeholder="Your full name" value={name} onChange={e => setName(e.target.value)} required autoComplete="name" />
+                                    </Field>
+                                </div>
+                                <div style={{ flex: '1 1 200px' }}>
+                                    <Field label="Phone Number" icon={<PhoneIcon />} hint={`${phone.length}/10 digits`}>
+                                        <Input type="tel" placeholder="10-digit mobile number" value={phone} onChange={handlePhoneChange} inputMode="numeric" maxLength={10} required />
+                                    </Field>
+                                </div>
+                            </div>
                             <Field label="College" icon={<BuildingIcon />}>
                                 <div style={{ position: 'relative' }}>
-                                    <select
-                                        className="rf-select"
-                                        required
-                                        value={college}
-                                        onChange={e => setCollege(e.target.value)}
-                                        style={{
-                                            width: '100%', boxSizing: 'border-box',
-                                            background: 'rgba(255,255,255,0.03)',
-                                            border: '1px solid rgba(255,255,255,0.1)',
-                                            borderRadius: '10px',
-                                            padding: '0.8rem 1rem',
-                                            color: college ? '#fff' : 'rgba(255,255,255,0.3)',
-                                            fontSize: '0.9rem',
-                                            fontFamily: "'Outfit', sans-serif",
-                                            outline: 'none',
-                                            cursor: 'pointer',
-                                            appearance: 'none',
-                                        }}
-                                        onFocus={e => { e.target.style.borderColor = 'rgba(249,115,22,0.55)'; e.target.style.boxShadow = '0 0 0 3px rgba(249,115,22,0.1)'; e.target.style.background = 'rgba(255,255,255,0.06)'; }}
-                                        onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; e.target.style.background = 'rgba(255,255,255,0.03)'; }}
-                                    >
+                                    <select className="rf-select" required value={college} onChange={e => setCollege(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '0.8rem 1rem', color: college ? '#fff' : 'rgba(255,255,255,0.3)', fontSize: '0.9rem', fontFamily: "'Outfit', sans-serif", outline: 'none', cursor: 'pointer', appearance: 'none' }} onFocus={e => { e.target.style.borderColor = 'rgba(249,115,22,0.55)'; e.target.style.boxShadow = '0 0 0 3px rgba(249,115,22,0.1)'; e.target.style.background = 'rgba(255,255,255,0.06)'; }} onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; e.target.style.background = 'rgba(255,255,255,0.03)'; }}>
                                         <option value="" disabled hidden>Select your college</option>
-                                        {biharEngineeringColleges.map((c, i) => (
-                                            <option key={i} value={c}>{c}</option>
-                                        ))}
+                                        {biharEngineeringColleges.map((c, i) => (<option key={i} value={c}>{c}</option>))}
                                     </select>
                                     <span style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none', fontSize: '10px' }}>▼</span>
                                 </div>
                             </Field>
+                            <Field label="Email Address" icon={<MailIcon />}>
+                                <Input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
+                            </Field>
+                            <Field label="Create Password" icon={<LockIcon />} hint="Minimum 6 characters">
+                                <Input type="password" placeholder="Choose a strong password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" />
+                            </Field>
                         </div>
                     )}
 
-                    {/* STEP 1 — Contact */}
+                    {/* STEP 1 — Verification */}
                     {step === 1 && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', animation: 'fadeUp 0.25s ease' }}>
-                            <Field label="Email Address" icon={<MailIcon />}>
+                            <Field label="Email Verification" icon={<MailIcon />}>
                                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <Input type="email" placeholder="you@example.com" value={email}
-                                            onChange={e => setEmail(e.target.value)} required autoComplete="email" />
+                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', fontFamily: "'Outfit', sans-serif" }}>
+                                        {email}
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={sendOTP}
-                                        style={{
-                                            padding: '0 1rem',
-                                            background: otpSent ? 'rgba(34,197,94,0.12)' : 'rgba(249,115,22,0.15)',
-                                            border: `1px solid ${otpSent ? 'rgba(34,197,94,0.35)' : 'rgba(249,115,22,0.4)'}`,
-                                            borderRadius: '10px',
-                                            color: otpSent ? '#4ade80' : '#fb923c',
-                                            fontSize: '0.75rem', fontWeight: 700,
-                                            fontFamily: "'Outfit', sans-serif",
-                                            letterSpacing: '0.06em', textTransform: 'uppercase',
-                                            cursor: 'pointer', whiteSpace: 'nowrap',
-                                            transition: 'all 0.2s',
-                                        }}
-                                    >
-                                        {otpBtnText === '...' ? (
-                                            <span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid rgba(249,115,22,0.3)', borderTopColor: '#f97316', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                                        ) : otpBtnText}
+                                    <button type="button" onClick={sendOTP} style={{ padding: '0 1rem', background: otpSent ? 'rgba(34,197,94,0.12)' : 'rgba(249,115,22,0.15)', border: `1px solid ${otpSent ? 'rgba(34,197,94,0.35)' : 'rgba(249,115,22,0.4)'}`, borderRadius: '10px', color: otpSent ? '#4ade80' : '#fb923c', fontSize: '0.75rem', fontWeight: 700, fontFamily: "'Outfit', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+                                        {otpBtnText === '...' ? (<span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid rgba(249,115,22,0.3)', borderTopColor: '#f97316', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />) : otpBtnText}
                                     </button>
                                 </div>
                             </Field>
@@ -371,55 +354,13 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                             {otpSent && (
                                 <Field label="Verification Code" icon={<MailIcon />} hint="4-digit code sent to your email">
                                     <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-start' }}>
-                                        {otp.map((d, i) => (
-                                            <input
-                                                key={i}
-                                                ref={el => otpRefs.current[i] = el}
-                                                className="rf-otp"
-                                                type="text" inputMode="numeric" maxLength={1}
-                                                value={d}
-                                                onChange={e => handleOtpChange(e.target.value, i)}
-                                                onKeyDown={e => handleOtpKey(e, i)}
-                                                style={{
-                                                    width: '52px', height: '56px',
-                                                    background: d ? 'rgba(249,115,22,0.08)' : 'rgba(255,255,255,0.03)',
-                                                    border: `1px solid ${d ? 'rgba(249,115,22,0.45)' : 'rgba(255,255,255,0.1)'}`,
-                                                    borderRadius: '10px',
-                                                    color: '#fff', fontSize: '1.3rem',
-                                                    fontFamily: "'Bebas Neue', sans-serif",
-                                                    textAlign: 'center', outline: 'none',
-                                                    caretColor: '#f97316',
-                                                    transition: 'border-color 0.2s, background 0.2s',
-                                                }}
-                                            />
-                                        ))}
+                                        {otp.map((d, i) => (<input key={i} ref={el => otpRefs.current[i] = el} className="rf-otp" type="text" inputMode="numeric" maxLength={1} value={d} onChange={e => handleOtpChange(e.target.value, i)} onKeyDown={e => handleOtpKey(e, i)} style={{ width: '52px', height: '56px', background: d ? 'rgba(249,115,22,0.08)' : 'rgba(255,255,255,0.03)', border: `1px solid ${d ? 'rgba(249,115,22,0.45)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '10px', color: '#fff', fontSize: '1.3rem', fontFamily: "'Bebas Neue', sans-serif", textAlign: 'center', outline: 'none', caretColor: '#f97316', transition: 'border-color 0.2s, background 0.2s' }} />))}
                                     </div>
                                 </Field>
                             )}
-                        </div>
-                    )}
-
-                    {/* STEP 2 — Security */}
-                    {step === 2 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', animation: 'fadeUp 0.25s ease' }}>
-                            <Field label="Phone Number" icon={<PhoneIcon />} hint={`${phone.length}/10 digits`}>
-                                <Input type="tel" placeholder="10-digit mobile number"
-                                    value={phone} onChange={handlePhoneChange}
-                                    inputMode="numeric" maxLength={10} required />
-                            </Field>
-                            <Field label="Create Password" icon={<LockIcon />} hint="Minimum 6 characters">
-                                <Input type="password" placeholder="Choose a strong password"
-                                    value={password} onChange={e => setPassword(e.target.value)}
-                                    required minLength={6} autoComplete="new-password" />
-                            </Field>
 
                             {/* Summary card */}
-                            <div style={{
-                                background: 'rgba(249,115,22,0.05)',
-                                border: '1px solid rgba(249,115,22,0.15)',
-                                borderRadius: '12px', padding: '1rem',
-                                display: 'flex', flexDirection: 'column', gap: '6px',
-                            }}>
+                            <div style={{ background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.15)', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <p style={{ margin: 0, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(249,115,22,0.6)', fontWeight: 600 }}>Registration Summary</p>
                                 {[['Name', name], ['College', college], ['Email', email]].map(([k, v]) => (
                                     <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
@@ -448,7 +389,7 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                 ← Back
                             </button>
                         )}
-                        {step < 2 ? (
+                        {step < 1 ? (
                             <button type="button" onClick={nextStep}
                                 style={{
                                     flex: 2, padding: '0.85rem',

@@ -1,11 +1,18 @@
 import React from 'react';
+import UdaanHeroImage from '../assets/UdaanHeroImage.png';
 
 const HeroSection = () => {
     return (
-        <header id="home" className="relative min-h-screen flex flex-col items-center justify-center pt-20 overflow-hidden">
-            {/* Radial gradient background */}
+        <header id="home" className="relative min-h-screen flex flex-col items-center justify-center pt-20 overflow-hidden" style={{
+            backgroundImage: `url(${UdaanHeroImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+        }}>
+            {/* Radial gradient background overlay */}
             <div className="absolute inset-0" style={{
-                background: 'radial-gradient(circle at center, rgba(127, 29, 29, 0.2), black, black)'
+                background: 'radial-gradient(circle at center, rgba(127, 29, 29, 0.4), black, black)',
+                opacity: 0.7
             }}></div>
 
             {/* Floating icons */}
@@ -21,7 +28,7 @@ const HeroSection = () => {
                 <span className="inline-block px-3 py-1 rounded-full border border-red-500/30 text-red-500 text-xs tracking-[0.2em] uppercase bg-red-500/5 backdrop-blur-sm mb-4">
                     Est. 2019 • GEC Samastipur
                 </span>
-                <h1 className="text-5xl md:text-8xl font-serif italic font-bold tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-600 drop-shadow-2xl">
+                <h1 className="text-6xl md:text-8xl font-serif italic font-bold tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-600 drop-shadow-2xl">
                     UDAAN
                 </h1>
                 <p className="text-lg md:text-xl text-zinc-400 font-light max-w-1xl mx-auto leading-relaxed " style={{ padding: '10px' }}>

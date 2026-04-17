@@ -18,7 +18,7 @@ import NoticeBoard from './components/NoticeBoard';
 import FestHero from './components/FestHero';
 import SponsorMarquee from './components/SponsorMarquee';
 import FestEvents from './components/FestEvents';
-import RegistrationForm from './components/RegistrationForm';
+import RegistrationPage from './components/RegistrationPage';
 import FestGallery from './components/FestGallery';
 import LoginModal from './components/LoginModal';
 import FestFooter from './components/FestFooter';
@@ -116,6 +116,7 @@ function App() {
       <main className={`app-view ${!isFestiverse ? 'hidden-view' : ''}`}>
         <FestHero
           onLoginClick={() => setShowLoginModal(true)}
+          onRegisterClick={() => navigate('/register')}
           isLoggedIn={isLoggedIn}
           user={user}
           onLogout={handleLogout}
@@ -126,13 +127,7 @@ function App() {
         {/* Featured Events Section */}
         <ScrollReveal delay={100}><FestEvents /></ScrollReveal>
 
-        {!isLoggedIn && (
-          <ScrollReveal>
-            <section id="register" style={{ padding: '5rem 0', maxWidth: '56rem', margin: '0 auto', paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
-              <RegistrationForm onRegister={handleLogin} showToast={showToast} />
-            </section>
-          </ScrollReveal>
-        )}
+
 
         <ScrollReveal delay={100}><FestGallery /></ScrollReveal>
         <FestFooter onAdminClick={() => navigate('/admin')} />
@@ -191,6 +186,16 @@ function App() {
         <Route
           path="/gallery"
           element={<GalleryPage />}
+        />
+        <Route
+          path="/register"
+          element={
+            <RegistrationPage 
+              onRegister={handleLogin} 
+              showToast={showToast} 
+              onClose={() => navigate('/')} 
+            />
+          }
         />
       </Routes>
     </div>
