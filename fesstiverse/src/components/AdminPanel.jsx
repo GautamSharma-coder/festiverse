@@ -1325,6 +1325,9 @@ const AdminPanel = ({ onClose }) => {
                                             <div style={{ marginTop: 8, fontSize: '.78rem' }}>
                                                 <div>Name: <strong>{checkinResult.registration.users?.name}</strong></div>
                                                 <div>Event: <strong>{checkinResult.registration.events?.name}</strong></div>
+                                                {checkinResult.registration.team_members && checkinResult.registration.team_members.length > 0 && (
+                                                    <div style={{ marginTop: 4 }}>Team: <strong>{checkinResult.registration.team_members.map(m => m.name || m).join(', ')}</strong></div>
+                                                )}
                                                 <div style={{ marginTop: 4 }}>Payment: <strong>{checkinResult.registration.users?.has_paid ? <span style={{ color: '#86efac' }}>Paid ✅</span> : <span style={{ color: '#fca5a5' }}>Unpaid ❌</span>}</strong></div>
                                             </div>
                                         )}

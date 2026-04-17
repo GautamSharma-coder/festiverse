@@ -564,6 +564,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
     name: user?.name || '', email: user?.email || '',
     phone: user?.phone || '', college: user?.college || '',
   });
+  const [festiverseId, setFestiverseId] = useState(user?.festiverse_id || '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url || '');
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState('');
@@ -571,6 +572,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
   const [allEvents, setAllEvents] = useState([]);
   const [selectedEvents, setSelectedEvents] = useState([]);
   const [teamMembers, setTeamMembers] = useState({});
+  const [memberLookup, setMemberLookup] = useState({}); // { [eid_idx]: { status, data } }
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ text: '', type: '' });
@@ -578,10 +580,11 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
   const [qrModal, setQrModal] = useState(null); // registration id for QR
   const [qrImage, setQrImage] = useState('');
   const [qrLoading, setQrLoading] = useState(false);
+  const [idCopied, setIdCopied] = useState(false);
 
   useEffect(() => { fetchProfile(); fetchMyEvents(); fetchAllEvents(); }, []);
 
-  const fetchProfile = async () => { try { const d = await apiFetch('/api/auth/profile'); if (d.user) { setProfile({ name: d.user.name || '', email: d.user.email || '', phone: d.user.phone || '', college: d.user.college || '' }); if (d.user.avatar_url) setAvatarUrl(d.user.avatar_url); } } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } };
+  const fetchProfile = async () => { try { const d = await apiFetch('/api/auth/profile'); if (d.user) { setProfile({ name: d.user.name || '', email: d.user.email || '', phone: d.user.phone || '', college: d.user.college || '' }); if (d.user.avatar_url) setAvatarUrl(d.user.avatar_url); if (d.user.festiverse_id) setFestiverseId(d.user.festiverse_id); } } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } };
   const fetchMyEvents = async () => { try { const d = await apiFetch('/api/events/my-events'); setMyEvents(d.registrations || []); } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } };
   const fetchAllEvents = async () => { try { const d = await apiFetch('/api/events'); setAllEvents(d.events || []); } catch { } };
 
@@ -625,7 +628,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
       }
       const ev = allEvents.find(e => e.id === id);
       if (ev?.team_size > 1) {
-        const slots = Array.from({ length: ev.team_size - 1 }, () => ({ name: '', phone: '', email: '' }));
+        const slots = Array.from({ length: ev.team_size - 1 }, () => ({ festiverse_id: '' }));
         setTeamMembers(p => ({ ...p, [id]: slots }));
       }
       return [...prev, id];
@@ -639,14 +642,36 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
       return { ...p, [eid]: arr };
     });
 
+  // Look up a team member by Festiverse ID
+  const lookupMember = async (eid, idx, fid) => {
+    const key = `${eid}_${idx}`;
+    const trimmed = fid.toUpperCase().trim();
+    if (!trimmed || !/^F26[A-Z]{2}\d{4}$/.test(trimmed)) {
+      setMemberLookup(p => ({ ...p, [key]: null }));
+      return;
+    }
+    setMemberLookup(p => ({ ...p, [key]: { status: 'loading' } }));
+    try {
+      const d = await apiFetch(`/api/events/lookup-member/${trimmed}`);
+      setMemberLookup(p => ({ ...p, [key]: { status: 'found', data: d.member } }));
+    } catch (e) {
+      setMemberLookup(p => ({ ...p, [key]: { status: 'error', message: e.message } }));
+    }
+  };
+
   const registerEvents = async () => {
     if (!selectedEvents.length) return setMsg({ text: 'Select at least one event to continue.', type: 'err' });
     for (const eid of selectedEvents) {
       const ev = allEvents.find(e => e.id === eid);
       if (ev?.team_size > 1) {
         const members = teamMembers[eid] || [];
-        if (members.some(m => !m.name.trim()))
-          return setMsg({ text: `Fill in all team member names for "${ev.name}".`, type: 'err' });
+        for (let i = 0; i < members.length; i++) {
+          const fid = members[i].festiverse_id?.trim();
+          if (!fid) return setMsg({ text: `Enter Festiverse ID for all team members in "${ev.name}".`, type: 'err' });
+          const key = `${eid}_${i}`;
+          const lookup = memberLookup[key];
+          if (!lookup || lookup.status !== 'found') return setMsg({ text: `Verify all Festiverse IDs for "${ev.name}" before registering.`, type: 'err' });
+        }
       }
     }
     setLoading(true);
@@ -654,7 +679,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
       const payload = selectedEvents.map(eid => ({ eventId: eid, teamMembers: teamMembers[eid] || [] }));
       await apiFetch('/api/events/register', { method: 'POST', body: JSON.stringify({ registrations: payload }) });
       setMsg({ text: 'Registered! See you at the festival.', type: 'ok' });
-      setSelectedEvents([]); setTeamMembers({}); fetchMyEvents();
+      setSelectedEvents([]); setTeamMembers({}); setMemberLookup({}); fetchMyEvents();
     } catch (e) { setMsg({ text: e.message, type: 'err' }); }
     finally { setLoading(false); }
   };
@@ -741,6 +766,36 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
           {/* ── PROFILE ── */}
           {activeTab === 'profile' && (
             <div className="d-fade">
+              {/* Festiverse ID Card */}
+              {festiverseId && (
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(249,115,22,0.1), rgba(249,115,22,0.03))',
+                  border: '1px solid rgba(249,115,22,0.25)',
+                  borderRadius: 'var(--radius)', padding: '16px 20px',
+                  marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  gap: 12, animation: 'fadeUp .3s ease both',
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent)', marginBottom: 4 }}>Your Festiverse ID</div>
+                    <div style={{ fontFamily: 'var(--font-h)', fontSize: '1.5rem', fontWeight: 800, color: '#fff', letterSpacing: '0.04em' }}>{festiverseId}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--muted)', marginTop: 2 }}>Share this with your team leader for event registration</div>
+                  </div>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(festiverseId); setIdCopied(true); setTimeout(() => setIdCopied(false), 2000); }}
+                    style={{
+                      background: idCopied ? 'rgba(34,197,94,0.15)' : 'rgba(249,115,22,0.15)',
+                      border: `1px solid ${idCopied ? 'rgba(34,197,94,0.35)' : 'rgba(249,115,22,0.35)'}`,
+                      borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
+                      color: idCopied ? '#4ade80' : 'var(--accent)',
+                      fontSize: '0.78rem', fontWeight: 600, fontFamily: 'var(--font-b)',
+                      transition: 'all .2s', whiteSpace: 'nowrap', flexShrink: 0,
+                    }}
+                  >
+                    {idCopied ? '✓ Copied!' : '📋 Copy'}
+                  </button>
+                </div>
+              )}
+
               <div className="d-stats">
                 <div className="d-stat">
                   <div className="d-stat-val">{myEvents.length}</div>
@@ -1024,26 +1079,60 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                           <div className="d-team-title">
                             <span>◈</span> Team Members — you + {ev.team_size - 1} others
                           </div>
-                          {teamMembers[ev.id].map((m, idx) => (
-                            <div key={idx} className="d-team-row">
-                              <input
-                                placeholder={`Member ${idx + 2} name *`}
-                                value={m.name}
-                                onChange={e => updateMember(ev.id, idx, 'name', e.target.value)}
-                              />
-                              <input
-                                placeholder={`Member ${idx + 2} phone`}
-                                value={m.phone}
-                                onChange={e => updateMember(ev.id, idx, 'phone', e.target.value)}
-                              />
-                              <input
-                                placeholder={`Member ${idx + 2} email`}
-                                type="email"
-                                value={m.email || ''}
-                                onChange={e => updateMember(ev.id, idx, 'email', e.target.value)}
-                              />
-                            </div>
-                          ))}
+                          <div style={{ fontSize: '0.72rem', color: 'var(--muted)', marginBottom: 12 }}>
+                            Enter each member's Festiverse ID (e.g. F26GS4821)
+                          </div>
+                          {teamMembers[ev.id].map((m, idx) => {
+                            const key = `${ev.id}_${idx}`;
+                            const lookup = memberLookup[key];
+                            return (
+                              <div key={idx} style={{ marginBottom: 10 }}>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                  <input
+                                    placeholder={`Member ${idx + 2} Festiverse ID *`}
+                                    value={m.festiverse_id || ''}
+                                    onChange={e => {
+                                      const val = e.target.value.toUpperCase();
+                                      updateMember(ev.id, idx, 'festiverse_id', val);
+                                      // Clear lookup if input changed
+                                      setMemberLookup(p => ({ ...p, [key]: null }));
+                                    }}
+                                    onBlur={() => lookupMember(ev.id, idx, m.festiverse_id || '')}
+                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lookupMember(ev.id, idx, m.festiverse_id || ''); } }}
+                                    style={{
+                                      flex: 1, padding: '8px 10px',
+                                      background: 'var(--surface)', border: `1px solid ${lookup?.status === 'found' ? 'rgba(34,197,94,0.5)' : lookup?.status === 'error' ? 'rgba(239,68,68,0.5)' : 'var(--border)'}`,
+                                      borderRadius: 7, color: 'var(--text)',
+                                      fontSize: '0.85rem', fontFamily: 'var(--font-b)', fontWeight: 600,
+                                      letterSpacing: '0.06em', outline: 'none',
+                                      transition: 'border-color .15s',
+                                      minWidth: 0, maxWidth: '100%',
+                                    }}
+                                  />
+                                  {lookup?.status === 'loading' && <span className="d-spin" />}
+                                </div>
+                                {lookup?.status === 'found' && (
+                                  <div style={{
+                                    display: 'flex', alignItems: 'center', gap: 6,
+                                    marginTop: 5, padding: '5px 8px', borderRadius: 6,
+                                    background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)',
+                                    fontSize: '0.75rem', color: '#4ade80',
+                                  }}>
+                                    <span>✓</span> {lookup.data.name} {lookup.data.college ? `· ${lookup.data.college}` : ''}
+                                  </div>
+                                )}
+                                {lookup?.status === 'error' && (
+                                  <div style={{
+                                    marginTop: 5, padding: '5px 8px', borderRadius: 6,
+                                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                                    fontSize: '0.72rem', color: '#fca5a5',
+                                  }}>
+                                    ⚠ {lookup.message}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>

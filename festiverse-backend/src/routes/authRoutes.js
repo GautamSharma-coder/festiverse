@@ -17,6 +17,19 @@ const loginLimiter = rateLimit({ windowMs: 60000, max: 5, message: 'Too many log
 const otpStore = {};
 
 /**
+ * Generate a unique Festiverse ID.
+ * Format: F26 + first letter of first name + first letter of last name + 4-digit random number
+ * Example: "Gautam Sharma" → F26GS4821
+ */
+function generateFestiverseId(fullName) {
+    const parts = fullName.trim().split(/\s+/);
+    const firstInitial = (parts[0]?.[0] || 'X').toUpperCase();
+    const lastInitial = (parts.length > 1 ? parts[parts.length - 1][0] : 'X').toUpperCase();
+    const randomNum = Math.floor(1000 + Math.random() * 9000); // 1000-9999
+    return `F26${firstInitial}${lastInitial}${randomNum}`;
+}
+
+/**
  * POST /api/auth/send-otp
  * Sends a real OTP to the user's email address.
  * Body: { email } or { email, phone }
@@ -104,20 +117,33 @@ router.post('/register', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const password_hash = await bcrypt.hash(password, salt);
 
-        // Insert new user
-        const { data: newUser, error } = await supabase
-            .from('users')
-            .insert([{
-                name, college, email, phone, role: 'student',
-                has_paid: true,
-                razorpay_order_id,
-                razorpay_payment_id,
-                password_hash
-            }])
-            .select()
-            .single();
-
-        if (error) throw error;
+        // Generate unique Festiverse ID with retry logic
+        let festiverse_id;
+        let newUser;
+        let insertError;
+        for (let attempt = 0; attempt < 5; attempt++) {
+            festiverse_id = generateFestiverseId(name);
+            const { data, error: err } = await supabase
+                .from('users')
+                .insert([{
+                    name, college, email, phone, role: 'student',
+                    has_paid: true,
+                    razorpay_order_id,
+                    razorpay_payment_id,
+                    password_hash,
+                    festiverse_id
+                }])
+                .select()
+                .single();
+            if (!err) { newUser = data; insertError = null; break; }
+            // If error is a unique constraint violation on festiverse_id, retry
+            if (err.code === '23505' && err.message?.includes('festiverse_id')) {
+                insertError = err;
+                continue;
+            }
+            throw err; // Other errors — throw immediately
+        }
+        if (insertError) throw new Error('Could not generate a unique Festiverse ID. Please try again.');
 
         // Generate JWT
         const token = jwt.sign(
@@ -138,11 +164,11 @@ router.post('/register', async (req, res) => {
         res.status(201).json({
             success: true,
             message: 'Registration successful!',
-            user: { id: newUser.id, name: newUser.name, email: newUser.email, phone: newUser.phone },
+            user: { id: newUser.id, name: newUser.name, email: newUser.email, phone: newUser.phone, festiverse_id: newUser.festiverse_id },
         });
 
         // Send confirmation email (fire-and-forget — don't block response)
-        sendConfirmationEmail(newUser.email, newUser.name).catch(err =>
+        sendConfirmationEmail(newUser.email, newUser.name, newUser.festiverse_id).catch(err =>
             logger.error('CONFIRMATION EMAIL ERROR', { email: newUser.email, message: err.message })
         );
     } catch (err) {
@@ -201,7 +227,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         res.json({
             success: true,
             message: 'Welcome back!',
-            user: { id: user.id, name: user.name, email: user.email, phone: user.phone },
+            user: { id: user.id, name: user.name, email: user.email, phone: user.phone, festiverse_id: user.festiverse_id },
         });
     } catch (err) {
         logger.error('LOGIN ERROR', { message: err.message, stack: err.stack });

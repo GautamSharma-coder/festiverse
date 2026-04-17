@@ -329,7 +329,7 @@ async function sendOTPEmail(toEmail, otp) {
 }
 
 // ── Confirmation Email ─────────────────────────────────────────────────
-async function sendConfirmationEmail(toEmail, name) {
+async function sendConfirmationEmail(toEmail, name, festiverse_id) {
   const steps = [
     { n: '01', title: 'Explore Events', desc: 'Browse the full programme of technical and cultural competitions.' },
     { n: '02', title: 'Build Your Team', desc: 'Assemble your ensemble for collaborative events and group challenges.' },
@@ -356,6 +356,31 @@ async function sendConfirmationEmail(toEmail, name) {
           Your seat is reserved at GEC Samastipur's grandest celebration of talent,
           creativity, and competition.
         </p>
+      </td>
+    </tr>
+
+    <!-- Festiverse ID Block -->
+    <tr>
+      <td style="padding:28px 48px 0;">
+        <table cellpadding="0" cellspacing="0" border="0"
+          style="width:100%;background:${T.saffronBg};border-radius:2px;border:1px solid rgba(201,130,10,0.2);border-left:3px solid ${T.saffron};">
+          <tr>
+            <td style="padding:20px 24px;">
+              <p style="margin:0 0 4px;color:${T.saffron};font-size:10px;font-weight:600;
+                font-family:'Outfit',Helvetica,Arial,sans-serif;letter-spacing:2px;text-transform:uppercase;">
+                YOUR FESTIVERSE ID
+              </p>
+              <p style="margin:0 0 6px;color:${T.ink};font-size:22px;
+                font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;font-weight:700;letter-spacing:1px;">
+                ${festiverse_id}
+              </p>
+              <p style="margin:0;color:${T.inkMid};font-size:12px;font-weight:400;
+                font-family:'Outfit',Helvetica,Arial,sans-serif;line-height:1.5;">
+                Share this unique ID with your team leaders to be added to team events.
+              </p>
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
 
