@@ -4,7 +4,7 @@ import mandalaPattern from '../assets/mandala-pattern.png';
 import festHeroImage from '../assets/festHeroImage.png';
 import GlassSurface from './GlassSurface';
 
-const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, onLogout, onDashboardClick }) => {
+const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, user, onLogout, onDashboardClick }) => {
     return (
         <header id="fest-home" className="fest-hero-header" style={{
             backgroundImage: `url(${festHeroImage})`,
