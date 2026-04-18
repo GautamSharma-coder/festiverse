@@ -1,10 +1,10 @@
-Import React, { useState, useEffect } from 'react';
+//import React, { useState, useEffect } from 'react';
 import rubikPuddlesFont from '../assets/RubikPuddles-Regular.ttf';
 import mandalaPattern from '../assets/mandala-pattern.png';
 import festHeroImage from '../assets/festHeroImage.png';
 import GlassSurface from './GlassSurface';
 
-const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, user, onLogout, onDashboardClick }) => {
+const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn,  onLogout, onDashboardClick }) => {
     return (
         <header id="fest-home" className="fest-hero-header" style={{
             backgroundImage: `url(${festHeroImage})`,
