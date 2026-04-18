@@ -1,48 +1,42 @@
 import React from 'react';
-import UdaanHeroImage from '../assets/UdaanHeroImage.webp';
+import UdaanHeroImage from '../assets/UdaanHeroImage.png';
 
 const HeroSection = () => {
     return (
-        <header id="home" className="relative min-h-screen flex flex-col items-center justify-center pt-20 overflow-hidden bg-black">
-            
-            {/* 1. LCP Optimization: Use an img tag with fetchPriority */}
-            <img 
-                src={UdaanHeroImage} 
-                alt="Udaan Arts and Cultural Club Background" 
-                className="absolute inset-0 w-full h-full object-cover object-center z-0"
-                fetchPriority="high" // Tells the browser to load this asset immediately
-            />
-
+        <header id="home" className="relative min-h-screen flex flex-col items-center justify-center pt-20 overflow-hidden" style={{
+            backgroundImage: `url(${UdaanHeroImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+        }}>
             {/* Mild blur overlay for the background image */}
-            <div className="absolute inset-0 z-0 backdrop-blur-[2px]"></div>
+            <div className="absolute inset-0 backdrop-blur-[2px]"></div>
 
             {/* Radial gradient background overlay */}
-            <div className="absolute inset-0 z-0 opacity-70" style={{
-                background: 'radial-gradient(circle at center, rgba(127, 29, 29, 0.4), black, black)'
+            <div className="absolute inset-0" style={{
+                background: 'radial-gradient(circle at center, rgba(127, 29, 29, 0.4), black, black)',
+                opacity: 0.7
             }}></div>
 
             {/* Floating icons */}
-            <div className="absolute top-1/3 left-[10%] opacity-20 animate-float z-10" style={{ animationDuration: '8s' }}>
+            <div className="absolute top-1/3 left-[10%] opacity-20 animate-float" style={{ animationDuration: '8s' }}>
                 <iconify-icon icon="solar:masks-linear" width="80"></iconify-icon>
             </div>
-            <div className="absolute bottom-1/3 right-[10%] opacity-20 animate-float z-10" style={{ animationDuration: '10s' }}>
+            <div className="absolute bottom-1/3 right-[10%] opacity-20 animate-float" style={{ animationDuration: '10s' }}>
                 <iconify-icon icon="solar:music-note-linear" width="80"></iconify-icon>
             </div>
 
             {/* Main content */}
-            <div className="z-10 text-center space-y-6 max-w-5xl px-4 relative">
-                {/* Replaced inline padding with Tailwind px-4 py-1 */}
-                <div className="inline-block rounded-full border border-red-500/30 bg-red-500/10 mb-6 px-4 py-1">
-                    {/* Replaced inline margin with Tailwind ml-1 */}
-                    <span className="text-red-500 text-xs font-semibold uppercase tracking-[0.15em] ml-1">
+            <div className="z-10 text-center space-y-6 max-w-5xl px-4">
+                <div className="inline-block rounded-full border border-red-500/30 bg-red-500/10 mb-6" style={{ padding: '4px 16px' }}>
+                    <span className="text-red-500 text-xs font-semibold uppercase tracking-[0.15em]" style={{ marginLeft: '0.15em' }}>
                         Est. 2019 • GEC Samastipur
                     </span>
                 </div>
-                <h1 className="text-6xl md:text-8xl font-serif italic font-bold tracking-tighter leading-none text-transparent bg-clip-text bg-linear-to-b from-white via-zinc-200 to-zinc-600 drop-shadow-2xl">
+                <h1 className="text-6xl md:text-8xl font-serif italic font-bold tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-600 drop-shadow-2xl">
                     UDAAN
                 </h1>
-                {/* Replaced inline padding with Tailwind p-2.5 */}
-                <p className="text-lg md:text-xl text-zinc-400 font-light max-w-xl mx-auto leading-relaxed p-2.5">
+                <p className="text-lg md:text-xl text-zinc-400 font-light max-w-1xl mx-auto leading-relaxed " style={{ padding: '10px' }}>
                     Where culture meets creativity. The official Arts & Cultural Club.
                 </p>
             </div>
