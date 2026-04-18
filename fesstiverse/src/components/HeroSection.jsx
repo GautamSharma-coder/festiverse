@@ -48,18 +48,13 @@ const HeroSection = () => {
             </div>
 
             {/* Bottom marquee */}
-            <div className="absolute bottom-10 z-10 w-full overflow-hidden border-y border-white/5 py-4 backdrop-blur-md">
-                {/* Added gap-16 to handle spacing structurally instead of using underscores */}
-                <div className="whitespace-nowrap flex animate-marquee gap-16">
-                    <span className="text-4xl md:text-5xl font-serif italic text-white tracking-tighter">
-                        UNFOLDING DRAMA AND ART FOR NATION
+            <div className="absolute bottom-10 w-full overflow-hidden border-y border-white/5 py-4  backdrop-blur-md">
+                <div className="whitespace-nowrap flex animate-marquee">
+                    <span className="text-4xl md:text-5xl font-serif italic text-white mx-4 tracking-tighter">
+                        UNFOLDING______DRAMA_______AND______ART_____FOR____NATION
                     </span>
-                    <span className="text-4xl md:text-5xl font-serif italic text-white tracking-tighter">
-                        UNFOLDING DRAMA AND ART FOR NATION
-                    </span>
-                    {/* Added a third span to prevent a "snap" effect on ultra-wide monitors */}
-                    <span className="text-4xl md:text-5xl font-serif italic text-white tracking-tighter" aria-hidden="true">
-                        UNFOLDING DRAMA AND ART FOR NATION
+                    <span className="text-4xl md:text-5xl font-serif italic text-white mx-4 tracking-tighter">
+                        UNFOLDING______DRAMA_______AND______ART_____FOR____NATION
                     </span>
                 </div>
             </div>
