@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { apiFetch } from '../lib/api';
 
 // Eye / Eye-off SVG icons
@@ -126,7 +126,7 @@ const Btn = ({ onClick, disabled, loading, children, variant = 'primary' }) => {
     );
 };
 
-const LoginModal = ({ isOpen, onClose, onLogin, showToast }) => {
+const LoginModal = ({ isOpen, onClose, onLogin }) => {
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [email, setEmail] = useState('');
@@ -137,9 +137,6 @@ const LoginModal = ({ isOpen, onClose, onLogin, showToast }) => {
     const [error, setError] = useState('');
     const [successMsg, setSuccessMsg] = useState('');
 
-    useEffect(() => {
-        if (isOpen) setTimeout(() => { }, 10);
-    }, [isOpen]);
 
     if (!isOpen) return null;
 

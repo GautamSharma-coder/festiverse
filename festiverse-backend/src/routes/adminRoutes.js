@@ -5,10 +5,15 @@ const path = require('path');
 const supabase = require('../config/supabaseClient');
 const { verifyToken, verifyAdmin } = require('../middlewares/authMiddleware');
 const { sendResultEmail } = require('../config/emailClient');
+const { rateLimit } = require('../middlewares/rateLimit');
+const logger = require('../config/logger');
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const JWT_SECRET = process.env.JWT_SECRET; // Required — validated at startup
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD; // Required — validated at startup
+
+// Rate limiter for admin login
+const adminLoginLimiter = rateLimit({ windowMs: 60000, max: 5, message: 'Too many admin login attempts. Please wait 1 minute.' });
 
 // ─── Multer config for file uploads (team images, gallery images) ───
 const storage = multer.memoryStorage(); // Store in memory so we can upload to Supabase Storage
@@ -27,7 +32,7 @@ const upload = multer({
 // ───────────────────────────────────────────────────
 // POST /api/admin/login
 // ───────────────────────────────────────────────────
-router.post('/login', (req, res) => {
+router.post('/login', adminLoginLimiter, (req, res) => {
     const { password } = req.body;
     if (password === ADMIN_PASSWORD) {
         const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '4h' });
@@ -50,7 +55,7 @@ router.get('/registrations', verifyToken, verifyAdmin, async (req, res) => {
         if (error) throw error;
         res.json({ success: true, registrations: data });
     } catch (err) {
-        console.error('ADMIN REGISTRATIONS ERROR:', err);
+        logger.error('ADMIN REGISTRATIONS ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Fetch error.' });
     }
 });
@@ -68,7 +73,7 @@ router.get('/messages', verifyToken, verifyAdmin, async (req, res) => {
         if (error) throw error;
         res.json({ success: true, messages: data });
     } catch (err) {
-        console.error('ADMIN MESSAGES ERROR:', err);
+        logger.error('ADMIN MESSAGES ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Fetch error.' });
     }
 });
@@ -97,13 +102,13 @@ router.get('/users', verifyToken, verifyAdmin, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('users')
-            .select('*')
+            .select('id, name, email, phone, college, role, has_paid, avatar_url, festiverse_id, created_at')
             .order('created_at', { ascending: false });
 
         if (error) throw error;
         res.json({ success: true, users: data });
     } catch (err) {
-        console.error('ADMIN USERS ERROR:', err);
+        logger.error('ADMIN USERS ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Fetch error.' });
     }
 });
@@ -126,7 +131,7 @@ router.put('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
         if (error) throw error;
         res.json({ success: true, user: updatedUser });
     } catch (err) {
-        console.error('USER UPDATE ERROR:', err);
+        logger.error('USER UPDATE ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to update user.' });
     }
 });
@@ -189,8 +194,8 @@ router.post('/gallery', verifyToken, verifyAdmin, upload.single('image'), async 
 
         res.status(201).json({ success: true, image: imageRecord });
     } catch (err) {
-        console.error('GALLERY UPLOAD ERROR:', err);
-        res.status(500).json({ success: false, message: 'Upload error: ' + err.message });
+        logger.error('GALLERY UPLOAD ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Failed to upload image.' });
     }
 });
 
@@ -246,8 +251,8 @@ router.put('/gallery/:id', verifyToken, verifyAdmin, upload.single('image'), asy
 
         res.json({ success: true, image: updatedImage });
     } catch (err) {
-        console.error('GALLERY UPDATE ERROR:', err);
-        res.status(500).json({ success: false, message: 'Update error: ' + err.message });
+        logger.error('GALLERY UPDATE ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Failed to update image.' });
     }
 });
 
@@ -280,7 +285,7 @@ router.delete('/gallery/:id', verifyToken, verifyAdmin, async (req, res) => {
 
         res.json({ success: true, message: 'Image deleted.' });
     } catch (err) {
-        console.error('GALLERY DELETE ERROR:', err);
+        logger.error('GALLERY DELETE ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Delete error.' });
     }
 });
@@ -333,8 +338,8 @@ router.post('/team', verifyToken, verifyAdmin, upload.single('image'), async (re
 
         res.status(201).json({ success: true, member });
     } catch (err) {
-        console.error('TEAM ADD ERROR:', err);
-        res.status(500).json({ success: false, message: 'Failed to add team member: ' + err.message });
+        logger.error('TEAM ADD ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Failed to add team member.' });
     }
 });
 
@@ -370,7 +375,7 @@ router.delete('/team/:id', verifyToken, verifyAdmin, async (req, res) => {
 
         res.json({ success: true, message: 'Team member removed.' });
     } catch (err) {
-        console.error('TEAM DELETE ERROR:', err);
+        logger.error('TEAM DELETE ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Delete error.' });
     }
 });
@@ -419,8 +424,8 @@ router.post('/faculty', verifyToken, verifyAdmin, upload.single('image'), async 
 
         res.status(201).json({ success: true, member });
     } catch (err) {
-        console.error('FACULTY ADD ERROR:', err);
-        res.status(500).json({ success: false, message: 'Failed to add faculty member: ' + err.message });
+        logger.error('FACULTY ADD ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Failed to add faculty member.' });
     }
 });
 
@@ -477,8 +482,8 @@ router.put('/faculty/:id', verifyToken, verifyAdmin, upload.single('image'), asy
 
         res.json({ success: true, member: updatedMember });
     } catch (err) {
-        console.error('FACULTY UPDATE ERROR:', err);
-        res.status(500).json({ success: false, message: 'Failed to update faculty member: ' + err.message });
+        logger.error('FACULTY UPDATE ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Failed to update faculty member.' });
     }
 });
 
@@ -513,7 +518,7 @@ router.delete('/faculty/:id', verifyToken, verifyAdmin, async (req, res) => {
 
         res.json({ success: true, message: 'Faculty member removed.' });
     } catch (err) {
-        console.error('FACULTY DELETE ERROR:', err);
+        logger.error('FACULTY DELETE ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Delete error.' });
     }
 });
@@ -523,9 +528,7 @@ router.delete('/faculty/:id', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 router.post('/events', verifyToken, verifyAdmin, upload.single('image'), async (req, res) => {
     try {
-        console.log('--- POST EVENT ---');
-        console.log('req.body:', req.body);
-        console.log('req.file:', req.file);
+        logger.debug('POST EVENT', { body: req.body, hasFile: !!req.file });
         const { name, location, date, description, rules, schedule, category, prizes } = req.body;
 
         if (!name) {
@@ -572,7 +575,7 @@ router.post('/events', verifyToken, verifyAdmin, upload.single('image'), async (
         if (error) throw error;
         res.status(201).json({ success: true, event: data });
     } catch (err) {
-        console.error('EVENT ADD ERROR:', err);
+        logger.error('EVENT ADD ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to add event.' });
     }
 });
@@ -632,8 +635,8 @@ router.put('/team/:id', verifyToken, verifyAdmin, upload.single('image'), async 
 
         res.json({ success: true, member: updatedMember });
     } catch (err) {
-        console.error('TEAM UPDATE ERROR:', err);
-        res.status(500).json({ success: false, message: 'Failed to update team member: ' + err.message });
+        logger.error('TEAM UPDATE ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Failed to update team member.' });
     }
 });
 
@@ -658,9 +661,7 @@ router.delete('/events/:id', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 router.put('/events/:id', verifyToken, verifyAdmin, upload.single('image'), async (req, res) => {
     try {
-        console.log('--- PUT EVENT ---');
-        console.log('req.body:', req.body);
-        console.log('req.file:', req.file);
+        logger.debug('PUT EVENT', { body: req.body, hasFile: !!req.file });
         const { name, location, date, description, rules, schedule, category, prizes } = req.body;
 
         if (!name) {
@@ -720,7 +721,7 @@ router.put('/events/:id', verifyToken, verifyAdmin, upload.single('image'), asyn
         if (error) throw error;
         res.json({ success: true, event: updatedEvent });
     } catch (err) {
-        console.error('EVENT UPDATE ERROR:', err);
+        logger.error('EVENT UPDATE ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to update event.' });
     }
 });
@@ -757,7 +758,7 @@ router.post('/notices', verifyToken, verifyAdmin, async (req, res) => {
         if (error) throw error;
         res.status(201).json({ success: true, notice: data });
     } catch (err) {
-        console.error('NOTICE ADD ERROR:', err);
+        logger.error('NOTICE ADD ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to add notice.' });
     }
 });
@@ -779,7 +780,7 @@ router.put('/notices/:id', verifyToken, verifyAdmin, async (req, res) => {
         if (error) throw error;
         res.json({ success: true, notice: updatedNotice });
     } catch (err) {
-        console.error('NOTICE UPDATE ERROR:', err);
+        logger.error('NOTICE UPDATE ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to update notice.' });
     }
 });
@@ -848,8 +849,8 @@ router.post('/checkin', verifyToken, verifyAdmin, async (req, res) => {
             registration: updated,
         });
     } catch (err) {
-        console.error('CHECKIN ERROR:', err);
-        res.status(500).json({ success: false, message: 'Check-in failed: ' + err.message });
+        logger.error('CHECKIN ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Check-in failed. Please try again.' });
     }
 });
 
@@ -895,7 +896,7 @@ router.post('/results', verifyToken, verifyAdmin, async (req, res) => {
 
         res.status(201).json({ success: true, result: data });
     } catch (err) {
-        console.error('RESULT ADD ERROR:', err);
+        logger.error('RESULT ADD ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to add result.' });
     }
 });
@@ -919,7 +920,7 @@ router.put('/results/:id', verifyToken, verifyAdmin, async (req, res) => {
         if (error) throw error;
         res.json({ success: true, result: data });
     } catch (err) {
-        console.error('RESULT UPDATE ERROR:', err);
+        logger.error('RESULT UPDATE ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to update result.' });
     }
 });
@@ -975,7 +976,7 @@ router.post('/sponsors', verifyToken, verifyAdmin, upload.single('logo'), async 
         if (error) throw error;
         res.status(201).json({ success: true, sponsor: data });
     } catch (err) {
-        console.error('SPONSOR ADD ERROR:', err);
+        logger.error('SPONSOR ADD ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to add sponsor.' });
     }
 });
@@ -1014,7 +1015,7 @@ router.put('/sponsors/:id', verifyToken, verifyAdmin, upload.single('logo'), asy
         if (error) throw error;
         res.json({ success: true, sponsor: data });
     } catch (err) {
-        console.error('SPONSOR UPDATE ERROR:', err);
+        logger.error('SPONSOR UPDATE ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to update sponsor.' });
     }
 });
@@ -1047,7 +1048,7 @@ router.get('/hiring', verifyToken, verifyAdmin, async (req, res) => {
         if (error) throw error;
         res.json({ success: true, applications: data });
     } catch (err) {
-        console.error('ADMIN HIRING ERROR:', err);
+        logger.error('ADMIN HIRING ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Fetch error.' });
     }
 });

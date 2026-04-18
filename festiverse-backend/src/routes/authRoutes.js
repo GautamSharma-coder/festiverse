@@ -7,7 +7,7 @@ const { rateLimit } = require('../middlewares/rateLimit');
 const logger = require('../config/logger');
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key';
+const JWT_SECRET = process.env.JWT_SECRET; // Required — validated at startup
 
 // Rate limiters
 const otpLimiter = rateLimit({ windowMs: 60000, max: 3, message: 'Too many OTP requests. Please wait 1 minute.' });
@@ -91,8 +91,12 @@ router.post('/register', async (req, res) => {
         }
 
         const crypto = require('crypto');
+        const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
+        if (!razorpaySecret) {
+            return res.status(500).json({ success: false, message: 'Payment verification is not configured.' });
+        }
         const expectedSignature = crypto
-            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'YourKeySecret')
+            .createHmac('sha256', razorpaySecret)
             .update(razorpay_order_id + '|' + razorpay_payment_id)
             .digest('hex');
 
@@ -173,7 +177,7 @@ router.post('/register', async (req, res) => {
         );
     } catch (err) {
         logger.error('REGISTER ERROR', { message: err.message, stack: err.stack });
-        res.status(500).json({ success: false, message: 'Server error: ' + err.message });
+        res.status(500).json({ success: false, message: 'Registration failed. Please try again.' });
     }
 });
 
@@ -190,7 +194,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
         const { data: user, error } = await supabase
             .from('users')
-            .select('*')
+            .select('id, name, email, phone, college, role, has_paid, avatar_url, festiverse_id, password_hash')
             .eq('phone', phone)
             .single();
 
@@ -254,10 +258,8 @@ router.post('/forgot-password-otp', otpLimiter, async (req, res) => {
             .single();
 
         if (error || !existingUser) {
-            // For security, do not reveal if the email is registered or not (optional, but good practice)
-            // But for better UX, we can say "If an account exists, an OTP will be sent."
-            // However, to mimic standard app behavior where it fails fast:
-            return res.status(404).json({ success: false, message: 'No account found with this email address.' });
+            // Security: do not reveal whether the email is registered
+            return res.json({ success: true, message: 'If an account exists with this email, an OTP has been sent.' });
         }
 
         // Generate a 4-digit OTP
@@ -268,7 +270,7 @@ router.post('/forgot-password-otp', otpLimiter, async (req, res) => {
 
         await sendOTPEmail(email, otp);
         logger.info(`📧 Reset Password OTP sent to ${email}`);
-        res.json({ success: true, message: 'OTP sent to your email!' });
+        res.json({ success: true, message: 'If an account exists with this email, an OTP has been sent.' });
     } catch (err) {
         logger.error('FORGOT PASSWORD EMAIL SEND ERROR', { email, errorMessage: err.message });
         delete otpStore[`reset_${email.toLowerCase()}`];
@@ -280,7 +282,7 @@ router.post('/forgot-password-otp', otpLimiter, async (req, res) => {
  * POST /api/auth/reset-password
  * Resets the password using the OTP sent to the user's email.
  */
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', otpLimiter, async (req, res) => {
     try {
         const { email, otp, newPassword } = req.body;
 
@@ -335,7 +337,7 @@ router.get('/profile', verifyToken, async (req, res) => {
     try {
         const { data: user, error } = await supabase
             .from('users')
-            .select('*')
+            .select('id, name, email, phone, college, role, has_paid, avatar_url, festiverse_id, created_at')
             .eq('id', req.user.id)
             .single();
 

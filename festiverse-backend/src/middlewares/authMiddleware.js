@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key';
+const JWT_SECRET = process.env.JWT_SECRET; // Required — validated at startup
 
 /**
  * Middleware to verify JWT tokens.

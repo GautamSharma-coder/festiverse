@@ -1,13 +1,15 @@
 const express = require('express');
 const supabase = require('../config/supabaseClient');
+const { rateLimit } = require('../middlewares/rateLimit');
 
 const router = express.Router();
+const contactLimiter = rateLimit({ windowMs: 300000, max: 5, message: 'Too many messages. Please wait a few minutes.' });
 
 /**
  * POST /api/contact
  * Saves a contact form message to Supabase.
  */
-router.post('/', async (req, res) => {
+router.post('/', contactLimiter, async (req, res) => {
     try {
         const { name, email, message } = req.body;
 

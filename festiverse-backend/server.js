@@ -16,6 +16,7 @@ undici.setGlobalDispatcher(agent);
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const logger = require('./src/config/logger');
 
@@ -43,10 +44,16 @@ app.use((req, res, next) => {
 });
 
 // ─── Validate required env vars ───
-const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'JWT_SECRET'];
-const missing = REQUIRED_ENV.filter(k => !process.env[k]);
-if (missing.length > 0) {
-    console.warn(`⚠️  Missing env vars: ${missing.join(', ')}`);
+const CRITICAL_ENV = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'JWT_SECRET', 'ADMIN_PASSWORD'];
+const missingCritical = CRITICAL_ENV.filter(k => !process.env[k]);
+if (missingCritical.length > 0) {
+    console.error(`❌ Missing CRITICAL env vars: ${missingCritical.join(', ')}. Server cannot start safely.`);
+    process.exit(1);
+}
+const RECOMMENDED_ENV = ['RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'FRONTEND_URL'];
+const missingRecommended = RECOMMENDED_ENV.filter(k => !process.env[k]);
+if (missingRecommended.length > 0) {
+    console.warn(`⚠️  Missing recommended env vars: ${missingRecommended.join(', ')}`);
 }
 const gmailVars = ['GMAIL_CLIENT_ID', 'GMAIL_CLIENT_SECRET', 'GMAIL_REFRESH_TOKEN', 'EMAIL_USER'];
 const missingGmail = gmailVars.filter(k => !process.env[k]);
@@ -55,11 +62,18 @@ if (missingGmail.length > 0) {
 }
 
 // ─── Middleware ───
+app.set('trust proxy', 1); // Trust first proxy (Render, Railway, etc.) for correct req.ip
+
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
     process.env.FRONTEND_URL, // Set in production .env
 ].filter(Boolean);
+
+// Security headers
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow cross-origin image loading
+}));
 
 app.use(cors({
     origin: (origin, callback) => {
@@ -67,8 +81,8 @@ app.use(cors({
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            callback(null, true); // For now, allow all but log unknown origins
-            // In strict production: callback(new Error('CORS not allowed'));
+            logger.warn('CORS blocked request from unknown origin', { origin });
+            callback(new Error('CORS not allowed'));
         }
     },
     credentials: true,

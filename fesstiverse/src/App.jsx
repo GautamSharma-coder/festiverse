@@ -35,25 +35,24 @@ import PWAInstallPrompt from './components/PWAInstallPrompt';
 function App() {
   const [isFestiverse, setIsFestiverse] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    try {
+      return !!localStorage.getItem('festiverse_user');
+    } catch {
+      return false;
+    }
+  });
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('festiverse_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      localStorage.removeItem('festiverse_user');
+      return null;
+    }
+  });
   const navigate = useNavigate();
   const { ToastContainer, showToast } = useToast();
-
-  // Check for existing session on mount
-  useEffect(() => {
-    // On initial load, try to restore user from localStorage cache
-    // The httpOnly cookie will be sent automatically with subsequent requests
-    const savedUser = localStorage.getItem('festiverse_user');
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-        setIsLoggedIn(true);
-      } catch {
-        localStorage.removeItem('festiverse_user');
-      }
-    }
-  }, []);
 
   // Keyboard shortcut: Ctrl+Shift+A opens Admin Panel
   useEffect(() => {
@@ -99,7 +98,7 @@ function App() {
   };
 
   // ─── Home Page Content ───
-  const HomePage = () => (
+  const homePageContent = (
     <>
       {/* Navbar */}
       <Navbar isFestiverse={isFestiverse} toggleUniverse={toggleUniverse} />
@@ -140,7 +139,6 @@ function App() {
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
         onLogin={handleLogin}
-        showToast={showToast}
       />
     </>
   );
@@ -150,7 +148,7 @@ function App() {
       <PWAInstallPrompt />
       <ToastContainer />
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={homePageContent} />
         <Route
           path="/dashboard"
           element={
@@ -162,7 +160,7 @@ function App() {
                 onLogout={handleLogout}
               />
             ) : (
-              <HomePage />
+              homePageContent
             )
           }
         />

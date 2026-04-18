@@ -1,20 +1,30 @@
 const express = require('express');
 const multer = require('multer');
+const path = require('path');
 const router = express.Router();
 const supabase = require('../config/supabaseClient');
+const { rateLimit } = require('../middlewares/rateLimit');
+
+const hiringLimiter = rateLimit({ windowMs: 300000, max: 3, message: 'Too many applications submitted. Please wait a few minutes.' });
 
 // Set up multer to keep files in memory
 const storage = multer.memoryStorage();
 const upload = multer({ 
     storage,
-    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: (req, file, cb) => {
+        const allowed = /pdf|doc|docx/;
+        const ext = allowed.test(path.extname(file.originalname).toLowerCase());
+        if (ext) return cb(null, true);
+        cb(new Error('Only PDF, DOC, and DOCX files are allowed.'));
+    },
 });
 
 /**
  * POST /api/hiring/submit
  * Handles hiring application form submission with resume upload
  */
-router.post('/submit', upload.single('file'), async (req, res) => {
+router.post('/submit', hiringLimiter, upload.single('file'), async (req, res) => {
     try {
         const { role, name, email, phone, reg, roll, branch, batch } = req.body;
         const file = req.file;

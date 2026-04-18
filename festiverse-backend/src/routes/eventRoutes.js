@@ -3,6 +3,7 @@ const QRCode = require('qrcode');
 const supabase = require('../config/supabaseClient');
 const { verifyToken } = require('../middlewares/authMiddleware');
 const { sendEventRegistrationEmail } = require('../config/emailClient');
+const logger = require('../config/logger');
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ router.get('/', async (req, res) => {
         if (error) throw error;
         res.json({ success: true, events: data });
     } catch (err) {
-        console.error('EVENTS FETCH ERROR:', err);
+        logger.error('EVENTS FETCH ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to fetch events.' });
     }
 });
@@ -175,13 +176,13 @@ router.post('/register', verifyToken, async (req, res) => {
                     registrationId: reg.custom_id || reg.id,
                 };
                 sendEventRegistrationEmail(reg.users.email, reg.users.name, eventDetails).catch(err => {
-                    console.error('EVENT REG EMAIL ERROR:', err.message);
+                    logger.error('EVENT REG EMAIL ERROR', { message: err.message });
                 });
             }
         });
     } catch (err) {
-        console.error('EVENT REGISTRATION ERROR:', err);
-        res.status(500).json({ success: false, message: 'Registration failed: ' + err.message });
+        logger.error('EVENT REGISTRATION ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Registration failed. Please try again.' });
     }
 });
 
@@ -199,7 +200,7 @@ router.get('/my-events', verifyToken, async (req, res) => {
         if (error) throw error;
         res.json({ success: true, registrations: data });
     } catch (err) {
-        console.error('MY EVENTS ERROR:', err);
+        logger.error('MY EVENTS ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to fetch your events.' });
     }
 });
@@ -239,7 +240,7 @@ router.get('/qr/:registrationId', verifyToken, async (req, res) => {
 
         res.json({ success: true, qrCode: qrDataUrl, registration: reg });
     } catch (err) {
-        console.error('QR GENERATE ERROR:', err);
+        logger.error('QR GENERATE ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to generate QR code.' });
     }
 });
@@ -261,7 +262,7 @@ router.get('/:id', async (req, res) => {
         }
         res.json({ success: true, event: data });
     } catch (err) {
-        console.error('EVENT DETAIL ERROR:', err);
+        logger.error('EVENT DETAIL ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to fetch event.' });
     }
 });

@@ -1,19 +1,25 @@
 const express = require('express');
 const Razorpay = require('razorpay');
 const logger = require('../config/logger');
+const { rateLimit } = require('../middlewares/rateLimit');
 const router = express.Router();
 
+const paymentLimiter = rateLimit({ windowMs: 60000, max: 5, message: 'Too many payment requests. Please wait a moment.' });
+
 const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_YourKeyId',
-    key_secret: process.env.RAZORPAY_KEY_SECRET || 'YourKeySecret',
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
 /**
  * POST /api/payment/create-order
  * Creates a Razorpay order ID to be used on the frontend checkout
  */
-router.post('/create-order', async (req, res) => {
+router.post('/create-order', paymentLimiter, async (req, res) => {
     try {
+        if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+            return res.status(503).json({ success: false, message: 'Payment service is not configured.' });
+        }
         const fee = parseInt(process.env.REGISTRATION_FEE || '100', 10);
         const options = {
             amount: fee * 100, // amount in the smallest currency unit (paise)
@@ -32,7 +38,7 @@ router.post('/create-order', async (req, res) => {
             orderId: order.id,
             amount: order.amount,
             currency: order.currency,
-            keyId: process.env.RAZORPAY_KEY_ID || 'rzp_test_YourKeyId'
+            keyId: process.env.RAZORPAY_KEY_ID
         });
     } catch (err) {
         logger.error('RAZORPAY ORDER ERROR', { message: err.message, stack: err.stack });

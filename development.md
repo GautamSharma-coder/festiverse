@@ -238,3 +238,20 @@ Set `VITE_API_URL=http://localhost:3000` in `fesstiverse/.env` for local develop
 | Storage | Supabase Storage (bucket: `assets`) |
 | Auth | JWT (jsonwebtoken), Email OTP (Nodemailer + Gmail) |
 | Deployment | Render (backend), TBD (frontend) |
+
+
+699 prie
+ !
+
+ for all event 
+ 
+ fooding 
+
+ acomattion
+
+ !
+
+tshirt 
+ 
+goodies
+
