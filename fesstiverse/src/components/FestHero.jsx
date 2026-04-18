@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import rubikPuddlesFont from '../assets/RubikPuddles-Regular.ttf';
-//import mandalaPattern from '../assets/mandala-pattern.png';
-import festHeroImage from '../assets/festHeroImage.webp'; // Updated to WebP
+import festHeroImage from '../assets/festHeroImage.webp';
 import GlassSurface from './GlassSurface';
 
 const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, user, onLogout, onDashboardClick }) => {
@@ -16,7 +15,7 @@ const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, user, onLogout, o
             overflow: 'hidden',
             padding: '2rem',
             boxShadow: 'inset 0 0 300px rgba(0,0,0,0.95)',
-            backgroundColor: '#0a0a0a' // Fallback color
+            backgroundColor: '#0a0a0a' 
         }}>
             {/* LCP Optimization: High Priority Background Image */}
             <img 
@@ -31,7 +30,7 @@ const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, user, onLogout, o
                     objectFit: 'cover',
                     objectPosition: 'center',
                     zIndex: 0,
-                    opacity: 0.6 // Adjust based on your original image darkness
+                    opacity: 0.6 
                 }}
             />
 
@@ -41,12 +40,10 @@ const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, user, onLogout, o
                 inset: 0,
                 backdropFilter: 'blur(2px)',
                 WebkitBackdropFilter: 'blur(2px)',
-                backgroundColor: 'rgba(0, 0, 0, 0.4)', // Slightly darkened for better text contrast
+                backgroundColor: 'rgba(0, 0, 0, 0.4)', 
                 zIndex: 1,
                 pointerEvents: 'none'
             }}></div>
-
-            
 
             {/* Embedded CSS for assets, animations, and hover states */}
             <style>
@@ -109,6 +106,348 @@ const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, user, onLogout, o
                         z-index: 10;
                         overflow: hidden;
                     }
+                    .moving-border-glow::before {
+                        content: '';
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        width: 150%;
+                        aspect-ratio: 1;
+                        background: conic-gradient(from 0deg, transparent 0 280deg, #ff9800 320deg, #ff5722 360deg);
+                        transform: translate(-50%, -50%);
+                        animation: spin-conic 2s linear infinite;
+                    }
+                    
+                    /* Enhanced Buttons */
+                    .btn-primary {
+                        background: linear-gradient(135deg, rgba(216, 67, 21, 0.8) 0%, rgba(255, 143, 0, 0.8) 100%);
+                        backdrop-filter: blur(12px);
+                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        box-shadow: 0 8px 32px rgba(255, 87, 34, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.1);
+                        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                        position: relative;
+                        overflow: hidden;
+                    }
+                    .btn-primary:hover {
+                        box-shadow: 0 12px 40px rgba(255, 143, 0, 0.6), inset 0 0 30px rgba(255, 255, 255, 0.2);
+                        transform: translateY(-4px) scale(1.03);
+                        border: 1px solid rgba(255, 255, 255, 0.4);
+                    }
+
+                    .btn-secondary {
+                        background: rgba(20, 10, 5, 0.4);
+                        backdrop-filter: blur(16px);
+                        border: 1px solid rgba(255, 152, 0, 0.2);
+                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                        transition: all 0.3s ease;
+                    }
+                    .btn-secondary:hover {
+                        background: rgba(30, 15, 5, 0.6);
+                        transform: translateY(-3px);
+                        border-color: rgba(255, 152, 0, 0.6) !important;
+                        box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3), inset 0 0 15px rgba(255, 152, 0, 0.1);
+                    }
+                    .btn-logout:hover {
+                        background: rgba(255, 87, 34, 0.15) !important;
+                        color: #ffcc80 !important;
+                        box-shadow: 0 0 15px rgba(255, 87, 34, 0.3);
+                    }
+
+                    /* Pricing Tree Branch CSS */
+                    .pricing-card {
+                        background: rgba(20, 10, 5, 0.4);
+                        backdrop-filter: blur(12px);
+                        border: 1px solid rgba(255, 152, 0, 0.2);
+                        border-radius: 20px;
+                        padding: 1.5rem 2.5rem;
+                        margin-top: 3rem;
+                        position: relative;
+                        z-index: 10;
+                        box-shadow: 0 10px 40px rgba(0,0,0,0.5), inset 0 0 20px rgba(255, 152, 0, 0.05);
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                    }
+                    .price-header {
+                        font-family: 'Outfit', 'Inter', sans-serif;
+                        color: #fff;
+                        font-size: 2.5rem;
+                        font-weight: 800;
+                        text-shadow: 0 2px 10px rgba(255, 152, 0, 0.5);
+                        margin-bottom: 1.5rem;
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                    }
+                    .price-currency {
+                        color: #ff9800;
+                        font-size: 1.5rem;
+                        vertical-align: super;
+                    }
+                    .price-subtitle {
+                        font-size: 0.9rem;
+                        color: #ffcc80;
+                        text-transform: uppercase;
+                        letter-spacing: 2px;
+                        font-weight: 500;
+                        margin-left: 10px;
+                        border-left: 2px solid rgba(255, 152, 0, 0.5);
+                        padding-left: 15px;
+                    }
+                    
+                    /* The Tree Structure */
+                    .perks-tree {
+                        position: relative;
+                        padding-left: 20px;
+                        margin-left: -20px;
+                        border-left: 2px solid rgba(255, 152, 0, 0.3);
+                        display: flex;
+                        flex-direction: column;
+                        gap: 1.2rem;
+                    }
+                    .perk-item {
+                        position: relative;
+                        color: #e0e0e0;
+                        font-family: 'Inter', sans-serif;
+                        font-size: 0.95rem;
+                        font-weight: 500;
+                        padding-left: 25px;
+                        letter-spacing: 0.5px;
+                        display: flex;
+                        align-items: center;
+                    }
+                    /* Horizontal branch line */
+                    .perk-item::before {
+                        content: '';
+                        position: absolute;
+                        left: -20px;
+                        top: 50%;
+                        width: 30px;
+                        height: 2px;
+                        background: rgba(255, 152, 0, 0.3);
+                        transform: translateY(-50%);
+                    }
+                    /* Node glowing dot */
+                    .perk-item::after {
+                        content: '';
+                        position: absolute;
+                        left: 8px;
+                        top: 50%;
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 50%;
+                        background: #ff9800;
+                        box-shadow: 0 0 10px #ff9800;
+                        transform: translateY(-50%);
+                    }
+
+                    /* Mobile Responsiveness */
+                    @media (max-width: 768px) {
+                        .action-buttons { gap: 0.75rem !important; }
+                        .pricing-card { padding: 1.5rem; width: 90%; }
+                        .price-header { font-size: 2rem; flex-direction: column; text-align: center; }
+                        .price-subtitle { border-left: none; padding-left: 0; margin-left: 0; margin-top: 5px; }
+                    }
+                `}
+            </style>
+
+            {/* Main Title — Interactive Letters */}
+            <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', width: '100%', marginTop: '4rem' }}>
+                <h1 className="fire-text" style={{
+                    fontFamily: "'HigherJump', sans-serif",
+                    fontSize: 'clamp(2.5rem, 13vw, 7rem)',
+                    color: '#2a0a00',
+                    WebkitTextFillColor: '#2a0a00',
+                    WebkitTextStroke: '2px #ff7043',
+                    lineHeight: 1.1,
+                    margin: 0,
+                    position: 'relative',
+                    zIndex: 2,
+                    perspective: '500px',
+                }}>
+                    {'FESTIVERSE'.split('').map((letter, i) => (
+                        <span
+                            key={i}
+                            className={`hero-letter`}
+                            onMouseEnter={(e) => {
+                                e.target.style.transform = 'translateY(-12px) scale(1.25)';
+                                e.target.style.WebkitTextFillColor = '#ff5722';
+                                e.target.style.filter = 'brightness(1.5) drop-shadow(0 0 15px #ff5722)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.transform = '';
+                                e.target.style.WebkitTextFillColor = '#1a0500';
+                                e.target.style.filter = '';
+                            }}
+                        >
+                            {letter}
+                        </span>
+                    ))}
+                    <span
+                        className={`hero-letter`}
+                        style={{
+                            fontSize: '0.7em',
+                            verticalAlign: 'top',
+                            color: '#ffb300',
+                            WebkitTextFillColor: '#ffb300',
+                            WebkitTextStroke: 'none',
+                            textShadow: '0 0 20px rgba(255, 179, 0, 0.8)',
+                        }}
+                    >
+                        '26
+                    </span>
+                </h1>
+            </div>
+
+            {/* Event Dates */}
+            <div style={{
+                position: 'relative',
+                zIndex: 10,
+                textAlign: 'center',
+                marginTop: '1.5rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.75rem'
+            }}>
+                <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '14px',
+                    padding: '10px 28px',
+                    background: 'rgba(255, 152, 0, 0.06)',
+                    backdropFilter: 'blur(16px)',
+                    border: '1px solid rgba(255, 179, 0, 0.15)',
+                    borderRadius: '9999px',
+                }}>
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ffb300', boxShadow: '0 0 8px #ffb300', animation: 'twinkle 2s ease-in-out infinite' }} />
+                    <span style={{
+                        fontFamily: "'Outfit', 'Inter', sans-serif",
+                        fontSize: 'clamp(0.85rem, 2.5vw, 1.1rem)',
+                        fontWeight: 600,
+                        letterSpacing: '0.2em',
+                        color: '#ffcc80',
+                    }}>
+                        15 <span style={{ color: '#ff9800', opacity: 0.6 }}>·</span> 16 <span style={{ color: '#ff9800', opacity: 0.6 }}>·</span> 17 May 2026
+                    </span>
+                    <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#ffb300', boxShadow: '0 0 8px #ffb300', animation: 'twinkle 2s ease-in-out infinite 1s' }} />
+                </div>
+            </div>
+
+            {/* Pricing & Perks Tree Section */}
+            <div className="pricing-card">
+                <div className="price-header">
+                    <div>
+                        <span className="price-currency">₹</span>699
+                    </div>
+                    <span className="price-subtitle">All-Access Pass</span>
+                </div>
+                
+                <div className="perks-tree">
+                    <div className="perk-item">Participation in ALL Events</div>
+                    <div className="perk-item">Official Festiverse T-Shirt</div>
+                    <div className="perk-item">Exclusive Fest Goodies</div>
+                    <div className="perk-item">Food & Beverages Included</div>
+                </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="action-buttons" style={{
+                marginTop: '3rem',
+                display: 'flex',
+                gap: '1.5rem',
+                position: 'relative',
+                zIndex: 10,
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+            }}>
+                {!isLoggedIn ? (
+                    <>
+                        <button onClick={onRegisterClick} className="moving-border-btn" style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}>
+                            <div className="moving-border-glow"></div>
+                            <GlassSurface
+                                width={200}
+                                height={50}
+                                borderRadius={9999}
+                                displace={15}
+                                distortionScale={-150}
+                                mixBlendMode="screen"
+                                brightness={60}
+                                opacity={0.8}
+                            >
+                                <span style={{
+                                    color: '#fff',
+                                    fontWeight: 700,
+                                    letterSpacing: '1px',
+                                    textTransform: 'uppercase',
+                                    fontSize: '0.9rem',
+                                }}>
+                                    Register Now
+                                </span>
+                            </GlassSurface>
+                        </button>
+                        <button onClick={onLoginClick} className="btn-secondary" style={{
+                            padding: '0.9rem 2.5rem',
+                            borderRadius: '9999px',
+                            color: '#ffcc80',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            letterSpacing: '1px',
+                            textTransform: 'uppercase',
+                        }}>
+                            Login
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        <button onClick={onDashboardClick} className="btn-primary" style={{
+                            padding: '1rem 3rem',
+                            borderRadius: '9999px',
+                            color: '#fff',
+                            fontWeight: 700,
+                            border: 'none',
+                            cursor: 'pointer',
+                            letterSpacing: '1px',
+                            textTransform: 'uppercase',
+                        }}>
+                            My Dashboard
+                        </button>
+                        <button onClick={onLogout} className="btn-logout" style={{
+                            padding: '0.75rem 1.5rem',
+                            borderRadius: '9999px',
+                            border: '1px solid rgba(248,113,113,0.3)',
+                            color: '#fca5a5',
+                            background: 'transparent',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            letterSpacing: '1px',
+                            textTransform: 'uppercase',
+                        }}>
+                            Logout
+                        </button>
+                    </>
+                )}
+            </div>
+            
+            <span style={{
+                position: 'relative',
+                zIndex: 10,
+                marginTop: '3rem',
+                fontSize: 'clamp(0.7rem, 1.8vw, 0.8rem)',
+                color: 'white',
+                letterSpacing: '0.15em',
+                textTransform: 'uppercase',
+                fontWeight: 500,
+            }}>
+                GEC Samastipur
+            </span>
+
+        </header>
+    );
+};
+
+export default FestHero;
                     .moving-border-glow::before {
                         content: '';
                         position: absolute;
