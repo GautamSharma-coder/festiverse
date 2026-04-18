@@ -1,5 +1,5 @@
 import React from 'react';
-import UdaanHeroImage from '../assets/UdaanHeroImage.png';
+import UdaanHeroImage from '../assets/UdaanHeroImage.webp';
 
 const HeroSection = () => {
     return (

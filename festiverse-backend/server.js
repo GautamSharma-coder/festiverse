@@ -67,6 +67,9 @@ app.set('trust proxy', 1); // Trust first proxy (Render, Railway, etc.) for corr
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
+    'http://[IP_ADDRESS]',
+    'https://festiverse-lac.vercel.app',
+    'https://www.udaangecsamastipur.in',
     process.env.FRONTEND_URL, // Set in production .env
 ].filter(Boolean);
 

@@ -1,7 +1,7 @@
 //import React, { useState, useEffect } from 'react';
 import rubikPuddlesFont from '../assets/RubikPuddles-Regular.ttf';
-import mandalaPattern from '../assets/mandala-pattern.png';
-import festHeroImage from '../assets/festHeroImage.png';
+
+import festHeroImage from '../assets/festHeroImage.webp';
 import GlassSurface from './GlassSurface';
 
 const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, onLogout, onDashboardClick }) => {
@@ -230,17 +230,7 @@ const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, onLogout, onDashb
                 `}
             </style>
 
-            {/* Cinematic Background Elements: Seamless Golden Mandala Pattern */}
-            <div style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundImage: `url(${mandalaPattern})`,
-                backgroundSize: '400px 400px',
-                backgroundRepeat: 'repeat',
-                opacity: 0.15,
-                zIndex: 2,
-                pointerEvents: 'none'
-            }}></div>
+
 
             {/* Main Title — Interactive Letters */}
             <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', width: '100%' }}>
