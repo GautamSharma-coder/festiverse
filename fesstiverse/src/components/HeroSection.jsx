@@ -42,12 +42,12 @@ const HeroSection = () => {
             </div>
 
             {/* Bottom marquee */}
-            <div className="absolute bottom-10 w-full overflow-hidden border-y border-white/5 py-4 bg-black/40 backdrop-blur-md">
+            <div className="absolute bottom-10 w-full overflow-hidden border-y border-white/5 py-4  backdrop-blur-md">
                 <div className="whitespace-nowrap flex animate-marquee">
-                    <span className="text-4xl md:text-5xl font-serif italic text-white/10 mx-4 tracking-tighter">
+                    <span className="text-4xl md:text-5xl font-serif italic text-white mx-4 tracking-tighter">
                         UNFOLDING______DRAMA_______AND______ART_____FOR____NATION
                     </span>
-                    <span className="text-4xl md:text-5xl font-serif italic text-white/10 mx-4 tracking-tighter">
+                    <span className="text-4xl md:text-5xl font-serif italic text-white mx-4 tracking-tighter">
                         UNFOLDING______DRAMA_______AND______ART_____FOR____NATION
                     </span>
                 </div>

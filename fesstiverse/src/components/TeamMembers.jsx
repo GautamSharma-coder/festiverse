@@ -167,8 +167,8 @@ const TeamMembers = () => {
                                     border: '1px solid rgba(255,255,255,0.05)',
                                 }}>
                                     <div style={{
-                                        width: '5rem',
-                                        height: '5rem',
+                                        width: '7rem',
+                                        height: '7rem',
                                         background: '#3f3f46',
                                         borderRadius: '50%',
                                         marginBottom: '0.75rem',

@@ -203,18 +203,23 @@ const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, user, onLogout, o
                             padding: 1rem !important;
                         }
                         .action-buttons {
-                            flex-direction: column;
-                            width: 100%;
+                            flex-direction: row;
+                            flex-wrap: wrap;
+                            justify-content: center;
+                            width: auto;
                             padding: 0 1.5rem;
-                            gap: 1rem !important;
-                            margin-top: 2rem !important;
+                            gap: 0.75rem !important;
+                            margin-top: 1.5rem !important;
                         }
                         .btn-primary, .btn-secondary, .btn-logout {
-                            padding: 0.8rem 1.5rem !important;
-                            font-size: 0.8rem !important;
-                            width: 100%;
+                            padding: 0.6rem 1.2rem !important;
+                            font-size: 0.75rem !important;
+                            width: auto;
                             text-align: center;
                             box-sizing: border-box;
+                        }
+                        .moving-border-btn {
+                            transform: scale(0.85);
                         }
                     }
                     @media (max-width: 400px) {
@@ -292,6 +297,7 @@ const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, user, onLogout, o
                     </span>
                 </h1>
             </div>
+
 
             {/* Action Buttons */}
             <div className="action-buttons" style={{
@@ -381,6 +387,71 @@ const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, user, onLogout, o
                     </>
                 )}
             </div>
+            {/* Event Dates */}
+            <div style={{
+                position: 'relative',
+                zIndex: 10,
+                textAlign: 'center',
+                marginTop: '3rem',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.75rem',
+                top: '10px'
+            }}>
+                <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '14px',
+                    padding: '10px 28px',
+                    background: 'rgba(255, 152, 0, 0.06)',
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    border: '1px solid rgba(255, 179, 0, 0.15)',
+                    borderRadius: '9999px',
+                    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255, 152, 0, 0.04)',
+                }}>
+                    <span style={{
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        background: '#ffb300',
+                        boxShadow: '0 0 8px #ffb300',
+                        animation: 'twinkle 2s ease-in-out infinite',
+                        flexShrink: 0,
+                    }} />
+                    <span style={{
+                        fontFamily: "'Outfit', 'Inter', sans-serif",
+                        fontSize: 'clamp(0.85rem, 2.5vw, 1.1rem)',
+                        fontWeight: 600,
+                        letterSpacing: '0.2em',
+                        textTransform: 'uppercase',
+                        color: '#ffcc80',
+                        textShadow: '0 0 12px rgba(255, 179, 0, 0.4)',
+                    }}>
+                        15 <span style={{ color: '#ff9800', opacity: 0.6 }}>·</span> 16 <span style={{ color: '#ff9800', opacity: 0.6 }}>·</span> 17 May 2026
+                    </span>
+                    <span style={{
+                        width: '7px',
+                        height: '7px',
+                        borderRadius: '50%',
+                        background: '#ffb300',
+                        boxShadow: '0 0 8px #ffb300',
+                        animation: 'twinkle 2s ease-in-out infinite 1s',
+                        flexShrink: 0,
+                    }} />
+                </div>
+                <span style={{
+                    fontSize: 'clamp(0.7rem, 1.8vw, 0.8rem)',
+                    color: 'white',
+                    letterSpacing: '0.15em',
+                    textTransform: 'uppercase',
+                    fontWeight: 500,
+                }}>
+                    GEC Samastipur
+                </span>
+            </div>
+
         </header>
     );
 };

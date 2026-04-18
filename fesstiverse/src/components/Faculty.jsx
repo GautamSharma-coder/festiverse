@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import proxyImageUrl from '../utils/proxyImageUrl';
+import { proxyImageUrl } from '../lib/proxyImage';
 
 const Faculty = () => {
     const [facultyMembers, setFacultyMembers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     // Fallback colors for cards without specific BG styling
     const fallbackStyles = [
@@ -18,7 +19,7 @@ const Faculty = () => {
     useEffect(() => {
         const fetchFaculty = async () => {
             try {
-                const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
                 const response = await fetch(`${API}/api/faculty`);
                 const data = await response.json();
                 if (data.success && data.faculty) {
@@ -26,6 +27,7 @@ const Faculty = () => {
                 }
             } catch (err) {
                 console.error("Failed to fetch faculty:", err);
+                setError('Failed to load faculty members. Please try again later.');
             } finally {
                 setLoading(false);
             }
@@ -57,6 +59,11 @@ const Faculty = () => {
 
                 {loading ? (
                     <div style={{ textAlign: 'center', color: '#71717a', padding: '2rem' }}>Loading faculty...</div>
+                ) : error ? (
+                    <div style={{ textAlign: 'center', padding: '2rem' }}>
+                        <p style={{ color: '#f87171', fontSize: '0.9rem', marginBottom: '0.5rem' }}>⚠ {error}</p>
+                        <button onClick={() => { setError(null); setLoading(true); }} style={{ padding: '0.4rem 1rem', borderRadius: '8px', border: '1px solid rgba(249,115,22,0.3)', background: 'rgba(249,115,22,0.08)', color: '#f97316', cursor: 'pointer', fontSize: '0.8rem' }}>Retry</button>
+                    </div>
                 ) : facultyMembers.length === 0 ? (
                     <div style={{ textAlign: 'center', color: '#71717a', padding: '2rem' }}>No faculty members to display.</div>
                 ) : (
@@ -96,8 +103,8 @@ const Faculty = () => {
                                             overflow: 'hidden'
                                         }}>
                                             <div style={{
-                                                width: '5rem',
-                                                height: '5rem',
+                                                width: '6rem',
+                                                height: '6rem',
                                                 background: '#3f3f46',
                                                 borderRadius: '50%',
                                                 marginBottom: '0.75rem',

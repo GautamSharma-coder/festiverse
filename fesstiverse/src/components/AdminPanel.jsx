@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../lib/api';
-import { proxyImageUrl } from '../lib/proxyImage';
+//import { apiFetch } from '../lib/api';
+//import { proxyImageUrl } from '../lib/proxyImage';
+
+// Tab Components
+import OverviewTab from './admin/OverviewTab';
+import RegistrationsTab from './admin/RegistrationsTab';
+import UsersTab from './admin/UsersTab';
+import MessagesTab from './admin/MessagesTab';
+import EventsTab from './admin/EventsTab';
+import TeamTab from './admin/TeamTab';
+import FacultyTab from './admin/FacultyTab';
+import GalleryTab from './admin/GalleryTab';
+import NoticesTab from './admin/NoticesTab';
+import CheckinTab from './admin/CheckinTab';
+import ResultsTab from './admin/ResultsTab';
+import SponsorsTab from './admin/SponsorsTab';
+import HiringTab from './admin/HiringTab';
 
 /* ── CSS ─────────────────────────────────────────────────── */
 const CSS = `
@@ -191,10 +206,7 @@ const CSS = `
     .ap-sec-head{flex-direction:column;align-items:stretch}
     .ap-team-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
   }
-`;
-
-const CATEGORIES = ['Senior Coordinator', 'Coordinator', 'Sub Coordinator'];
-const SOCIETIES = ['Fine and Art Society', 'Music and Dance Society', 'Acting and Drama Society', 'Literature and Debate Society', 'Social Awareness Society'];
+` ;
 
 const NAV_ITEMS = [
     { id: 'overview', icon: '◈', label: 'Overview' },
@@ -332,7 +344,10 @@ const AdminPanel = ({ onClose }) => {
             setFaculty(f.faculty || []);
             setGallery(g.images || []);
             setNotices(n.notices || []);
-        } catch { }
+        } catch (err) {
+            console.error(err);
+
+        }
     };
 
     const fetchTabData = async () => {
@@ -351,7 +366,10 @@ const AdminPanel = ({ onClose }) => {
                 case 'sponsors': { const d = await adminFetch('/api/admin/sponsors'); setSponsors(d.sponsors || []); break; }
                 case 'hiring': { const d = await adminFetch('/api/admin/hiring'); setHiringApps(d.applications || []); break; }
             }
-        } catch { }
+        } catch (err) {
+            console.error(err);
+
+        }
         finally { setLoading(false); }
     };
 
@@ -549,15 +567,23 @@ const AdminPanel = ({ onClose }) => {
     };
 
     // ── Check-in handler ──
-    const handleCheckin = async () => {
-        if (!checkinId.trim()) return flash('Enter a registration ID', 'err');
+    const handleCheckin = async (scannedId) => {
+        const idToUse = (typeof scannedId === 'string' ? scannedId : checkinId).trim();
+        if (!idToUse) return flash('Enter a registration ID', 'err');
+        if (typeof scannedId === 'string') setCheckinId(scannedId);
         setCheckinLoading(true); setCheckinResult(null);
         try {
-            const d = await adminFetch('/api/admin/checkin', { method: 'POST', body: JSON.stringify({ registrationId: checkinId.trim() }) });
+            const d = await adminFetch('/api/admin/checkin', { method: 'POST', body: JSON.stringify({ registrationId: idToUse }) });
             setCheckinResult(d);
             flash(d.message || 'Checked in!');
             setCheckinId('');
-        } catch (err) { flash(err.message, 'err'); setCheckinResult({ success: false, message: err.message }); }
+            return d;
+        } catch (err) {
+            flash(err.message, 'err');
+            const errResult = { success: false, message: err.message };
+            setCheckinResult(errResult);
+            return errResult;
+        }
         finally { setCheckinLoading(false); }
     };
 
@@ -591,7 +617,7 @@ const AdminPanel = ({ onClose }) => {
 
 
     const switchTab = (id) => { setActiveTab(id); setSidebarOpen(false); setSearch(''); setMsg({ text: '', type: '' }); };
-    const badgeClass = (cat) => cat === 'Senior Coordinator' ? 'ap-badge-senior' : cat === 'Sub Coordinator' ? 'ap-badge-sub' : 'ap-badge-coord';
+
 
     /* ── Login screen ── */
     if (!isAuthed) {
@@ -622,6 +648,40 @@ const AdminPanel = ({ onClose }) => {
 
     /* ── Dashboard ── */
     const tabTitles = { overview: 'Overview', registrations: 'Registrations', messages: 'Messages', users: 'Users', events: 'Events', team: 'Team Members', faculty: 'Faculty', gallery: 'Gallery', notices: 'Notices', checkin: 'Check-In', results: 'Results', sponsors: 'Sponsors', hiring: 'Hiring Applications' };
+
+    /* ── Render active tab ── */
+    const renderTab = () => {
+        switch (activeTab) {
+            case 'overview':
+                return <OverviewTab registrations={registrations} users={users} events={events} messages={messages} />;
+            case 'registrations':
+                return <RegistrationsTab registrations={registrations} search={search} setSearch={setSearch} loading={loading} />;
+            case 'users':
+                return <UsersTab users={users} search={search} setSearch={setSearch} editingUser={editingUser} setEditingUser={setEditingUser} updateUser={updateUser} deleteUser={deleteUser} />;
+            case 'messages':
+                return <MessagesTab messages={messages} deleteMessage={deleteMessage} />;
+            case 'events':
+                return <EventsTab events={events} newEvent={newEvent} setNewEvent={setNewEvent} eventImage={eventImage} setEventImage={setEventImage} editingEvent={editingEvent} setEditingEvent={setEditingEvent} addEvent={addEvent} updateEvent={updateEvent} deleteEvent={deleteEvent} />;
+            case 'team':
+                return <TeamTab team={team} newTeam={newTeam} setNewTeam={setNewTeam} teamImage={teamImage} setTeamImage={setTeamImage} editingTeam={editingTeam} setEditingTeam={setEditingTeam} addTeamMember={addTeamMember} updateTeamMember={updateTeamMember} deleteTeamMember={deleteTeamMember} />;
+            case 'faculty':
+                return <FacultyTab faculty={faculty} newFaculty={newFaculty} setNewFaculty={setNewFaculty} facultyImage={facultyImage} setFacultyImage={setFacultyImage} editingFaculty={editingFaculty} setEditingFaculty={setEditingFaculty} addFacultyMember={addFacultyMember} updateFacultyMember={updateFacultyMember} deleteFacultyMember={deleteFacultyMember} />;
+            case 'gallery':
+                return <GalleryTab gallery={gallery} galleryMeta={galleryMeta} setGalleryMeta={setGalleryMeta} galleryImage={galleryImage} setGalleryImage={setGalleryImage} editingGallery={editingGallery} setEditingGallery={setEditingGallery} addGalleryImage={addGalleryImage} updateGalleryImage={updateGalleryImage} deleteGalleryImage={deleteGalleryImage} />;
+            case 'notices':
+                return <NoticesTab notices={notices} newNotice={newNotice} setNewNotice={setNewNotice} editingNotice={editingNotice} setEditingNotice={setEditingNotice} addNotice={addNotice} updateNotice={updateNotice} deleteNotice={deleteNotice} />;
+            case 'checkin':
+                return <CheckinTab checkinId={checkinId} setCheckinId={setCheckinId} checkinLoading={checkinLoading} checkinResult={checkinResult} handleCheckin={handleCheckin} />;
+            case 'results':
+                return <ResultsTab results={results} events={events} newResult={newResult} setNewResult={setNewResult} addResult={addResult} deleteResult={deleteResult} />;
+            case 'sponsors':
+                return <SponsorsTab sponsors={sponsors} newSponsor={newSponsor} setNewSponsor={setNewSponsor} sponsorLogo={sponsorLogo} setSponsorLogo={setSponsorLogo} addSponsor={addSponsor} deleteSponsor={deleteSponsor} />;
+            case 'hiring':
+                return <HiringTab hiringApps={hiringApps} search={search} setSearch={setSearch} loading={loading} deleteHiringApp={deleteHiringApp} />;
+            default:
+                return null;
+        }
+    };
 
     return (
         <>
@@ -693,843 +753,10 @@ const AdminPanel = ({ onClose }) => {
                                 </div>
                             </div>
                         )}
-                        {/* ─── OVERVIEW ─── */}
-                        {activeTab === 'overview' && (
-                            <div className="ap-fade">
-                                <div className="ap-stats">
-                                    <div className="ap-stat s-orange"><div className="ap-stat-val">{registrations.length}</div><div className="ap-stat-lbl">Registrations</div></div>
-                                    <div className="ap-stat s-blue"><div className="ap-stat-val">{users.length}</div><div className="ap-stat-lbl">Users</div></div>
-                                    <div className="ap-stat s-green"><div className="ap-stat-val">{events.length}</div><div className="ap-stat-lbl">Events</div></div>
-                                    <div className="ap-stat s-red"><div className="ap-stat-val">{messages.length}</div><div className="ap-stat-lbl">Messages</div></div>
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                    <div className="ap-card">
-                                        <div className="ap-card-title"><span>◎</span> Recent Registrations</div>
-                                        {registrations.slice(0, 5).map(r => (
-                                            <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: '.82rem' }}>
-                                                <span>{r.users?.name || '—'}</span>
-                                                <span style={{ color: 'var(--muted)', fontSize: '.75rem' }}>{r.events?.name || '—'}</span>
-                                            </div>
-                                        ))}
-                                        {registrations.length === 0 && <div className="ap-empty"><p>No registrations yet</p></div>}
-                                    </div>
-                                    <div className="ap-card">
-                                        <div className="ap-card-title"><span>◉</span> Recent Messages</div>
-                                        {messages.slice(0, 5).map(m => (
-                                            <div key={m.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                                                <div style={{ fontSize: '.82rem', fontWeight: 600 }}>{m.name}</div>
-                                                <div style={{ fontSize: '.75rem', color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.message}</div>
-                                            </div>
-                                        ))}
-                                        {messages.length === 0 && <div className="ap-empty"><p>No messages yet</p></div>}
-                                    </div>
-                                </div>
-                            </div>
-                        )}
 
-                        {/* ─── REGISTRATIONS ─── */}
-                        {activeTab === 'registrations' && (() => {
-                            // Group registrations by user
-                            const grouped = {};
-                            registrations.forEach(r => {
-                                const uid = r.users?.id || r.user_id || 'unknown';
-                                if (!grouped[uid]) {
-                                    grouped[uid] = {
-                                        user: r.users || {},
-                                        events: [],
-                                    };
-                                }
-                                grouped[uid].events.push({
-                                    id: r.id,
-                                    custom_id: r.custom_id,
-                                    name: r.events?.name || '—',
-                                    date: r.created_at,
-                                    team_members: r.team_members,
-                                    team_size: r.events?.team_size,
-                                });
-                            });
-                            const userList = Object.values(grouped).filter(g => {
-                                if (!search) return true;
-                                const s = search.toLowerCase();
-                                return (g.user.name || '').toLowerCase().includes(s) ||
-                                    (g.user.phone || '').includes(s) ||
-                                    g.events.some(e => e.name.toLowerCase().includes(s));
-                            });
-                            const uniqueUsers = Object.keys(grouped).length;
-
-                            return (
-                                <div className="ap-fade">
-                                    <div className="ap-sec-head">
-                                        <div>
-                                            <div className="ap-sec-title">{registrations.length} Registrations</div>
-                                            <div style={{ fontSize: '.75rem', color: 'var(--muted)', marginTop: 2 }}>{uniqueUsers} unique participants</div>
-                                        </div>
-                                        <input className="ap-search" placeholder="Search by name, phone, or event..." value={search} onChange={e => setSearch(e.target.value)} />
-                                    </div>
-                                    {loading ? (
-                                        <div className="ap-card" style={{ padding: 0, overflow: 'hidden' }}>
-                                            {[1, 2, 3, 4, 5, 6].map(i => (
-                                                <div key={i} style={{ display: 'flex', gap: 16, padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
-                                                    <div className="ap-skel ap-skel-bar" style={{ width: '22%', opacity: 1 - i * 0.1 }} />
-                                                    <div className="ap-skel ap-skel-bar" style={{ width: '18%', opacity: 1 - i * 0.1 }} />
-                                                    <div className="ap-skel ap-skel-bar" style={{ width: '28%', opacity: 1 - i * 0.1 }} />
-                                                    <div className="ap-skel ap-skel-bar" style={{ width: '15%', opacity: 1 - i * 0.1 }} />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    ) : userList.length === 0 ? (
-                                        <div className="ap-card"><div className="ap-empty"><div className="ap-empty-icon">⊞</div><h4>No registrations</h4></div></div>
-                                    ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                                            {userList.map((g, idx) => (
-                                                <div key={idx} className="ap-card" style={{ padding: 0, overflow: 'hidden' }}>
-                                                    {/* User header */}
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,.015)' }}>
-                                                        <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '.85rem', fontWeight: 700, color: 'var(--accent)', flexShrink: 0, border: '1px solid var(--border)' }}>
-                                                            {(g.user.name || '?')[0].toUpperCase()}
-                                                        </div>
-                                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                                            <div style={{ fontWeight: 700, fontSize: '.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                                {g.user.name || '—'}
-                                                                {g.user.has_paid ? <span style={{ color: '#86efac', background: 'rgba(34,197,94,.1)', padding: '2px 6px', borderRadius: 4, fontSize: '.65rem', fontWeight: 600 }}>Paid</span> : <span style={{ color: '#fca5a5', background: 'rgba(239,68,68,.1)', padding: '2px 6px', borderRadius: 4, fontSize: '.65rem', fontWeight: 600 }}>Unpaid</span>}
-                                                            </div>
-                                                            <div style={{ fontSize: '.72rem', color: 'var(--muted)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                                                                <span>📞 {g.user.phone || '—'}</span>
-                                                                {g.user.email && <span>✉ {g.user.email}</span>}
-                                                                {g.user.college && <span>🎓 {g.user.college}</span>}
-                                                            </div>
-                                                        </div>
-                                                        <div style={{ fontSize: '.7rem', fontWeight: 700, color: 'var(--accent)', background: 'rgba(249,115,22,.1)', padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(249,115,22,.2)', flexShrink: 0 }}>
-                                                            {g.events.length} event{g.events.length > 1 ? 's' : ''}
-                                                        </div>
-                                                    </div>
-                                                    {/* Events */}
-                                                    <div style={{ padding: '12px 18px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                                                        {g.events.map((ev, ei) => (
-                                                            <div key={ei} style={{
-                                                                display: 'inline-flex', alignItems: 'center', gap: 6,
-                                                                padding: '5px 12px', borderRadius: 8,
-                                                                background: 'var(--surface2)', border: '1px solid var(--border)',
-                                                                fontSize: '.78rem', fontWeight: 500, color: 'var(--text)',
-                                                            }}>
-                                                                <span>{ev.name}</span>
-                                                                {ev.custom_id && <span style={{ fontSize: '.65rem', padding: '1px 5px', background: 'var(--border)', borderRadius: 4, marginLeft: 6, color: 'var(--text)', fontWeight: '500', letterSpacing: '0.05em' }}>{ev.custom_id}</span>}
-                                                                {ev.team_size > 1 && <span style={{ fontSize: '.6rem', color: 'var(--accent)', fontWeight: 700 }}>TEAM</span>}
-                                                                {ev.team_members && ev.team_members.length > 0 && (
-                                                                    <span style={{ fontSize: '.65rem', color: 'var(--muted)' }}>
-                                                                        ({ev.team_members.map(m => m.name).join(', ')})
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })()}
-
-                        {/* ─── USERS ─── */}
-                        {activeTab === 'users' && (
-                            <div className="ap-fade">
-                                {editingUser && (
-                                    <div className="ap-edit-wrap">
-                                        <div className="ap-edit-wrap-title">✎ Edit User</div>
-                                        <form onSubmit={updateUser}>
-                                            <div className="ap-form-grid">
-                                                <div className="ap-field"><label>Name *</label><input required placeholder="User name" value={editingUser.name} onChange={e => setEditingUser({ ...editingUser, name: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Phone</label><input placeholder="Phone number" value={editingUser.phone} onChange={e => setEditingUser({ ...editingUser, phone: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Email</label><input type="email" placeholder="Email address" value={editingUser.email} onChange={e => setEditingUser({ ...editingUser, email: e.target.value })} /></div>
-                                                <div className="ap-field"><label>College</label><input placeholder="College name" value={editingUser.college} onChange={e => setEditingUser({ ...editingUser, college: e.target.value })} /></div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-                                                <button type="submit" className="ap-btn-submit">Save Changes</button>
-                                                <button type="button" className="ap-btn-ghost" onClick={() => setEditingUser(null)}>Cancel</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                )}
-
-                                <div className="ap-sec-head">
-                                    <div className="ap-sec-title">{users.length} Users</div>
-                                    <input className="ap-search" placeholder="Search users..." value={search} onChange={e => setSearch(e.target.value)} />
-                                </div>
-                                <div className="ap-card" style={{ padding: 0, overflow: 'hidden' }}>
-                                    <table className="ap-table">
-                                        <thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>College</th><th>Payment</th><th>Joined</th><th></th></tr></thead>
-                                        <tbody>
-                                            {users.filter(u => !search || (u.name || '').toLowerCase().includes(search.toLowerCase()) || (u.phone || '').includes(search)).map(u => (
-                                                <tr key={u.id}>
-                                                    <td style={{ fontWeight: 600 }}>{u.name}</td>
-                                                    <td>{u.phone}</td>
-                                                    <td style={{ color: 'var(--muted)' }}>{u.email || '—'}</td>
-                                                    <td style={{ color: 'var(--muted)' }}>{u.college || '—'}</td>
-                                                    <td>{u.has_paid ? <span style={{ color: '#86efac', background: 'rgba(34,197,94,.1)', padding: '2px 6px', borderRadius: 4, fontSize: '.7rem' }}>Paid</span> : <span style={{ color: '#fca5a5', background: 'rgba(239,68,68,.1)', padding: '2px 6px', borderRadius: 4, fontSize: '.7rem' }}>Unpaid</span>}</td>
-                                                    <td style={{ fontSize: '.75rem', color: 'var(--muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
-                                                    <td>
-                                                        <div className="ap-actions">
-                                                            <button className="ap-edit" onClick={() => { setEditingUser({ ...u, name: u.name || '', phone: u.phone || '', email: u.email || '', college: u.college || '' }); window.scrollTo(0, 0); }}>Edit</button>
-                                                            <button className="ap-del" onClick={() => deleteUser(u.id)}>Delete</button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {users.length === 0 && <tr><td colSpan={6}><div className="ap-empty"><div className="ap-empty-icon">⊙</div><h4>No users yet</h4></div></td></tr>}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ─── MESSAGES ─── */}
-                        {activeTab === 'messages' && (
-                            <div className="ap-fade">
-                                <div className="ap-sec-head">
-                                    <div className="ap-sec-title">{messages.length} Messages</div>
-                                </div>
-                                <div className="ap-card" style={{ padding: 0, overflow: 'hidden' }}>
-                                    <table className="ap-table">
-                                        <thead><tr><th>From</th><th>Email</th><th>Message</th><th>Date</th><th></th></tr></thead>
-                                        <tbody>
-                                            {messages.map(m => (
-                                                <tr key={m.id}>
-                                                    <td style={{ fontWeight: 600 }}>{m.name}</td>
-                                                    <td style={{ color: 'var(--muted)' }}>{m.email || '—'}</td>
-                                                    <td style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.message}</td>
-                                                    <td style={{ fontSize: '.75rem', color: 'var(--muted)' }}>{new Date(m.created_at).toLocaleDateString()}</td>
-                                                    <td><button className="ap-del" onClick={() => deleteMessage(m.id)}>Delete</button></td>
-                                                </tr>
-                                            ))}
-                                            {messages.length === 0 && <tr><td colSpan={5}><div className="ap-empty"><div className="ap-empty-icon">◉</div><h4>No messages</h4></div></td></tr>}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ─── EVENTS ─── */}
-                        {activeTab === 'events' && (
-                            <div className="ap-fade">
-                                {editingEvent ? (
-                                    <div className="ap-edit-wrap">
-                                        <div className="ap-edit-wrap-title">✎ Edit Event</div>
-                                        <form onSubmit={updateEvent}>
-                                            <div className="ap-form-grid">
-                                                <div className="ap-field"><label>Event Name *</label><input required placeholder="e.g. Solo Dance" value={editingEvent.name} onChange={e => setEditingEvent({ ...editingEvent, name: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Location</label><input placeholder="e.g. Main Stage" value={editingEvent.location} onChange={e => setEditingEvent({ ...editingEvent, location: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Date</label><input type="date" value={editingEvent.date ? new Date(editingEvent.date).toISOString().split('T')[0] : ''} onChange={e => setEditingEvent({ ...editingEvent, date: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Short Description</label><input placeholder="Brief description" value={editingEvent.description} onChange={e => setEditingEvent({ ...editingEvent, description: e.target.value })} /></div>
-
-                                                <div className="ap-field" style={{ gridColumn: '1 / -1' }}><label>Rules</label><textarea placeholder="Event rules" value={editingEvent.rules || ''} onChange={e => setEditingEvent({ ...editingEvent, rules: e.target.value })} rows="3" /></div>
-                                                <div className="ap-field"><label>Schedule</label><input placeholder="e.g. 10:00 AM - 12:00 PM" value={(Array.isArray(editingEvent.schedule) ? editingEvent.schedule[0] : editingEvent.schedule) || ''} onChange={e => setEditingEvent({ ...editingEvent, schedule: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Prizes</label><input placeholder="e.g. 1st: $500" value={editingEvent.prizes || ''} onChange={e => setEditingEvent({ ...editingEvent, prizes: e.target.value })} /></div>
-
-                                                <div className="ap-field ap-field-file" style={{ gridColumn: '1 / -1' }}>
-                                                    <label>Event Image (Banner/Poster)</label>
-                                                    <input type="file" accept="image/*" onChange={e => setEventImage(e.target.files[0])} />
-                                                    <div className="ap-file-label">{eventImage ? `📷 ${eventImage.name}` : '📷 Change cover image (optional)'}</div>
-                                                </div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-                                                <button type="submit" className="ap-btn-submit">Save Changes</button>
-                                                <button type="button" className="ap-btn-ghost" onClick={() => { setEditingEvent(null); setEventImage(null); }}>Cancel</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                ) : (
-                                    <div className="ap-card">
-                                        <div className="ap-card-title"><span>+</span> Add New Event</div>
-                                        <form onSubmit={addEvent}>
-                                            <div className="ap-form-grid">
-                                                <div className="ap-field"><label>Event Name *</label><input required placeholder="e.g. Solo Dance" value={newEvent.name} onChange={e => setNewEvent({ ...newEvent, name: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Location</label><input placeholder="e.g. Main Stage" value={newEvent.location} onChange={e => setNewEvent({ ...newEvent, location: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Date</label><input type="date" value={newEvent.date} onChange={e => setNewEvent({ ...newEvent, date: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Short Description</label><input placeholder="Brief description" value={newEvent.description} onChange={e => setNewEvent({ ...newEvent, description: e.target.value })} /></div>
-
-                                                <div className="ap-field" style={{ gridColumn: '1 / -1' }}><label>Rules</label><textarea placeholder="Event rules" value={newEvent.rules} onChange={e => setNewEvent({ ...newEvent, rules: e.target.value })} rows="3" /></div>
-                                                <div className="ap-field"><label>Schedule</label><input placeholder="e.g. 10:00 AM - 12:00 PM" value={newEvent.schedule} onChange={e => setNewEvent({ ...newEvent, schedule: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Prizes</label><input placeholder="e.g. 1st: $500" value={newEvent.prizes} onChange={e => setNewEvent({ ...newEvent, prizes: e.target.value })} /></div>
-
-                                                <div className="ap-field ap-field-file" style={{ gridColumn: '1 / -1' }}>
-                                                    <label>Event Image (Banner/Poster)</label>
-                                                    <input type="file" accept="image/*" onChange={e => setEventImage(e.target.files[0])} />
-                                                    <div className="ap-file-label">{eventImage ? `📷 ${eventImage.name}` : '📷 Choose cover image (optional)'}</div>
-                                                </div>
-                                            </div>
-                                            <button type="submit" className="ap-btn-submit">+ Add Event</button>
-                                        </form>
-                                    </div>
-                                )}
-
-                                <div className="ap-sec-head"><div className="ap-sec-title">{events.length} Events</div></div>
-                                <div className="ap-card" style={{ padding: 0, overflow: 'hidden' }}>
-                                    <table className="ap-table">
-                                        <thead><tr><th>Name</th><th>Location</th><th>Date</th><th>Team Size</th><th></th></tr></thead>
-                                        <tbody>
-                                            {events.map(ev => (
-                                                <tr key={ev.id}>
-                                                    <td style={{ fontWeight: 600 }}>{ev.name}</td>
-                                                    <td style={{ color: 'var(--muted)' }}>{ev.location || '—'}</td>
-                                                    <td style={{ color: 'var(--muted)' }}>{ev.date ? new Date(ev.date).toLocaleDateString() : '—'}</td>
-                                                    <td>{ev.team_size > 1 ? <span style={{ color: 'var(--accent)' }}>Team ×{ev.team_size}</span> : <span style={{ color: 'var(--muted)' }}>Solo</span>}</td>
-                                                    <td>
-                                                        <div className="ap-actions">
-                                                            <button className="ap-edit" onClick={() => { setEditingEvent({ ...ev, name: ev.name || '', location: ev.location || '', date: ev.date || '', description: ev.description || '', rules: ev.rules || '', schedule: ev.schedule || '', prizes: ev.prizes || '' }); window.scrollTo(0, 0); }}>Edit</button>
-                                                            <button className="ap-del" onClick={() => deleteEvent(ev.id)}>Delete</button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {events.length === 0 && <tr><td colSpan={5}><div className="ap-empty"><div className="ap-empty-icon">◎</div><h4>No events</h4></div></td></tr>}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* ─── TEAM ─── */}
-                        {activeTab === 'team' && (
-                            <div className="ap-fade">
-                                {editingTeam ? (
-                                    <div className="ap-edit-wrap">
-                                        <div className="ap-edit-wrap-title">✎ Edit Team Member</div>
-                                        <form onSubmit={updateTeamMember}>
-                                            <div className="ap-form-grid">
-                                                <div className="ap-field"><label>Name *</label><input required placeholder="Full name" value={editingTeam.name} onChange={e => setEditingTeam({ ...editingTeam, name: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Role / Title *</label><input required placeholder="e.g. Event Lead" value={editingTeam.role} onChange={e => setEditingTeam({ ...editingTeam, role: e.target.value })} /></div>
-                                                <div className="ap-field">
-                                                    <label>Category *</label>
-                                                    <select value={editingTeam.category} onChange={e => setEditingTeam({ ...editingTeam, category: e.target.value })}>
-                                                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div className="ap-field">
-                                                    <label>Society</label>
-                                                    <select value={editingTeam.society} onChange={e => setEditingTeam({ ...editingTeam, society: e.target.value })}>
-                                                        <option value="">Select society</option>
-                                                        {SOCIETIES.map(s => <option key={s} value={s}>{s}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div className="ap-field"><label>Bio</label><input placeholder="Short bio (optional)" value={editingTeam.bio} onChange={e => setEditingTeam({ ...editingTeam, bio: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Social Link</label><input placeholder="Instagram / LinkedIn URL" value={editingTeam.social_link} onChange={e => setEditingTeam({ ...editingTeam, social_link: e.target.value })} /></div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-                                                <div className="ap-field ap-field-file" style={{ flex: 1 }}>
-                                                    <input type="file" accept="image/*" onChange={e => setTeamImage(e.target.files[0])} />
-                                                    <div className="ap-file-label">
-                                                        {teamImage ? `📷 ${teamImage.name}` : '📷 Choose photo to replace (optional)'}
-                                                    </div>
-                                                </div>
-                                                <button type="submit" className="ap-btn-submit">Save</button>
-                                                <button type="button" className="ap-btn-ghost" onClick={() => { setEditingTeam(null); setTeamImage(null); }}>Cancel</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                ) : (
-                                    <div className="ap-card">
-                                        <div className="ap-card-title"><span>+</span> Add Team Member</div>
-                                        <form onSubmit={addTeamMember}>
-                                            <div className="ap-form-grid">
-                                                <div className="ap-field"><label>Name *</label><input required placeholder="Full name" value={newTeam.name} onChange={e => setNewTeam({ ...newTeam, name: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Role / Title *</label><input required placeholder="e.g. Event Lead" value={newTeam.role} onChange={e => setNewTeam({ ...newTeam, role: e.target.value })} /></div>
-                                                <div className="ap-field">
-                                                    <label>Category *</label>
-                                                    <select value={newTeam.category} onChange={e => setNewTeam({ ...newTeam, category: e.target.value })}>
-                                                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div className="ap-field">
-                                                    <label>Society</label>
-                                                    <select value={newTeam.society} onChange={e => setNewTeam({ ...newTeam, society: e.target.value })}>
-                                                        <option value="">Select society</option>
-                                                        {SOCIETIES.map(s => <option key={s} value={s}>{s}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div className="ap-field"><label>Bio</label><input placeholder="Short bio (optional)" value={newTeam.bio} onChange={e => setNewTeam({ ...newTeam, bio: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Social Link</label><input placeholder="Instagram / LinkedIn URL" value={newTeam.social_link} onChange={e => setNewTeam({ ...newTeam, social_link: e.target.value })} /></div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-                                                <div className="ap-field ap-field-file" style={{ flex: 1 }}>
-                                                    <input type="file" accept="image/*" onChange={e => setTeamImage(e.target.files[0])} />
-                                                    <div className="ap-file-label">
-                                                        {teamImage ? `📷 ${teamImage.name}` : '📷 Choose photo (optional)'}
-                                                    </div>
-                                                </div>
-                                                <button type="submit" className="ap-btn-submit">+ Add Member</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                )}
-
-                                <div className="ap-sec-head"><div className="ap-sec-title">{team.length} Team Members</div></div>
-                                {team.length === 0 ? (
-                                    <div className="ap-card"><div className="ap-empty"><div className="ap-empty-icon">◇</div><h4>No team members</h4><p style={{ fontSize: '.82rem' }}>Add members using the form above.</p></div></div>
-                                ) : (
-                                    <div className="ap-team-grid">
-                                        {team.map(m => (
-                                            <div key={m.id} className="ap-team-card">
-                                                <img className="ap-team-avatar" src={proxyImageUrl(m.image_url) || `https://api.dicebear.com/7.x/notionists/svg?seed=${m.id}`} onError={e => { e.target.onerror = null; e.target.src = `https://api.dicebear.com/7.x/notionists/svg?seed=${m.id}`; }} alt={m.name} />
-                                                <div className="ap-team-name">{m.name}</div>
-                                                <div className="ap-team-role">{m.role}</div>
-                                                {m.society && <div className="ap-team-society">{m.society}</div>}
-                                                <div className={`ap-badge ${badgeClass(m.category)}`}>{m.category || 'Coordinator'}</div>
-                                                <div className="ap-actions" style={{ marginTop: 10, justifyContent: 'center' }}>
-                                                    <button className="ap-edit" onClick={() => { setEditingTeam({ ...m, name: m.name || '', role: m.role || '', category: m.category || 'Coordinator', society: m.society || '', bio: m.bio || '', social_link: m.social_link || '' }); window.scrollTo(0, 0); }}>Edit</button>
-                                                    <button className="ap-del" onClick={() => deleteTeamMember(m.id)}>Remove</button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* ─── FACULTY ─── */}
-                        {activeTab === 'faculty' && (
-                            <div className="ap-fade">
-                                {editingFaculty ? (
-                                    <div className="ap-edit-wrap">
-                                        <div className="ap-edit-wrap-title">✎ Edit Faculty Member</div>
-                                        <form onSubmit={updateFacultyMember}>
-                                            <div className="ap-form-grid">
-                                                <div className="ap-field"><label>Name *</label><input required placeholder="Full name" value={editingFaculty.name} onChange={e => setEditingFaculty({ ...editingFaculty, name: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Role / Title *</label><input required placeholder="e.g. Chief Coordinator" value={editingFaculty.role} onChange={e => setEditingFaculty({ ...editingFaculty, role: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Department</label><input placeholder="e.g. Department of Arts" value={editingFaculty.department} onChange={e => setEditingFaculty({ ...editingFaculty, department: e.target.value })} /></div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-                                                <div className="ap-field ap-field-file" style={{ flex: 1 }}>
-                                                    <input type="file" accept="image/*" onChange={e => setFacultyImage(e.target.files[0])} />
-                                                    <div className="ap-file-label">
-                                                        {facultyImage ? `📷 ${facultyImage.name}` : '📷 Choose photo to replace (optional)'}
-                                                    </div>
-                                                </div>
-                                                <button type="submit" className="ap-btn-submit">Save</button>
-                                                <button type="button" className="ap-btn-ghost" onClick={() => { setEditingFaculty(null); setFacultyImage(null); }}>Cancel</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                ) : (
-                                    <div className="ap-card">
-                                        <div className="ap-card-title"><span>+</span> Add Faculty Member</div>
-                                        <form onSubmit={addFacultyMember}>
-                                            <div className="ap-form-grid">
-                                                <div className="ap-field"><label>Name *</label><input required placeholder="Full name" value={newFaculty.name} onChange={e => setNewFaculty({ ...newFaculty, name: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Role / Title *</label><input required placeholder="e.g. Chief Coordinator" value={newFaculty.role} onChange={e => setNewFaculty({ ...newFaculty, role: e.target.value })} /></div>
-                                                <div className="ap-field"><label>Department</label><input placeholder="e.g. Department of Arts" value={newFaculty.department} onChange={e => setNewFaculty({ ...newFaculty, department: e.target.value })} /></div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-                                                <div className="ap-field ap-field-file" style={{ flex: 1 }}>
-                                                    <input type="file" accept="image/*" onChange={e => setFacultyImage(e.target.files[0])} />
-                                                    <div className="ap-file-label">
-                                                        {facultyImage ? `📷 ${facultyImage.name}` : '📷 Choose photo (optional)'}
-                                                    </div>
-                                                </div>
-                                                <button type="submit" className="ap-btn-submit">+ Add Member</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                )}
-
-                                <div className="ap-sec-head"><div className="ap-sec-title">{faculty.length} Faculty Members</div></div>
-                                {faculty.length === 0 ? (
-                                    <div className="ap-card"><div className="ap-empty"><div className="ap-empty-icon">🎓</div><h4>No faculty members</h4><p style={{ fontSize: '.82rem' }}>Add members using the form above.</p></div></div>
-                                ) : (
-                                    <div className="ap-team-grid">
-                                        {faculty.map(m => (
-                                            <div key={m.id} className="ap-team-card">
-                                                <img className="ap-team-avatar" src={proxyImageUrl(m.image_url) || `https://api.dicebear.com/7.x/notionists/svg?seed=${m.id}`} onError={e => { e.target.onerror = null; e.target.src = `https://api.dicebear.com/7.x/notionists/svg?seed=${m.id}`; }} alt={m.name} />
-                                                <div className="ap-team-name">{m.name}</div>
-                                                <div className="ap-team-role">{m.role}</div>
-                                                {m.department && <div className="ap-team-society">{m.department}</div>}
-                                                <div className="ap-actions" style={{ marginTop: 10, justifyContent: 'center' }}>
-                                                    <button className="ap-edit" onClick={() => { setEditingFaculty({ ...m, name: m.name || '', role: m.role || '', department: m.department || '' }); window.scrollTo(0, 0); }}>Edit</button>
-                                                    <button className="ap-del" onClick={() => deleteFacultyMember(m.id)}>Remove</button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* ─── GALLERY ─── */}
-                        {activeTab === 'gallery' && (
-                            <div className="ap-fade">
-                                {editingGallery ? (
-                                    <div className="ap-edit-wrap">
-                                        <div className="ap-edit-wrap-title">✎ Edit Image</div>
-                                        <form onSubmit={updateGalleryImage}>
-                                            <div className="ap-form-grid">
-                                                <div className="ap-field ap-field-file">
-                                                    <input type="file" accept="image/*" onChange={e => setGalleryImage(e.target.files[0])} />
-                                                    <div className="ap-file-label">
-                                                        {galleryImage ? `🖼 ${galleryImage.name}` : '🖼 Choose new image to replace (optional)'}
-                                                    </div>
-                                                </div>
-                                                <div className="ap-field"><label>Title</label><input placeholder="Image title" value={editingGallery.title} onChange={e => setEditingGallery({ ...editingGallery, title: e.target.value })} /></div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-                                                <div className="ap-field" style={{ flex: 1 }}><label>Category</label><input placeholder="e.g. cultural, tech" value={editingGallery.category} onChange={e => setEditingGallery({ ...editingGallery, category: e.target.value })} /></div>
-                                                <div style={{ display: 'flex', gap: 8, marginBottom: 0 }}>
-                                                    <button type="submit" className="ap-btn-submit">Save</button>
-                                                    <button type="button" className="ap-btn-ghost" onClick={() => { setEditingGallery(null); setGalleryImage(null); }}>Cancel</button>
-                                                </div>
-                                            </div>
-                                        </form>
-                                    </div>
-                                ) : (
-                                    <div className="ap-card">
-                                        <div className="ap-card-title"><span>+</span> Upload Image</div>
-                                        <form onSubmit={addGalleryImage}>
-                                            <div className="ap-form-grid">
-                                                <div className="ap-field ap-field-file">
-                                                    <input type="file" accept="image/*" onChange={e => setGalleryImage(e.target.files[0])} />
-                                                    <div className="ap-file-label">
-                                                        {galleryImage ? `🖼 ${galleryImage.name}` : '🖼 Drop or select image *'}
-                                                    </div>
-                                                </div>
-                                                <div className="ap-field"><label>Title</label><input placeholder="Image title" value={galleryMeta.title} onChange={e => setGalleryMeta({ ...galleryMeta, title: e.target.value })} /></div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-                                                <div className="ap-field" style={{ flex: 1 }}><label>Category</label><input placeholder="e.g. cultural, tech" value={galleryMeta.category} onChange={e => setGalleryMeta({ ...galleryMeta, category: e.target.value })} /></div>
-                                                <button type="submit" className="ap-btn-submit" style={{ marginBottom: 0 }}>Upload</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                )}
-
-                                <div className="ap-sec-head"><div className="ap-sec-title">{gallery.length} Images</div></div>
-                                {gallery.length === 0 ? (
-                                    <div className="ap-card"><div className="ap-empty"><div className="ap-empty-icon">⊡</div><h4>No images</h4></div></div>
-                                ) : (
-                                    <div className="ap-gal-grid">
-                                        {gallery.map(img => (
-                                            <div key={img.id} className="ap-gal-item">
-                                                <img className="ap-gal-img" src={proxyImageUrl(img.url)} alt={img.title} />
-                                                <div className="ap-gal-info">
-                                                    <div className="ap-gal-title">{img.title || 'Untitled'}</div>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                                                        <span className="ap-gal-cat">{img.category || '—'}</span>
-                                                        <div className="ap-actions">
-                                                            <button className="ap-edit" onClick={() => { setEditingGallery({ ...img, title: img.title || '', category: img.category || '' }); window.scrollTo(0, 0); }}>Edit</button>
-                                                            <button className="ap-del" onClick={() => deleteGalleryImage(img.id)}>✕</button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        {/* ─── Active Tab Content ─── */}
+                        {renderTab()}
                     </div>
-
-                    {/* ─── NOTICES ─── */}
-                    {activeTab === 'notices' && (
-                        <div className="ap-fade">
-                            {editingNotice ? (
-                                <div className="ap-edit-wrap" style={{ marginBottom: 20 }}>
-                                    <div className="ap-edit-wrap-title">✎ Edit Notice</div>
-                                    <form onSubmit={updateNotice}>
-                                        <div className="ap-form-grid">
-                                            <div className="ap-field"><label>Title *</label><input placeholder="Notice title" value={editingNotice.title} onChange={e => setEditingNotice({ ...editingNotice, title: e.target.value })} required /></div>
-                                            <div className="ap-field"><label>Description</label><input placeholder="Short description" value={editingNotice.description} onChange={e => setEditingNotice({ ...editingNotice, description: e.target.value })} /></div>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12 }}>
-                                            <div className="ap-field" style={{ marginBottom: 0 }}>
-                                                <label>Color</label>
-                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                                    {['#ef4444', '#f59e0b', '#3b82f6', '#22c55e', '#a855f7', '#ec4899'].map(c => (
-                                                        <button type="button" key={c} onClick={() => setEditingNotice({ ...editingNotice, color: c })} style={{
-                                                            width: 28, height: 28, borderRadius: '50%', background: c, border: editingNotice.color === c ? '3px solid #fff' : '2px solid transparent',
-                                                            cursor: 'pointer', transition: 'all .15s', transform: editingNotice.color === c ? 'scale(1.15)' : 'scale(1)',
-                                                        }} />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: 8, marginLeft: 'auto', marginTop: 16 }}>
-                                                <button className="ap-btn-submit" type="submit">Save</button>
-                                                <button className="ap-btn-ghost" type="button" onClick={() => setEditingNotice(null)}>Cancel</button>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </div>
-                            ) : (
-                                <div className="ap-card" style={{ marginBottom: 20 }}>
-                                    <div className="ap-card-title"><span>◆</span> Add Notice</div>
-                                    <form onSubmit={addNotice}>
-                                        <div className="ap-form-grid">
-                                            <div className="ap-field"><label>Title *</label><input placeholder="Notice title" value={newNotice.title} onChange={e => setNewNotice({ ...newNotice, title: e.target.value })} required /></div>
-                                            <div className="ap-field"><label>Description</label><input placeholder="Short description" value={newNotice.description} onChange={e => setNewNotice({ ...newNotice, description: e.target.value })} /></div>
-                                        </div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 12 }}>
-                                            <div className="ap-field" style={{ marginBottom: 0 }}>
-                                                <label>Color</label>
-                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                                    {['#ef4444', '#f59e0b', '#3b82f6', '#22c55e', '#a855f7', '#ec4899'].map(c => (
-                                                        <button type="button" key={c} onClick={() => setNewNotice({ ...newNotice, color: c })} style={{
-                                                            width: 28, height: 28, borderRadius: '50%', background: c, border: newNotice.color === c ? '3px solid #fff' : '2px solid transparent',
-                                                            cursor: 'pointer', transition: 'all .15s', transform: newNotice.color === c ? 'scale(1.15)' : 'scale(1)',
-                                                        }} />
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <button className="ap-btn-submit" type="submit" style={{ marginLeft: 'auto', marginTop: 16 }}>+ Add Notice</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            )}
-
-                            <div className="ap-sec-head"><div className="ap-sec-title">{notices.length} Notices</div></div>
-                            {notices.length === 0 ? (
-                                <div className="ap-card"><div className="ap-empty"><div className="ap-empty-icon">◆</div><h4>No notices yet</h4><p>Add one above to display on the Notice Board</p></div></div>
-                            ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                    {notices.map(n => (
-                                        <div key={n.id} className="ap-card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                                            <div style={{ width: 4, height: 40, borderRadius: 4, background: n.color || '#3b82f6', flexShrink: 0 }} />
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ fontWeight: 700, fontSize: '.88rem' }}>{n.title}</div>
-                                                {n.description && <div style={{ fontSize: '.75rem', color: 'var(--muted)', marginTop: 2 }}>{n.description}</div>}
-                                            </div>
-                                            <div style={{ fontSize: '.65rem', color: 'var(--muted)', flexShrink: 0, marginRight: 10 }}>{new Date(n.created_at).toLocaleDateString()}</div>
-                                            <div className="ap-actions">
-                                                <button className="ap-edit" onClick={() => { setEditingNotice({ ...n, title: n.title || '', description: n.description || '', color: n.color || '#3b82f6' }); window.scrollTo(0, 0); }}>Edit</button>
-                                                <button className="ap-del" onClick={() => deleteNotice(n.id)}>✕</button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* ─── CHECK-IN ─── */}
-                    {activeTab === 'checkin' && (
-                        <div className="ap-fade">
-                            <div className="ap-card">
-                                <div className="ap-card-title"><span>✓</span> QR Check-In</div>
-                                <p style={{ fontSize: '.82rem', color: 'var(--muted)', marginBottom: 16 }}>Enter or scan a registration ID to check in a participant.</p>
-                                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-                                    <input className="ap-search" style={{ flex: 1, width: 'auto' }} placeholder="Registration ID..." value={checkinId} onChange={e => setCheckinId(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleCheckin()} />
-                                    <button className="ap-btn-submit" disabled={checkinLoading} onClick={handleCheckin}>
-                                        {checkinLoading ? <><span className="ap-spin" /> Checking...</> : '✓ Check In'}
-                                    </button>
-                                </div>
-                                {checkinResult && (
-                                    <div className={`ap-msg ${checkinResult.success ? 'ok' : 'err'}`} style={{ marginTop: 8 }}>
-                                        {checkinResult.message}
-                                        {checkinResult.registration && (
-                                            <div style={{ marginTop: 8, fontSize: '.78rem' }}>
-                                                <div>Name: <strong>{checkinResult.registration.users?.name}</strong></div>
-                                                <div>Event: <strong>{checkinResult.registration.events?.name}</strong></div>
-                                                {checkinResult.registration.team_members && checkinResult.registration.team_members.length > 0 && (
-                                                    <div style={{ marginTop: 4 }}>Team: <strong>{checkinResult.registration.team_members.map(m => m.name || m).join(', ')}</strong></div>
-                                                )}
-                                                <div style={{ marginTop: 4 }}>Payment: <strong>{checkinResult.registration.users?.has_paid ? <span style={{ color: '#86efac' }}>Paid ✅</span> : <span style={{ color: '#fca5a5' }}>Unpaid ❌</span>}</strong></div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ─── RESULTS ─── */}
-                    {activeTab === 'results' && (
-                        <div className="ap-fade">
-                            <div className="ap-card">
-                                <div className="ap-card-title"><span>+</span> Add Result</div>
-                                <form onSubmit={addResult}>
-                                    <div className="ap-form-grid">
-                                        <div className="ap-field">
-                                            <label>Event *</label>
-                                            <select required value={newResult.event_id} onChange={e => setNewResult({ ...newResult, event_id: e.target.value })}>
-                                                <option value="">Select event...</option>
-                                                {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-                                            </select>
-                                        </div>
-                                        <div className="ap-field"><label>Position *</label><input type="number" min="1" required value={newResult.position} onChange={e => setNewResult({ ...newResult, position: parseInt(e.target.value) })} /></div>
-                                        <div className="ap-field"><label>Participant Name *</label><input required placeholder="Name" value={newResult.participant_name} onChange={e => setNewResult({ ...newResult, participant_name: e.target.value })} /></div>
-                                        <div className="ap-field"><label>College</label><input placeholder="College" value={newResult.participant_college} onChange={e => setNewResult({ ...newResult, participant_college: e.target.value })} /></div>
-                                        <div className="ap-field"><label>Score</label><input placeholder="e.g. 95" value={newResult.score} onChange={e => setNewResult({ ...newResult, score: e.target.value })} /></div>
-                                    </div>
-                                    <button type="submit" className="ap-btn-submit">Add Result</button>
-                                </form>
-                            </div>
-                            <div className="ap-sec-head"><div className="ap-sec-title">{results.length} Results</div></div>
-                            {results.length === 0 ? (
-                                <div className="ap-card"><div className="ap-empty"><div className="ap-empty-icon">🏆</div><h4>No results yet</h4></div></div>
-                            ) : (
-                                <div className="ap-card" style={{ padding: 0, overflow: 'hidden' }}>
-                                    <table className="ap-table">
-                                        <thead><tr><th>Event</th><th>Pos</th><th>Name</th><th>College</th><th>Score</th><th></th></tr></thead>
-                                        <tbody>
-                                            {results.map(r => (
-                                                <tr key={r.id}>
-                                                    <td>{r.events?.name || '—'}</td>
-                                                    <td><strong>{r.position}</strong></td>
-                                                    <td style={{ fontWeight: 600 }}>{r.participant_name}</td>
-                                                    <td style={{ color: 'var(--muted)' }}>{r.participant_college || '—'}</td>
-                                                    <td>{r.score || '—'}</td>
-                                                    <td><button className="ap-del" onClick={() => deleteResult(r.id)}>✕</button></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* ─── SPONSORS ─── */}
-                    {activeTab === 'sponsors' && (
-                        <div className="ap-fade">
-                            <div className="ap-card">
-                                <div className="ap-card-title"><span>+</span> Add Sponsor</div>
-                                <form onSubmit={addSponsor}>
-                                    <div className="ap-form-grid">
-                                        <div className="ap-field"><label>Name *</label><input required placeholder="Sponsor name" value={newSponsor.name} onChange={e => setNewSponsor({ ...newSponsor, name: e.target.value })} /></div>
-                                        <div className="ap-field">
-                                            <label>Tier</label>
-                                            <select value={newSponsor.tier} onChange={e => setNewSponsor({ ...newSponsor, tier: e.target.value })}>
-                                                <option value="gold">Gold</option>
-                                                <option value="silver">Silver</option>
-                                                <option value="bronze">Bronze</option>
-                                            </select>
-                                        </div>
-                                        <div className="ap-field"><label>Website</label><input placeholder="https://..." value={newSponsor.website} onChange={e => setNewSponsor({ ...newSponsor, website: e.target.value })} /></div>
-                                        <div className="ap-field"><label>Sort Order</label><input type="number" value={newSponsor.sort_order} onChange={e => setNewSponsor({ ...newSponsor, sort_order: parseInt(e.target.value) || 0 })} /></div>
-                                        <div className="ap-field ap-field-file">
-                                            <label>Logo</label>
-                                            <input type="file" accept="image/*" onChange={e => setSponsorLogo(e.target.files[0])} />
-                                            <div className="ap-file-label">{sponsorLogo ? `✓ ${sponsorLogo.name}` : '📎 Choose logo image'}</div>
-                                        </div>
-                                    </div>
-                                    <button type="submit" className="ap-btn-submit">Add Sponsor</button>
-                                </form>
-                            </div>
-                            <div className="ap-sec-head"><div className="ap-sec-title">{sponsors.length} Sponsors</div></div>
-                            {sponsors.length === 0 ? (
-                                <div className="ap-card"><div className="ap-empty"><div className="ap-empty-icon">★</div><h4>No sponsors yet</h4></div></div>
-                            ) : (
-                                <div className="ap-card" style={{ padding: 0, overflow: 'hidden' }}>
-                                    <table className="ap-table">
-                                        <thead><tr><th>Logo</th><th>Name</th><th>Tier</th><th>Website</th><th>Order</th><th></th></tr></thead>
-                                        <tbody>
-                                            {sponsors.map(s => (
-                                                <tr key={s.id}>
-                                                    <td>{s.logo_url ? <img src={s.logo_url} alt="" style={{ height: 28, objectFit: 'contain' }} /> : '—'}</td>
-                                                    <td style={{ fontWeight: 600 }}>{s.name}</td>
-                                                    <td><span style={{ textTransform: 'capitalize', color: s.tier === 'gold' ? '#fbbf24' : s.tier === 'silver' ? '#9ca3af' : '#d97706' }}>{s.tier}</span></td>
-                                                    <td style={{ color: 'var(--muted)' }}>{s.website ? <a href={s.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)' }}>Visit</a> : '—'}</td>
-                                                    <td>{s.sort_order}</td>
-                                                    <td><button className="ap-del" onClick={() => deleteSponsor(s.id)}>✕</button></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* ─── HIRING APPLICATIONS ─── */}
-                    {activeTab === 'hiring' && (() => {
-                        const filtered = hiringApps.filter(a => {
-                            if (!search) return true;
-                            const s = search.toLowerCase();
-                            return (a.name || '').toLowerCase().includes(s) ||
-                                (a.email || '').toLowerCase().includes(s) ||
-                                (a.role || '').toLowerCase().includes(s) ||
-                                (a.branch || '').toLowerCase().includes(s) ||
-                                (a.roll_no || '').toLowerCase().includes(s);
-                        });
-                        return (
-                            <div className="ap-fade">
-                                <div className="ap-sec-head">
-                                    <div>
-                                        <div className="ap-sec-title">{hiringApps.length} Applications</div>
-                                        <div style={{ fontSize: '.75rem', color: 'var(--muted)', marginTop: 2 }}>
-                                            {hiringApps.filter(a => a.role === 'coordinator').length} coordinators · {hiringApps.filter(a => a.role === 'volunteer').length} volunteers
-                                        </div>
-                                    </div>
-                                    <input className="ap-search" placeholder="Search by name, email, role, branch..." value={search} onChange={e => setSearch(e.target.value)} />
-                                </div>
-                                {loading ? (
-                                    <div className="ap-card" style={{ padding: 0, overflow: 'hidden' }}>
-                                        {[1, 2, 3, 4, 5].map(i => (
-                                            <div key={i} style={{ display: 'flex', gap: 16, padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
-                                                <div className="ap-skel ap-skel-bar" style={{ width: '20%', opacity: 1 - i * 0.1 }} />
-                                                <div className="ap-skel ap-skel-bar" style={{ width: '25%', opacity: 1 - i * 0.1 }} />
-                                                <div className="ap-skel ap-skel-bar" style={{ width: '15%', opacity: 1 - i * 0.1 }} />
-                                                <div className="ap-skel ap-skel-bar" style={{ width: '15%', opacity: 1 - i * 0.1 }} />
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : filtered.length === 0 ? (
-                                    <div className="ap-card"><div className="ap-empty"><div className="ap-empty-icon">📋</div><h4>No hiring applications yet</h4></div></div>
-                                ) : (
-                                    <div className="ap-card" style={{ padding: 0, overflow: 'hidden' }}>
-                                        <div style={{ overflowX: 'auto' }}>
-                                            <table className="ap-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Name</th>
-                                                        <th>Role</th>
-                                                        <th>Email</th>
-                                                        <th>Phone</th>
-                                                        <th>Branch</th>
-                                                        <th>Batch</th>
-                                                        <th>Reg / Roll</th>
-                                                        <th>Resume</th>
-                                                        <th>Date</th>
-                                                        <th></th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {filtered.map(a => (
-                                                        <tr key={a.id}>
-                                                            <td style={{ fontWeight: 600 }}>{a.name}</td>
-                                                            <td>
-                                                                <span style={{
-                                                                    textTransform: 'capitalize',
-                                                                    color: a.role === 'coordinator' ? '#c084fc' : '#22d3ee',
-                                                                    background: a.role === 'coordinator' ? 'rgba(168,85,247,.1)' : 'rgba(6,182,212,.1)',
-                                                                    padding: '2px 8px', borderRadius: 4, fontSize: '.72rem', fontWeight: 600,
-                                                                    border: a.role === 'coordinator' ? '1px solid rgba(168,85,247,.2)' : '1px solid rgba(6,182,212,.2)',
-                                                                }}>{a.role}</span>
-                                                            </td>
-                                                            <td style={{ color: 'var(--muted)', fontSize: '.78rem' }}>{a.email}</td>
-                                                            <td style={{ color: 'var(--muted)' }}>{a.phone}</td>
-                                                            <td>{a.branch}</td>
-                                                            <td>{a.batch}</td>
-                                                            <td style={{ fontSize: '.78rem' }}>{a.reg_no} / {a.roll_no}</td>
-                                                            <td>
-                                                                {a.resume_url ? (
-                                                                    <a href={a.resume_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontSize: '.78rem', fontWeight: 600 }}>View</a>
-                                                                ) : '—'}
-                                                            </td>
-                                                            <td style={{ color: 'var(--muted)', fontSize: '.72rem', whiteSpace: 'nowrap' }}>
-                                                                {a.created_at ? new Date(a.created_at).toLocaleDateString() : '—'}
-                                                            </td>
-                                                            <td>
-                                                                <div className="ap-actions">
-                                                                    <button className="ap-del" onClick={() => deleteHiringApp(a.id)}>✕</button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })()}
                 </div>
             </div>
         </>

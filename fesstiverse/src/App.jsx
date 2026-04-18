@@ -26,6 +26,7 @@ import AdminPanel from './components/AdminPanel';
 import UserDashboard from './components/UserDashboard';
 import AboutPage from './components/AboutPage';
 import EventDetails from './components/EventDetails';
+import EventsPage from './components/EventsPage';
 import Leaderboard from './components/Leaderboard';
 import HiringForm from './components/HiringForm';
 import GalleryPage from './components/GalleryPage';
@@ -172,6 +173,10 @@ function App() {
         <Route
           path="/about"
           element={<AboutPage onClose={() => navigate('/')} />}
+        />
+        <Route
+          path="/events"
+          element={<EventsPage />}
         />
         <Route
           path="/events/:id"

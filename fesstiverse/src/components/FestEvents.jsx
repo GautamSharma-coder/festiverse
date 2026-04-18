@@ -302,8 +302,8 @@ const FestEvents = () => {
             <span className="min-count">{events.length} Events Listed</span>
             <h2 className="min-title">Featured Events</h2>
           </div>
-          <button className="min-explore-btn" onClick={() => navigate('/dashboard')}>
-            View All Directory →
+          <button className="min-explore-btn" onClick={() => navigate('/events')}>
+            View All Events →
           </button>
         </div>
 
