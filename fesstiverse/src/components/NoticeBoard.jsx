@@ -13,26 +13,32 @@ const NoticeBoard = () => {
     const [notices, setNotices] = useState(fallbackNotices);
     const [hasNew, setHasNew] = useState(false);
 
-    const fetchNotices = async () => {
-        try {
-            const r = await fetch(`${API}/api/notices`);
-            const d = await r.json();
-            if (d.success && d.notices && d.notices.length > 0) {
-                const lastCount = parseInt(sessionStorage.getItem('fv_notice_count') || '0');
-                if (d.notices.length > lastCount && lastCount > 0) {
-                    setHasNew(true);
-                    setTimeout(() => setHasNew(false), 5000);
-                }
-                sessionStorage.setItem('fv_notice_count', d.notices.length.toString());
-                setNotices(d.notices);
-            }
-        } catch { }
-    };
-
     useEffect(() => {
+        let isMounted = true;
+
+        const fetchNotices = async () => {
+            try {
+                const r = await fetch(`${API}/api/notices`);
+                const d = await r.json();
+                if (isMounted && d.success && d.notices && d.notices.length > 0) {
+                    const lastCount = parseInt(sessionStorage.getItem('fv_notice_count') || '0');
+                    if (d.notices.length > lastCount && lastCount > 0) {
+                        setHasNew(true);
+                        setTimeout(() => isMounted && setHasNew(false), 5000);
+                    }
+                    sessionStorage.setItem('fv_notice_count', d.notices.length.toString());
+                    setNotices(d.notices);
+                }
+            } catch (e) { console.log(e); }
+        };
+
         fetchNotices();
         const interval = setInterval(fetchNotices, 30000); // Poll every 30s
-        return () => clearInterval(interval);
+
+        return () => {
+            isMounted = false;
+            clearInterval(interval);
+        };
     }, []);
 
     return (
@@ -43,6 +49,9 @@ const NoticeBoard = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
                         <div className="animate-pulse" style={{ width: '0.5rem', height: '0.5rem', backgroundColor: '#ef4444', borderRadius: '50%' }}></div>
                         <h2 style={{ fontSize: '1.25rem', fontWeight: 500, color: '#e4e4e7' }}>Digital Notice Board</h2>
+                        {hasNew && (
+                            <span style={{ backgroundColor: '#10b981', color: '#fff', fontSize: '0.7rem', padding: '0.1rem 0.5rem', borderRadius: '9999px', fontWeight: 600 }}>New!</span>
+                        )}
                     </div>
                     <div style={{
                         height: '20rem',
@@ -85,18 +94,24 @@ const NoticeBoard = () => {
                 {/* Connect */}
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <h2 style={{ fontSize: '1.25rem', fontWeight: 500, marginBottom: '1.5rem', color: '#e4e4e7' }}>Connect</h2>
-                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem' }}>
-                        <a href="#" style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+                        <a href="https://x.com/udaan_gecs" target="_blank" rel="noopener noreferrer" style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <iconify-icon icon="logos:twitter" width="20"></iconify-icon>
                         </a>
-                        <a href="#" style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <a href="https://www.instagram.com/udaan_gecsamastipur/" target="_blank" rel="noopener noreferrer" style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <iconify-icon icon="skill-icons:instagram" width="20"></iconify-icon>
                         </a>
-                        <a href="#" style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <a href="https://www.youtube.com/@udaangecsamastipur3147" target="_blank" rel="noopener noreferrer" style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <iconify-icon icon="logos:youtube-icon" width="20"></iconify-icon>
                         </a>
-                        <a href="#" style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <iconify-icon icon="logos:whatsapp-icon" width="20"></iconify-icon>
+                        <a href="https://www.facebook.com/profile.php?id=100086638071615" target="_blank" rel="noopener noreferrer" style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <iconify-icon icon="logos:facebook" width="20"></iconify-icon>
+                        </a>
+                        <a href="https://www.linkedin.com/in/udaan-arts-and-cultural-club-gec-samastipur-111153254/" target="_blank" rel="noopener noreferrer" style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <iconify-icon icon="skill-icons:linkedin" width="20"></iconify-icon>
+                        </a>
+                        <a href="mailto:udaanclube@gmail.com" style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <iconify-icon icon="logos:google-gmail" width="20"></iconify-icon>
                         </a>
                     </div>
                     <p style={{ fontSize: '0.75rem', color: '#71717a' }}>
