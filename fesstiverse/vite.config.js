@@ -11,7 +11,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
-      includeAssets: ['udaan.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
         name: 'Festiverse UDAAN',
         short_name: 'Festiverse',
@@ -21,20 +21,14 @@ export default defineConfig({
         display: 'standalone',
         icons: [
           {
-            src: '/udaan.png',
+            src: '/android-chrome-192x192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any maskable'
           },
           {
-            src: '/udaan.png',
+            src: '/android-chrome-512x512.png',
             sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: '/udaan.png',
-            sizes: 'any',
             type: 'image/png',
             purpose: 'any maskable'
           }
