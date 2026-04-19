@@ -239,19 +239,16 @@ Set `VITE_API_URL=http://localhost:3000` in `fesstiverse/.env` for local develop
 | Auth | JWT (jsonwebtoken), Email OTP (Nodemailer + Gmail) |
 | Deployment | Render (backend), TBD (frontend) |
 
-
-699 prie
- !
-
+ price
+  699 
+  |
  for all event 
- 
+  |
  fooding 
-
+  |
  acomattion
-
- !
-
+  |
 tshirt 
- 
+  |
 goodies
 

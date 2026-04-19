@@ -586,7 +586,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
 
   const fetchProfile = async () => { try { const d = await apiFetch('/api/auth/profile'); if (d.user) { setProfile({ name: d.user.name || '', email: d.user.email || '', phone: d.user.phone || '', college: d.user.college || '' }); if (d.user.avatar_url) setAvatarUrl(d.user.avatar_url); if (d.user.festiverse_id) setFestiverseId(d.user.festiverse_id); } } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } };
   const fetchMyEvents = async () => { try { const d = await apiFetch('/api/events/my-events'); setMyEvents(d.registrations || []); } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } };
-  const fetchAllEvents = async () => { try { const d = await apiFetch('/api/events'); setAllEvents(d.events || []); } catch { } };
+  const fetchAllEvents = async () => { try { const d = await apiFetch('/api/events'); setAllEvents(d.events || []); } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } };
 
   const saveProfile = async () => {
     setSaving(true); setMsg({ text: '', type: '' });
@@ -702,6 +702,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
       setQrImage(d.qrCode || '');
     } catch (e) {
       setQrImage('');
+      console.log(e);
     } finally { setQrLoading(false); }
   };
 
@@ -887,7 +888,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                     <p style={{ color: 'var(--muted)', fontSize: '0.85rem', marginTop: '8px', marginBottom: '16px' }}>
                       You need to complete your payment to get your festival pass and confirm event registrations. Please complete the payment process with the coordinators.
                     </p>
-                    <button className="d-btn-ghost" style={{ padding: '8px 16px', fontSize: '0.8rem', color: '#fca5a5', borderColor: 'rgba(239,68,68,0.3)' }} onClick={() => setMsg({text: 'Redirecting to payment gateway...', type: 'ok'})}>
+                    <button className="d-btn-ghost" style={{ padding: '8px 16px', fontSize: '0.8rem', color: '#fca5a5', borderColor: 'rgba(239,68,68,0.3)' }} onClick={() => setMsg({ text: 'Redirecting to payment gateway...', type: 'ok' })}>
                       Pay Now
                     </button>
                   </div>
@@ -977,169 +978,169 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
           {activeTab === 'register' && (
             <>
               <div className="d-fade">
-              <div className="d-section-label" style={{ marginBottom: 14 }}>
-                {allEvents.length} Events Available
-              </div>
+                <div className="d-section-label" style={{ marginBottom: 14 }}>
+                  {allEvents.length} Events Available
+                </div>
 
-              {/* Search */}
-              <div style={{ marginBottom: 16 }}>
-                <input
-                  type="text"
-                  placeholder="🔍 Search events by name, location..."
-                  value={eventSearch}
-                  onChange={e => setEventSearch(e.target.value)}
-                  style={{
-                    width: '100%', padding: '10px 14px',
-                    background: 'var(--surface)', border: '1px solid var(--border)',
-                    borderRadius: 10, color: 'var(--text)', fontSize: '0.85rem',
-                    fontFamily: 'var(--font-b)', outline: 'none',
-                    transition: 'border-color .15s',
-                  }}
-                  onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-                  onBlur={e => e.target.style.borderColor = 'var(--border)'}
-                />
-              </div>
+                {/* Search */}
+                <div style={{ marginBottom: 16 }}>
+                  <input
+                    type="text"
+                    placeholder="🔍 Search events by name, location..."
+                    value={eventSearch}
+                    onChange={e => setEventSearch(e.target.value)}
+                    style={{
+                      width: '100%', padding: '10px 14px',
+                      background: 'var(--surface)', border: '1px solid var(--border)',
+                      borderRadius: 10, color: 'var(--text)', fontSize: '0.85rem',
+                      fontFamily: 'var(--font-b)', outline: 'none',
+                      transition: 'border-color .15s',
+                    }}
+                    onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+                    onBlur={e => e.target.style.borderColor = 'var(--border)'}
+                  />
+                </div>
 
-              <div className="d-events-grid">
-                {allEvents.filter(ev => {
-                  if (!eventSearch.trim()) return true;
-                  const q = eventSearch.toLowerCase();
-                  return (ev.name || '').toLowerCase().includes(q) ||
-                    (ev.location || '').toLowerCase().includes(q) ||
-                    (ev.category || '').toLowerCase().includes(q) ||
-                    (ev.description || '').toLowerCase().includes(q);
-                }).map((ev, i) => {
-                  const isReg = registeredIds.includes(ev.id);
-                  const isSel = selectedEvents.includes(ev.id);
-                  return (
-                    <div
-                      key={ev.id}
-                      className={`d-ev d-fade ${isReg ? 'd-ev-reg' : ''} ${isSel && !isReg ? 'd-ev-sel' : ''}`}
-                      style={{ animationDelay: `${i * 0.04}s` }}
-                    >
-                      <div onClick={() => !isReg && toggleEvent(ev.id)} style={{ cursor: isReg ? 'default' : 'pointer' }}>
-                        <div className="d-ev-head">
-                          <div className="d-ev-name">{ev.name}</div>
-                          <div className="d-ev-badges">
-                            {isReg && <span className="d-badge d-badge-green">Confirmed</span>}
-                            {isSel && !isReg && <span className="d-badge d-badge-orange">Selected</span>}
-                            {ev.team_size > 1 && <span className="d-badge d-badge-amber">Team ×{ev.team_size}</span>}
-                          </div>
-                        </div>
-
-                        {ev.location && <div className="d-ev-meta"><span>📍</span>{ev.location}</div>}
-                        {ev.date && <div className="d-ev-meta"><span>🗓</span>{new Date(ev.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</div>}
-
-                        {/* New View Details button */}
-                        <div style={{ marginTop: 12 }}>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigate(`/events/${ev.id}`); }}
-                            style={{
-                              background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
-                              padding: '5px 12px', borderRadius: '8px', fontSize: '0.75rem',
-                              color: 'var(--text)', cursor: 'pointer', fontFamily: 'var(--font-b)',
-                              transition: 'all .2s'
-                            }}
-                            onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
-                            onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text)'; }}
-                          >
-                            View Details ↗
-                          </button>
-                        </div>
-
-                        {/* Short Description */}
-                        {ev.description && <div className="d-ev-desc" style={{ marginTop: 14, borderTop: 'none', paddingTop: 0 }}>{ev.description}</div>}
-
-                        {!isReg && (
-                          <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div style={{ fontSize: '0.78rem', color: isSel ? 'var(--accent)' : 'var(--muted)' }}>
-                               {isSel ? 'Event Selected' : 'Registration Open'}
+                <div className="d-events-grid">
+                  {allEvents.filter(ev => {
+                    if (!eventSearch.trim()) return true;
+                    const q = eventSearch.toLowerCase();
+                    return (ev.name || '').toLowerCase().includes(q) ||
+                      (ev.location || '').toLowerCase().includes(q) ||
+                      (ev.category || '').toLowerCase().includes(q) ||
+                      (ev.description || '').toLowerCase().includes(q);
+                  }).map((ev, i) => {
+                    const isReg = registeredIds.includes(ev.id);
+                    const isSel = selectedEvents.includes(ev.id);
+                    return (
+                      <div
+                        key={ev.id}
+                        className={`d-ev d-fade ${isReg ? 'd-ev-reg' : ''} ${isSel && !isReg ? 'd-ev-sel' : ''}`}
+                        style={{ animationDelay: `${i * 0.04}s` }}
+                      >
+                        <div onClick={() => !isReg && toggleEvent(ev.id)} style={{ cursor: isReg ? 'default' : 'pointer' }}>
+                          <div className="d-ev-head">
+                            <div className="d-ev-name">{ev.name}</div>
+                            <div className="d-ev-badges">
+                              {isReg && <span className="d-badge d-badge-green">Confirmed</span>}
+                              {isSel && !isReg && <span className="d-badge d-badge-orange">Selected</span>}
+                              {ev.team_size > 1 && <span className="d-badge d-badge-amber">Team ×{ev.team_size}</span>}
                             </div>
+                          </div>
+
+                          {ev.location && <div className="d-ev-meta"><span>📍</span>{ev.location}</div>}
+                          {ev.date && <div className="d-ev-meta"><span>🗓</span>{new Date(ev.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}</div>}
+
+                          {/* New View Details button */}
+                          <div style={{ marginTop: 12 }}>
                             <button
-                              onClick={(e) => { e.stopPropagation(); toggleEvent(ev.id); }}
+                              onClick={(e) => { e.stopPropagation(); navigate(`/events/${ev.id}`); }}
                               style={{
-                                background: isSel ? 'var(--accent)' : 'var(--surface)',
-                                color: isSel ? '#fff' : 'var(--text)',
-                                border: `1px solid ${isSel ? 'var(--accent)' : 'var(--border)'}`,
-                                padding: '6px 16px', borderRadius: '8px', fontSize: '0.75rem',
-                                fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-b)',
+                                background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
+                                padding: '5px 12px', borderRadius: '8px', fontSize: '0.75rem',
+                                color: 'var(--text)', cursor: 'pointer', fontFamily: 'var(--font-b)',
                                 transition: 'all .2s'
                               }}
-                              onMouseOver={(e) => { if (!isSel) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; } }}
-                              onMouseOut={(e) => { if (!isSel) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text)'; } }}
+                              onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; }}
+                              onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text)'; }}
                             >
-                              {isSel ? '✓ Selected' : '+ Select'}
+                              View Details ↗
                             </button>
+                          </div>
+
+                          {/* Short Description */}
+                          {ev.description && <div className="d-ev-desc" style={{ marginTop: 14, borderTop: 'none', paddingTop: 0 }}>{ev.description}</div>}
+
+                          {!isReg && (
+                            <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <div style={{ fontSize: '0.78rem', color: isSel ? 'var(--accent)' : 'var(--muted)' }}>
+                                {isSel ? 'Event Selected' : 'Registration Open'}
+                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); toggleEvent(ev.id); }}
+                                style={{
+                                  background: isSel ? 'var(--accent)' : 'var(--surface)',
+                                  color: isSel ? '#fff' : 'var(--text)',
+                                  border: `1px solid ${isSel ? 'var(--accent)' : 'var(--border)'}`,
+                                  padding: '6px 16px', borderRadius: '8px', fontSize: '0.75rem',
+                                  fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-b)',
+                                  transition: 'all .2s'
+                                }}
+                                onMouseOver={(e) => { if (!isSel) { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent)'; } }}
+                                onMouseOut={(e) => { if (!isSel) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text)'; } }}
+                              >
+                                {isSel ? '✓ Selected' : '+ Select'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {isSel && !isReg && ev.team_size > 1 && teamMembers[ev.id] && (
+                          <div className="d-team-form" onClick={e => e.stopPropagation()}>
+                            <div className="d-team-title">
+                              <span>◈</span> Team Members — you + {ev.team_size - 1} others
+                            </div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--muted)', marginBottom: 12 }}>
+                              Enter each member's Festiverse ID (e.g. F26GS4821)
+                            </div>
+                            {teamMembers[ev.id].map((m, idx) => {
+                              const key = `${ev.id}_${idx}`;
+                              const lookup = memberLookup[key];
+                              return (
+                                <div key={idx} style={{ marginBottom: 10 }}>
+                                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                    <input
+                                      placeholder={`Member ${idx + 2} Festiverse ID *`}
+                                      value={m.festiverse_id || ''}
+                                      onChange={e => {
+                                        const val = e.target.value.toUpperCase();
+                                        updateMember(ev.id, idx, 'festiverse_id', val);
+                                        // Clear lookup if input changed
+                                        setMemberLookup(p => ({ ...p, [key]: null }));
+                                      }}
+                                      onBlur={() => lookupMember(ev.id, idx, m.festiverse_id || '')}
+                                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lookupMember(ev.id, idx, m.festiverse_id || ''); } }}
+                                      style={{
+                                        flex: 1, padding: '8px 10px',
+                                        background: 'var(--surface)', border: `1px solid ${lookup?.status === 'found' ? 'rgba(34,197,94,0.5)' : lookup?.status === 'error' ? 'rgba(239,68,68,0.5)' : 'var(--border)'}`,
+                                        borderRadius: 7, color: 'var(--text)',
+                                        fontSize: '0.85rem', fontFamily: 'var(--font-b)', fontWeight: 600,
+                                        letterSpacing: '0.06em', outline: 'none',
+                                        transition: 'border-color .15s',
+                                        minWidth: 0, maxWidth: '100%',
+                                      }}
+                                    />
+                                    {lookup?.status === 'loading' && <span className="d-spin" />}
+                                  </div>
+                                  {lookup?.status === 'found' && (
+                                    <div style={{
+                                      display: 'flex', alignItems: 'center', gap: 6,
+                                      marginTop: 5, padding: '5px 8px', borderRadius: 6,
+                                      background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)',
+                                      fontSize: '0.75rem', color: '#4ade80',
+                                    }}>
+                                      <span>✓</span> {lookup.data.name} {lookup.data.college ? `· ${lookup.data.college}` : ''}
+                                    </div>
+                                  )}
+                                  {lookup?.status === 'error' && (
+                                    <div style={{
+                                      marginTop: 5, padding: '5px 8px', borderRadius: 6,
+                                      background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                                      fontSize: '0.72rem', color: '#fca5a5',
+                                    }}>
+                                      ⚠ {lookup.message}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>
-
-                      {isSel && !isReg && ev.team_size > 1 && teamMembers[ev.id] && (
-                        <div className="d-team-form" onClick={e => e.stopPropagation()}>
-                          <div className="d-team-title">
-                            <span>◈</span> Team Members — you + {ev.team_size - 1} others
-                          </div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--muted)', marginBottom: 12 }}>
-                            Enter each member's Festiverse ID (e.g. F26GS4821)
-                          </div>
-                          {teamMembers[ev.id].map((m, idx) => {
-                            const key = `${ev.id}_${idx}`;
-                            const lookup = memberLookup[key];
-                            return (
-                              <div key={idx} style={{ marginBottom: 10 }}>
-                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                                  <input
-                                    placeholder={`Member ${idx + 2} Festiverse ID *`}
-                                    value={m.festiverse_id || ''}
-                                    onChange={e => {
-                                      const val = e.target.value.toUpperCase();
-                                      updateMember(ev.id, idx, 'festiverse_id', val);
-                                      // Clear lookup if input changed
-                                      setMemberLookup(p => ({ ...p, [key]: null }));
-                                    }}
-                                    onBlur={() => lookupMember(ev.id, idx, m.festiverse_id || '')}
-                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); lookupMember(ev.id, idx, m.festiverse_id || ''); } }}
-                                    style={{
-                                      flex: 1, padding: '8px 10px',
-                                      background: 'var(--surface)', border: `1px solid ${lookup?.status === 'found' ? 'rgba(34,197,94,0.5)' : lookup?.status === 'error' ? 'rgba(239,68,68,0.5)' : 'var(--border)'}`,
-                                      borderRadius: 7, color: 'var(--text)',
-                                      fontSize: '0.85rem', fontFamily: 'var(--font-b)', fontWeight: 600,
-                                      letterSpacing: '0.06em', outline: 'none',
-                                      transition: 'border-color .15s',
-                                      minWidth: 0, maxWidth: '100%',
-                                    }}
-                                  />
-                                  {lookup?.status === 'loading' && <span className="d-spin" />}
-                                </div>
-                                {lookup?.status === 'found' && (
-                                  <div style={{
-                                    display: 'flex', alignItems: 'center', gap: 6,
-                                    marginTop: 5, padding: '5px 8px', borderRadius: 6,
-                                    background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)',
-                                    fontSize: '0.75rem', color: '#4ade80',
-                                  }}>
-                                    <span>✓</span> {lookup.data.name} {lookup.data.college ? `· ${lookup.data.college}` : ''}
-                                  </div>
-                                )}
-                                {lookup?.status === 'error' && (
-                                  <div style={{
-                                    marginTop: 5, padding: '5px 8px', borderRadius: 6,
-                                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-                                    fontSize: '0.72rem', color: '#fca5a5',
-                                  }}>
-                                    ⚠ {lookup.message}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
               {selectedEvents.length > 0 && (
                 <div className="d-reg-bar">
