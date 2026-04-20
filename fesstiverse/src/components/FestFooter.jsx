@@ -275,9 +275,10 @@ const FestFooter = ({ onAdminClick }) => {
               <div className="min-nav-title">Information</div>
               <div className="min-nav-list">
                 <Link to="/about" className="min-nav-link">About</Link>
-                {['Sponsors', 'Team', 'Contact'].map(l => (
-                  <a key={l} href={`#${l.toLowerCase()}`} className="min-nav-link">{l}</a>
-                ))}
+                <Link to="/sponsors" className="min-nav-link">Sponsors</Link>
+                <Link to="/certificates" className="min-nav-link">Certificates</Link>
+                <a href="#team" className="min-nav-link">Team</a>
+                <Link to="/contact" className="min-nav-link">Contact</Link>
               </div>
             </div>
 
@@ -285,10 +286,12 @@ const FestFooter = ({ onAdminClick }) => {
             <div>
               <div className="min-nav-title">Socials</div>
               <div className="min-nav-list">
-                <a href="#" className="min-nav-link">X / Twitter</a>
-                <a href="#" className="min-nav-link">Instagram</a>
-                <a href="#" className="min-nav-link">LinkedIn</a>
-                <a href="#" className="min-nav-link">YouTube</a>
+                <a href="https://x.com/udaan_gecs" target="_blank" rel="noopener noreferrer" className="min-nav-link">X / Twitter</a>
+                <a href="https://www.instagram.com/udaan_gecsamastipur/" target="_blank" rel="noopener noreferrer" className="min-nav-link">Instagram</a>
+                <a href="https://www.linkedin.com/in/udaan-arts-and-cultural-club-gec-samastipur-111153254/" target="_blank" rel="noopener noreferrer" className="min-nav-link">LinkedIn</a>
+                <a href="https://www.facebook.com/profile.php?id=100086638071615" target="_blank" rel="noopener noreferrer" className="min-nav-link">Facebook</a>
+                <a href="https://www.youtube.com/@udaangecsamastipur3147" target="_blank" rel="noopener noreferrer" className="min-nav-link">YouTube</a>
+                <a href="mailto:contact@udaangecsamastipur.in" className="min-nav-link">Email</a>
               </div>
             </div>
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import UdaanHeroImage from '../assets/UdaanHeroImage.webp';
+import UdaanTextImage from '../assets/udaan-text.png';
 
 const HeroSection = () => {
     return (
@@ -33,9 +34,13 @@ const HeroSection = () => {
                         Est. 2019 • GEC Samastipur
                     </span>
                 </div>
-                <h1 className="text-6xl md:text-8xl font-serif italic font-bold tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-600 drop-shadow-2xl">
-                    UDAAN
-                </h1>
+                <div className="flex justify-center mb-6">
+                    <img
+                        src={UdaanTextImage}
+                        alt="UDAAN"
+                        className="w-full max-w-[200px] md:max-w-[400px] object-contain drop-shadow-2xl"
+                    />
+                </div>
                 <p className="text-lg md:text-xl text-zinc-400 font-light max-w-1xl mx-auto leading-relaxed " style={{ padding: '10px' }}>
                     Where culture meets creativity. The official Arts & Cultural Club.
                 </p>
@@ -45,10 +50,10 @@ const HeroSection = () => {
             <div className="absolute bottom-10 w-full overflow-hidden border-y border-white/5 py-4  backdrop-blur-md">
                 <div className="whitespace-nowrap flex animate-marquee">
                     <span className="text-4xl md:text-5xl font-serif italic text-white mx-4 tracking-tighter">
-                        UNFOLDING______DRAMA_______AND______ART_____FOR____NATION
+                        _UNFOLDING______DRAMA_______AND______ART_____FOR____NATION
                     </span>
                     <span className="text-4xl md:text-5xl font-serif italic text-white mx-4 tracking-tighter">
-                        UNFOLDING______DRAMA_______AND______ART_____FOR____NATION
+                        _UNFOLDING______DRAMA_______AND______ART_____FOR____NATION
                     </span>
                 </div>
             </div>

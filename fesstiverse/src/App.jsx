@@ -31,6 +31,12 @@ import Leaderboard from './components/Leaderboard';
 import HiringForm from './components/HiringForm';
 import GalleryPage from './components/GalleryPage';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import ContactPage from './components/ContactPage';
+import SponsorsPage from './components/SponsorsPage';
+import CertificatesPage from './components/CertificatesPage';
+import NotFoundPage from './components/NotFoundPage';
+import FAQSection from './components/FAQSection';
+import RegistrationDetails from './components/RegistrationDetails';
 
 function App() {
   const [isFestiverse, setIsFestiverse] = useState(false);
@@ -128,9 +134,10 @@ function App() {
         {/* Featured Events Section */}
         <ScrollReveal delay={100}><FestEvents /></ScrollReveal>
 
-
+        <ScrollReveal delay={100}><RegistrationDetails /></ScrollReveal>
 
         <ScrollReveal delay={100}><FestGallery /></ScrollReveal>
+        <ScrollReveal delay={100}><FAQSection /></ScrollReveal>
         <FestFooter onAdminClick={() => navigate('/admin')} />
       </main>
 
@@ -202,6 +209,10 @@ function App() {
             />
           }
         />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/sponsors" element={<SponsorsPage />} />
+        <Route path="/certificates" element={<CertificatesPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </div>
   );

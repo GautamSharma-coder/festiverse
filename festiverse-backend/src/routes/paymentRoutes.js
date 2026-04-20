@@ -20,7 +20,15 @@ router.post('/create-order', paymentLimiter, async (req, res) => {
         if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
             return res.status(503).json({ success: false, message: 'Payment service is not configured.' });
         }
-        const fee = parseInt(process.env.REGISTRATION_FEE || '100', 10);
+        const { category } = req.body;
+        let fee;
+
+        if (category === 'INTERNAL') {
+            fee = parseInt(process.env.REGISTRATION_FEE_INTERNAL || '349', 10);
+        } else {
+            fee = parseInt(process.env.REGISTRATION_FEE_EXTERNAL || '699', 10);
+        }
+
         const options = {
             amount: fee * 100, // amount in the smallest currency unit (paise)
             currency: 'INR',

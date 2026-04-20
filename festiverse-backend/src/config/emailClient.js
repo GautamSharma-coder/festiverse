@@ -28,45 +28,46 @@
  */
 
 const { google } = require('googleapis');
+const { Resend } = require('resend');
 
 const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID;
 const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
 const GMAIL_REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
 const EMAIL_USER = process.env.EMAIL_USER;
 
-// ── Startup validation ─────────────────────────────────────────────────
-const requiredVars = { GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, EMAIL_USER };
-const missing = Object.entries(requiredVars).filter(([, v]) => !v).map(([k]) => k);
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'no-reply@udaangecsamastipur.in';
 
-if (missing.length === 0) {
-  console.log('✅ Gmail REST API configured — all env vars present');
+
+// ── Startup validation ─────────────────────────────────────────────────
+const gmailVars = { GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, EMAIL_USER };
+const missingGmail = Object.entries(gmailVars).filter(([, v]) => !v).map(([k]) => k);
+
+if (RESEND_API_KEY) {
+  console.log('✅ Resend API configured (Primary)');
+  console.log(`   Sender: ${RESEND_FROM_EMAIL}`);
+} else {
+  console.warn('⚠️ Resend API NOT configured! Primary email service will be unavailable.');
+  console.warn('   Add RESEND_API_KEY to your .env file.');
+}
+
+if (missingGmail.length === 0) {
+  console.log('✅ Gmail REST API configured (Secondary/Fallback)');
   console.log(`   Sender: ${EMAIL_USER}`);
 } else {
-  console.error('❌ Gmail REST API NOT configured! Missing env vars:');
-  missing.forEach(k => console.error(`   → ${k} is not set`));
-  console.error('\n   📖 SETUP GUIDE:');
-  console.error('   1. Go to https://console.cloud.google.com');
-  console.error('   2. Create project → Enable "Gmail API"');
-  console.error('   3. Credentials → OAuth 2.0 Client ID (Web app)');
-  console.error('      Add redirect URI: https://developers.google.com/oauthplayground');
-  console.error('   4. Go to https://developers.google.com/oauthplayground');
-  console.error('      → ⚙️ Use your own OAuth credentials → Enter Client ID & Secret');
-  console.error('      → Select scope: https://mail.google.com/');
-  console.error('      → Authorize → Exchange → Copy Refresh Token');
-  console.error('   5. Set these env vars on Render:');
-  console.error('      GMAIL_CLIENT_ID=xxxxx  GMAIL_CLIENT_SECRET=xxxxx');
-  console.error('      GMAIL_REFRESH_TOKEN=xxxxx  EMAIL_USER=your@gmail.com');
+  console.error('❌ Gmail REST API NOT configured! Fallback service unavailable. Missing env vars:');
+  missingGmail.forEach(k => console.error(`   → ${k} is not set`));
 }
+
 
 // ── Gmail OAuth2 client ────────────────────────────────────────────────
 let _oauth2Client = null;
 
 function getOAuth2Client() {
   if (!_oauth2Client) {
-    if (missing.length > 0) {
+    if (missingGmail.length > 0) {
       throw new Error(
-        `❌ Cannot send email — missing env vars: ${missing.join(', ')}\n` +
-        `   See the setup guide in emailClient.js or check Render logs on startup.`
+        `❌ Cannot send email via Gmail — missing env vars: ${missingGmail.join(', ')}`
       );
     }
     _oauth2Client = new google.auth.OAuth2(
@@ -80,9 +81,19 @@ function getOAuth2Client() {
   return _oauth2Client;
 }
 
+// ── Resend client ─────────────────────────────────────────────────────
+let _resend = null;
+function getResendClient() {
+  if (!_resend && RESEND_API_KEY) {
+    _resend = new Resend(RESEND_API_KEY);
+    console.log('📧 Resend client initialized');
+  }
+  return _resend;
+}
+
 // ── Send email via Gmail REST API ──────────────────────────────────────
-async function sendEmail(to, subject, htmlBody) {
-  console.log(`📧 [Gmail API] Sending to: ${to} | Subject: "${subject.substring(0, 50)}..."`);
+async function sendEmailViaGmail(to, subject, htmlBody) {
+  console.log(`📧 [Gmail API] Attempting fallback to: ${to}`);
 
   const oauth2Client = getOAuth2Client();
   const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`;
@@ -103,52 +114,53 @@ async function sendEmail(to, subject, htmlBody) {
     .replace(/\//g, '_')
     .replace(/=+$/, '');
 
-  try {
-    const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
-    const result = await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: { raw: encodedMessage },
-    });
-    console.log(`✅ [Gmail API] Email sent successfully! ID: ${result.data.id}`);
-    return result.data;
-  } catch (err) {
-    const status = err?.response?.status || err?.code;
-    const message = err?.response?.data?.error?.message || err.message;
+  const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+  const result = await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw: encodedMessage },
+  });
+  console.log(`✅ [Gmail API] Email sent successfully! ID: ${result.data.id}`);
+  return result.data;
+}
 
-    if (status === 401 || message?.includes('invalid_grant')) {
-      throw new Error(
-        `[Gmail API] ❌ AUTHENTICATION FAILED (${status})\n` +
-        `  → Your GMAIL_REFRESH_TOKEN is expired or invalid.\n` +
-        `  → Re-authorize at https://developers.google.com/oauthplayground\n` +
-        `  → Update GMAIL_REFRESH_TOKEN on Render`
-      );
+// ── Main Send Email with Failover ──────────────────────────────────────
+async function sendEmail(to, subject, htmlBody) {
+  // 1. Try Resend (Primary)
+  if (RESEND_API_KEY) {
+    try {
+      console.log(`📧 [Resend] Sending to: ${to} | Subject: "${subject.substring(0, 50)}..."`);
+      const resend = getResendClient();
+      const { data, error } = await resend.emails.send({
+        from: `Festiverse'26 <${RESEND_FROM_EMAIL}>`,
+        to,
+        subject,
+        html: htmlBody,
+      });
+
+      if (error) {
+        console.error(`❌ [Resend] Error: ${error.message}`);
+        throw error;
+      }
+
+      console.log(`✅ [Resend] Email sent successfully! ID: ${data.id}`);
+      return data;
+    } catch (err) {
+      console.warn(`⚠️ [Resend] Failed. Falling back to Gmail...`);
     }
-    if (status === 403) {
-      throw new Error(
-        `[Gmail API] ❌ PERMISSION DENIED (403): ${message}\n` +
-        `  → Enable Gmail API: https://console.cloud.google.com/apis/library/gmail.googleapis.com\n` +
-        `  → Confirm scope: https://mail.google.com/`
-      );
-    }
-    if (status === 429) {
-      throw new Error(
-        `[Gmail API] ❌ RATE LIMIT HIT (429)\n` +
-        `  → Gmail API limit: ~100 emails/day. Wait and retry.`
-      );
-    }
-    if (err.code === 'ENOTFOUND' || err.code === 'ETIMEDOUT') {
-      throw new Error(
-        `[Gmail API] ❌ NETWORK ERROR: ${err.message}\n` +
-        `  → Cannot reach googleapis.com — check internet connection.`
-      );
-    }
-    throw new Error(
-      `[Gmail API] ❌ UNEXPECTED ERROR: ${message}\n` +
-      `  → Status: ${status}\n` +
-      `  → Full error: ${JSON.stringify(err?.response?.data || err.message)}`
-    );
+  } else {
+    console.log(`ℹ️ [Resend] Not configured. Using Gmail directly.`);
+  }
+
+  // 2. Try Gmail (Fallback)
+  try {
+    return await sendEmailViaGmail(to, subject, htmlBody);
+  } catch (err) {
+    console.error(`❌ [Email Service] ALL SERVICES FAILED.`);
+    // Re-throw the original Gmail error for debugging
+    throw err;
   }
 }
+
 
 // ══════════════════════════════════════════════════════════════════════
 //  DESIGN SYSTEM — Minimalist Editorial
@@ -834,6 +846,7 @@ async function sendResultEmail(toEmail, name, result) {
 }
 
 module.exports = {
+  sendEmail,
   sendOTPEmail,
   sendConfirmationEmail,
   sendEventRegistrationEmail,

@@ -2,235 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api';
 
-const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
-
-  :root {
-    --bg: #ffffff;
-    --text-primary: #111111;
-    --text-muted: #71717a;
-    --border: #e4e4e7;
-    --skeleton: #f4f4f5;
-    --radius: 8px;
-  }
-
-  /* Automatically adapts to Dark Mode for a sleek minimal dark aesthetic */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #09090b;
-      --text-primary: #fafafa;
-      --text-muted: #a1a1aa;
-      --border: #27272a;
-      --skeleton: #18181b;
-    }
-  }
-
-  .min-root {
-    background-color: var(--bg);
-    color: var(--text-primary);
-    font-family: 'Inter', sans-serif;
-    padding: 96px 0;
-    min-height: 100vh;
-  }
-
-  .min-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 24px;
-  }
-
-  /* ── Header ── */
-  .min-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 64px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .min-title-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .min-count {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-    font-weight: 500;
-  }
-
-  .min-title {
-    font-size: clamp(2rem, 4vw, 2.5rem);
-    font-weight: 500;
-    letter-spacing: -0.03em;
-    margin: 0;
-    line-height: 1.1;
-  }
-
-  .min-explore-btn {
-    font-family: inherit;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    background: transparent;
-    border: none;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-  }
-
-  .min-explore-btn:hover {
-    opacity: 0.6;
-  }
-
-  /* ── Grid ── */
-  .min-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 48px 32px;
-  }
-
-  /* ── Card ── */
-  .min-card {
-    display: flex;
-    flex-direction: column;
-    cursor: pointer;
-    text-decoration: none;
-  }
-
-  .min-card-img-wrap {
-    width: 100%;
-    aspect-ratio: 4/3;
-    background-color: var(--skeleton);
-    border-radius: var(--radius);
-    overflow: hidden;
-    margin-bottom: 20px;
-  }
-
-  .min-card-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
-  }
-
-  .min-card:hover .min-card-img {
-    transform: scale(1.03);
-    opacity: 0.9;
-  }
-
-  .min-card-no-img {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    font-weight: 300;
-    font-size: 0.875rem;
-  }
-
-  /* ── Card Content ── */
-  .min-card-meta {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 10px;
-  }
-
-  .min-card-title {
-    font-size: 1.25rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    margin: 0 0 12px 0;
-    letter-spacing: -0.01em;
-  }
-
-  .min-card-desc {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    line-height: 1.6;
-    margin: 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .min-card-footer {
-    margin-top: 16px;
-    font-size: 0.875rem;
-    color: var(--text-muted);
-  }
-
-  /* ── Skeletons ── */
-  @keyframes pulse-opacity {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  .min-skeleton-block {
-    background-color: var(--skeleton);
-    border-radius: 4px;
-    animation: pulse-opacity 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  /* ── Pagination ── */
-  .min-pagination {
-    margin-top: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 24px;
-    border-top: 1px solid var(--border);
-    font-size: 0.875rem;
-    color: var(--text-muted);
-  }
-
-  .min-page-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-primary);
-    font-family: inherit;
-    font-size: inherit;
-    cursor: pointer;
-    padding: 8px 0;
-    transition: opacity 0.2s;
-  }
-
-  .min-page-btn:disabled {
-    color: var(--text-muted);
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-
-  .min-page-btn:not(:disabled):hover {
-    opacity: 0.6;
-  }
-
-  /* ── Responsive ── */
-  @media (max-width: 768px) {
-    .min-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 24px;
-      margin-bottom: 40px;
-    }
-    .min-root { padding: 64px 0; }
-  }
-`;
-
 const FestEvents = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
@@ -246,7 +17,7 @@ const FestEvents = () => {
           setEvents(res.events);
         }
       } catch (err) {
-        console.error("Failed to fetch events for landing page:", err);
+        console.error("Failed to fetch events:", err);
       } finally {
         setLoading(false);
       }
@@ -257,128 +28,226 @@ const FestEvents = () => {
   const formatDate = (dateStr) => {
     if (!dateStr) return 'TBA';
     const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+    return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
   };
-
-  if (loading) {
-    return (
-      <section className="min-root">
-        <style>{styles}</style>
-        <div className="min-container">
-          <div className="min-header">
-            <div className="min-title-wrapper">
-              <span className="min-count">Loading Events</span>
-              <h2 className="min-title">Featured Events</h2>
-            </div>
-          </div>
-          <div className="min-grid">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="min-skeleton-block" style={{ width: '100%', aspectRatio: '4/3', borderRadius: 'var(--radius)' }} />
-                <div className="min-skeleton-block" style={{ width: '30%', height: '14px' }} />
-                <div className="min-skeleton-block" style={{ width: '80%', height: '24px' }} />
-                <div className="min-skeleton-block" style={{ width: '60%', height: '16px' }} />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (events.length === 0) return null;
 
   const totalPages = Math.ceil(events.length / itemsPerPage);
   const currentEvents = events.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <section id="events" className="min-root">
-      <style>{styles}</style>
-      <div className="min-container">
+    <section id="events" className="events-section" style={styles.section}>
+      {/* Ambient Background Glow */}
+      <div style={styles.ambientGlow}></div>
 
-        {/* Header */}
-        <div className="min-header">
-          <div className="min-title-wrapper">
-            <span className="min-count">{events.length} Events Listed</span>
-            <h2 className="min-title">Featured Events</h2>
+      <div style={styles.container}>
+        {/* Header Section */}
+        <div style={styles.header}>
+          <div>
+            <span style={styles.subtitle}>
+              <iconify-icon icon="solar:calendar-date-bold-duotone" style={{ marginRight: '6px' }}></iconify-icon>
+              {loading ? 'LOADING LINEUP' : 'OFFICIAL LINEUP'}
+            </span>
+            <h2 style={styles.title}>
+              Featured <span style={styles.gradientText}>Events.</span>
+            </h2>
           </div>
-          <button className="min-explore-btn" onClick={() => navigate('/events')}>
-            View All Events →
-          </button>
+
+          {!loading && events.length > 0 && (
+            <button style={styles.viewAllBtn} onClick={() => navigate('/events')} className="hover-btn">
+              Explore All <iconify-icon icon="solar:arrow-right-linear"></iconify-icon>
+            </button>
+          )}
         </div>
 
-        {/* Grid */}
-        <div className="min-grid">
-          {currentEvents.map((ev) => (
-            <div
-              key={ev.id}
-              className="min-card"
-              onClick={() => navigate(`/events/${ev.id}`)}
-            >
-              {/* Image Wrapper */}
-              <div className="min-card-img-wrap">
-                {ev.image_url ? (
-                  <img
-                    src={ev.image_url.startsWith('http')
-                      ? ev.image_url
-                      : `${import.meta.env.VITE_API_URL}${ev.image_url}`}
-                    alt={ev.name}
-                    className="min-card-img"
-                  />
-                ) : (
-                  <div className="min-card-no-img">No Image Provided</div>
-                )}
+        {/* Loading State */}
+        {loading ? (
+          <div style={styles.grid}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="skeleton-card" style={styles.skeletonCard}>
+                <div className="shimmer" style={styles.shimmer}></div>
               </div>
-
-              {/* Text Content */}
-              <div className="min-card-meta">
-                {ev.category && <span>{ev.category}</span>}
-                {ev.category && ev.date && <span>•</span>}
-                <span>{formatDate(ev.date)}</span>
-              </div>
-
-              <h3 className="min-card-title">{ev.name}</h3>
-
-              {ev.description && (
-                <p className="min-card-desc">{ev.description}</p>
-              )}
-
-              {ev.location && (
-                <div className="min-card-footer">
-                  {ev.location}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 ? (
-          <div className="min-pagination">
-            <button
-              className="min-page-btn"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(p => p - 1)}
-            >
-              ← Previous
-            </button>
-            <span>{currentPage} / {totalPages}</span>
-            <button
-              className="min-page-btn"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(p => p + 1)}
-            >
-              Next →
-            </button>
+            ))}
+          </div>
+        ) : events.length === 0 ? (
+          <div style={styles.emptyState}>
+            <iconify-icon icon="solar:ghost-bold-duotone" width="48" style={{ color: '#7c3aed' }}></iconify-icon>
+            <p>No events have been revealed yet. Stay tuned!</p>
           </div>
         ) : (
-          <div className="min-pagination" style={{ justifyContent: 'center' }}>
-            End of Events
-          </div>
+          <>
+            {/* Event Grid */}
+            <div style={styles.grid}>
+              {currentEvents.map((ev) => (
+                <div
+                  key={ev.id}
+                  className="event-card"
+                  style={styles.card}
+                  onClick={() => navigate(`/events/${ev.id}`)}
+                >
+                  {/* Image & Badges */}
+                  <div style={styles.imageWrapper}>
+                    {ev.image_url ? (
+                      <img
+                        src={ev.image_url.startsWith('http') ? ev.image_url : `${import.meta.env.VITE_API_URL}${ev.image_url}`}
+                        alt={ev.name}
+                        className="card-img"
+                        style={styles.image}
+                      />
+                    ) : (
+                      <div style={styles.noImage}>FESTIVERSE</div>
+                    )}
+                    <div style={styles.imageOverlay}></div>
+
+                    {ev.category && (
+                      <div style={styles.categoryBadge}>
+                        {ev.category}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div style={styles.cardContent}>
+                    <div style={styles.dateWrap}>
+                      <span style={styles.dateText}>{formatDate(ev.date)}</span>
+                    </div>
+
+                    <h3 style={styles.cardTitle}>{ev.name}</h3>
+
+                    {ev.description && (
+                      <p style={styles.cardDesc}>{ev.description}</p>
+                    )}
+
+                    <div style={styles.cardFooter}>
+                      <div style={styles.location}>
+                        <iconify-icon icon="solar:map-point-bold-duotone"></iconify-icon>
+                        {ev.location || 'Venue TBA'}
+                      </div>
+                      <div className="card-arrow" style={styles.arrowIcon}>
+                        <iconify-icon icon="solar:arrow-right-up-linear"></iconify-icon>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            <div style={styles.pagination}>
+              <button
+                className="page-btn"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => p - 1)}
+              >
+                <iconify-icon icon="solar:alt-arrow-left-linear"></iconify-icon> Prev
+              </button>
+
+              <div style={styles.pageIndicator}>
+                <span style={{ color: '#fff' }}>{currentPage}</span>
+                <span style={{ color: '#64748b', margin: '0 4px' }}>/</span>
+                <span>{totalPages}</span>
+              </div>
+
+              <button
+                className="page-btn"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => p + 1)}
+              >
+                Next <iconify-icon icon="solar:alt-arrow-right-linear"></iconify-icon>
+              </button>
+            </div>
+          </>
         )}
       </div>
+
+      {/* Injected CSS for complex animations/hovers */}
+      <style>{`
+                .event-card {
+                    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+                    cursor: pointer;
+                }
+                .event-card:hover {
+                    transform: translateY(-8px);
+                    border-color: rgba(124, 58, 237, 0.4) !important;
+                    box-shadow: 0 20px 40px -10px rgba(124, 58, 237, 0.15);
+                }
+                .event-card:hover .card-img {
+                    transform: scale(1.08);
+                }
+                .event-card:hover .card-arrow {
+                    background: #7c3aed !important;
+                    color: #fff !important;
+                    transform: rotate(45deg);
+                }
+                .hover-btn { transition: all 0.2s ease; }
+                .hover-btn:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
+                
+                .page-btn {
+                    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+                    color: #e2e8f0; padding: 10px 20px; border-radius: 8px; font-weight: 600;
+                    display: flex; align-items: center; gap: 8px; cursor: pointer; transition: all 0.2s;
+                }
+                .page-btn:hover:not(:disabled) { background: rgba(124, 58, 237, 0.2); border-color: rgba(124, 58, 237, 0.5); }
+                .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+                @keyframes shimmerEffect {
+                    0% { transform: translateX(-100%); }
+                    100% { transform: translateX(100%); }
+                }
+                .shimmer {
+                    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+                    animation: shimmerEffect 1.5s infinite;
+                }
+                @media (max-width: 768px) {
+                    .events-section { padding: 80px 0 !important; }
+                }
+            `}</style>
     </section>
   );
+};
+
+const styles = {
+  section: { backgroundColor: '#030303', padding: '120px 0', position: 'relative', fontFamily: "'Inter', sans-serif" },
+  ambientGlow: { position: 'absolute', top: '20%', left: '50%', transform: 'translate(-50%, -50%)', width: '60vw', height: '60vw', background: 'radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, transparent 60%)', filter: 'blur(80px)', pointerEvents: 'none' },
+  container: { maxWidth: '1240px', margin: '0 auto', padding: '0 24px', position: 'relative', zIndex: 1 },
+
+  // Header
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '3rem', flexWrap: 'wrap', gap: '1rem' },
+  subtitle: { color: '#a78bfa', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', display: 'flex', alignItems: 'center', marginBottom: '0.75rem' },
+  title: { fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', fontWeight: 800, color: '#f8fafc', margin: 0, lineHeight: 1.1, letterSpacing: '-0.03em' },
+  gradientText: { background: 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' },
+  viewAllBtn: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1', padding: '12px 24px', borderRadius: '100px', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
+
+  // Grid
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '2rem' },
+
+  // Cards
+  card: { background: 'rgba(15, 15, 20, 0.6)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', overflow: 'hidden', display: 'flex', flexDirection: 'column' },
+  imageWrapper: { position: 'relative', width: '100%', aspectRatio: '16/10', overflow: 'hidden', backgroundColor: '#0f0f14' },
+  image: { width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1)' },
+  noImage: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#333', fontSize: '2rem', fontWeight: 900, letterSpacing: '0.2em' },
+  imageOverlay: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(180deg, transparent 50%, rgba(15, 15, 20, 1) 100%)' },
+  categoryBadge: { position: 'absolute', top: '16px', right: '16px', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', border: '1px solid rgba(124, 58, 237, 0.3)', color: '#d8b4fe', padding: '6px 12px', borderRadius: '100px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' },
+
+  // Card Content
+  cardContent: { padding: '0 1.5rem 1.5rem 1.5rem', display: 'flex', flexDirection: 'column', flex: 1 },
+  dateWrap: { marginBottom: '1rem', marginTop: '-10px', position: 'relative', zIndex: 2 },
+  dateText: { color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.05em' },
+  cardTitle: { fontSize: '1.4rem', fontWeight: 700, color: '#f8fafc', margin: '0 0 0.75rem 0', lineHeight: 1.3, letterSpacing: '-0.01em' },
+  cardDesc: { color: '#94a3b8', fontSize: '0.95rem', lineHeight: 1.6, margin: '0 0 1.5rem 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', flex: 1 },
+
+  // Footer
+  cardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)' },
+  location: { display: 'flex', alignItems: 'center', gap: '6px', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: 500 },
+  arrowIcon: { width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a78bfa', transition: 'all 0.3s ease' },
+
+  // States
+  skeletonCard: { aspectRatio: '3/4', background: 'rgba(20,20,25,0.8)', borderRadius: '20px', position: 'relative', overflow: 'hidden' },
+  emptyState: { textAlign: 'center', padding: '4rem 0', color: '#94a3b8', fontSize: '1.1rem' },
+
+  // Pagination
+  pagination: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4rem', paddingTop: '2rem', borderTop: '1px solid rgba(255,255,255,0.05)' },
+  pageIndicator: { fontSize: '0.9rem', fontWeight: 600, background: 'rgba(0,0,0,0.5)', padding: '8px 16px', borderRadius: '100px', border: '1px solid rgba(255,255,255,0.1)' }
 };
 
 export default FestEvents;

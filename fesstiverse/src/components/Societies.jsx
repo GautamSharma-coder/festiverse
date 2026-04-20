@@ -39,12 +39,48 @@ const floatStyles = `
     0%, 100% { box-shadow: 0 0 6px currentColor; opacity: 0.6; }
     50%       { box-shadow: 0 0 14px currentColor; opacity: 1; }
   }
+  
+  .society-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.1fr);
+    gap: 3rem;
+    align-items: start;
+  }
+  .society-row.rtl { direction: rtl; }
+  .society-row.ltr { direction: ltr; }
+
+  .society-identity {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    direction: ltr;
+  }
+
+  .society-events {
+    direction: ltr;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 768px) {
+    .society-row {
+      grid-template-columns: 1fr;
+      direction: ltr !important;
+      gap: 2rem;
+    }
+    .society-identity {
+      align-items: center !important;
+      text-align: center !important;
+    }
+  }
 `;
 
 const societies = [
     {
         name: 'Fine and Art Society',
-        icon: 'solar:palette-linear',
+        logo: '/images/societies/fine_art_logo.png',
+        bg: '/images/societies/fine_art_bg.png',
         borderColor: 'rgba(239, 68, 68, 0.4)',
         bgFrom: 'rgba(127, 29, 29, 0.25)',
         iconColor: '#ef4444',
@@ -60,7 +96,8 @@ const societies = [
     },
     {
         name: 'Music and Dance Society',
-        icon: 'solar:music-note-linear',
+        logo: '/images/societies/music_dance_logo.png',
+        bg: '/images/societies/music_dance_bg.png',
         borderColor: 'rgba(168, 85, 247, 0.4)',
         bgFrom: 'rgba(88, 28, 135, 0.25)',
         iconColor: '#a855f7',
@@ -77,7 +114,8 @@ const societies = [
     },
     {
         name: 'Acting and Drama Society',
-        icon: 'solar:masks-linear',
+        logo: '/images/societies/acting_drama_logo.png',
+        bg: '/images/societies/acting_drama_bg.png',
         borderColor: 'rgba(245, 158, 11, 0.4)',
         bgFrom: 'rgba(146, 64, 14, 0.25)',
         iconColor: '#f59e0b',
@@ -93,7 +131,8 @@ const societies = [
     },
     {
         name: 'Literature and Debate Society',
-        icon: 'solar:book-open-linear',
+        logo: '/images/societies/literature_debate_logo.png',
+        bg: '/images/societies/literature_debate_bg.png',
         borderColor: 'rgba(20, 184, 166, 0.4)',
         bgFrom: 'rgba(17, 78, 72, 0.25)',
         iconColor: '#14b8a6',
@@ -109,7 +148,8 @@ const societies = [
     },
     {
         name: 'Social Awareness Society',
-        icon: 'solar:heart-angle-linear',
+        logo: '/images/societies/social_awareness_logo.png',
+        bg: '/images/societies/social_awareness_bg.png',
         borderColor: 'rgba(34, 197, 94, 0.4)',
         bgFrom: 'rgba(20, 83, 45, 0.25)',
         iconColor: '#22c55e',
@@ -125,7 +165,7 @@ const societies = [
     },
 ];
 
-const EventCard = ({ event, accentColor, index }) => {
+const EventCard = ({ event, accentColor, index, bgImage }) => {
     const [hovered, setHovered] = useState(false);
     const [visible, setVisible] = useState(false);
     const ref = useRef(null);
@@ -154,7 +194,7 @@ const EventCard = ({ event, accentColor, index }) => {
                 padding: '1.25rem',
                 borderRadius: '14px',
                 background: hovered
-                    ? `linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02))`
+                    ? `rgba(255,255,255,0.08)`
                     : 'rgba(255,255,255,0.035)',
                 border: `1px solid ${hovered ? accentColor + '66' : 'rgba(255,255,255,0.08)'}`,
                 cursor: 'default',
@@ -170,6 +210,30 @@ const EventCard = ({ event, accentColor, index }) => {
                 willChange: 'transform',
             }}
         >
+            {/* Background Image Layer */}
+            <div style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `url(${bgImage})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                opacity: hovered ? 0.35 : 0.12,
+                transition: 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: hovered ? 'scale(1.1)' : 'scale(1)',
+                filter: 'grayscale(40%) contrast(110%)',
+                pointerEvents: 'none',
+                zIndex: -1,
+            }} />
+
+            {/* Subtle Gradient Overlay */}
+            <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: `linear-gradient(to bottom, transparent, rgba(0,0,0,0.7))`,
+                zIndex: 0,
+                pointerEvents: 'none',
+            }} />
+
             {/* Shimmer sweep on hover */}
             {hovered && (
                 <div style={{
@@ -178,56 +242,62 @@ const EventCard = ({ event, accentColor, index }) => {
                     background: `linear-gradient(105deg, transparent 40%, ${accentColor}18 50%, transparent 60%)`,
                     animation: 'shimmer 1.2s ease infinite',
                     pointerEvents: 'none',
+                    zIndex: 1,
                 }} />
             )}
 
-            {/* Pulsing glow dot */}
-            <div style={{
-                position: 'absolute',
-                top: '1rem',
-                right: '1rem',
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                background: accentColor,
-                color: accentColor,
-                animation: 'pulse-glow 2.4s ease-in-out infinite',
-                animationDelay: `${floatDelay}s`,
-            }} />
-
-            {/* Icon */}
-            <iconify-icon
-                icon={event.icon}
-                width="22"
-                style={{
+            {/* Content Layer */}
+            <div style={{ position: 'relative', zIndex: 2 }}>
+                {/* Pulsing glow dot */}
+                <div style={{
+                    position: 'absolute',
+                    top: '-0.25rem',
+                    right: '-0.25rem',
+                    width: '7px',
+                    height: '7px',
+                    borderRadius: '50%',
+                    background: accentColor,
                     color: accentColor,
-                    display: 'block',
-                    marginBottom: '0.75rem',
-                    opacity: hovered ? 1 : 0.75,
-                    transition: 'opacity 0.3s, transform 0.3s',
-                    transform: hovered ? 'scale(1.15)' : 'scale(1)',
-                }}
-            />
+                    animation: 'pulse-glow 2.4s ease-in-out infinite',
+                    animationDelay: `${floatDelay}s`,
+                }} />
 
-            <h4 style={{
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-                color: hovered ? '#fff' : '#e4e4e7',
-                margin: '0 0 0.3rem',
-                transition: 'color 0.3s',
-                letterSpacing: '-0.01em',
-            }}>
-                {event.name}
-            </h4>
-            <p style={{
-                fontSize: '0.6875rem',
-                color: hovered ? '#a1a1aa' : '#71717a',
-                margin: 0,
-                lineHeight: 1.5,
-                transition: 'color 0.3s',
-            }}>
-                {event.desc}
-            </p>
+                {/* Icon */}
+                <iconify-icon
+                    icon={event.icon}
+                    width="22"
+                    style={{
+                        color: accentColor,
+                        display: 'block',
+                        marginBottom: '0.75rem',
+                        opacity: hovered ? 1 : 0.85,
+                        transition: 'opacity 0.3s, transform 0.3s',
+                        transform: hovered ? 'scale(1.15)' : 'scale(1)',
+                    }}
+                />
+
+                <h4 style={{
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                    color: hovered ? '#fff' : '#e4e4e7',
+                    margin: '0 0 0.3rem',
+                    transition: 'color 0.3s',
+                    letterSpacing: '-0.01em',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                }}>
+                    {event.name}
+                </h4>
+                <p style={{
+                    fontSize: '0.6875rem',
+                    color: hovered ? '#d1d1d6' : '#a1a1aa',
+                    margin: 0,
+                    lineHeight: 1.5,
+                    transition: 'color 0.3s',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                }}>
+                    {event.desc}
+                </p>
+            </div>
 
             {/* Bottom accent bar */}
             <div style={{
@@ -239,6 +309,7 @@ const EventCard = ({ event, accentColor, index }) => {
                 background: `linear-gradient(to right, ${accentColor}, transparent)`,
                 transition: 'width 0.45s ease',
                 opacity: hovered ? 1 : 0.3,
+                zIndex: 2,
             }} />
         </div>
     );
@@ -303,16 +374,10 @@ const Societies = () => {
                                 }} />
                             )}
 
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2.5fr)',
-                                gap: '3rem',
-                                alignItems: 'start',
-                                direction: s.align === 'right' ? 'rtl' : 'ltr',
-                            }}>
+                            <div className={`society-row ${s.align === 'right' ? 'rtl' : 'ltr'}`}>
                                 {/* LEFT: Identity block */}
-                                <div style={{ direction: 'ltr', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                    {/* Circle */}
+                                <div className="society-identity">
+                                    {/* Logo Container */}
                                     <div style={{
                                         width: '7rem',
                                         height: '7rem',
@@ -321,11 +386,22 @@ const Societies = () => {
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        background: `radial-gradient(circle at 30% 30%, ${s.bgFrom}, #0a0a0a)`,
+                                        background: '#fff',
                                         flexShrink: 0,
-                                        boxShadow: `0 0 40px ${s.accentColor}18`,
+                                        boxShadow: `0 0 30px rgba(255,255,255,0.1)`,
+                                        overflow: 'hidden',
+                                        position: 'relative',
+                                        padding: '0.5rem',
                                     }}>
-                                        <iconify-icon icon={s.icon} width="36" style={{ color: s.iconColor }} />
+                                        <img 
+                                            src={s.logo} 
+                                            alt={s.name} 
+                                            style={{ 
+                                                width: '100%', 
+                                                height: '100%', 
+                                                objectFit: 'contain',
+                                            }} 
+                                        />
                                     </div>
 
                                     <div>
@@ -360,14 +436,9 @@ const Societies = () => {
                                 </div>
 
                                 {/* RIGHT: Event cards grid */}
-                                <div style={{
-                                    direction: 'ltr',
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-                                    gap: '0.75rem',
-                                }}>
+                                <div className="society-events">
                                     {s.events.map((event, i) => (
-                                        <EventCard key={i} index={i} event={event} accentColor={s.accentColor} />
+                                        <EventCard key={i} index={i} event={event} accentColor={s.accentColor} bgImage={s.bg} />
                                     ))}
                                 </div>
                             </div>

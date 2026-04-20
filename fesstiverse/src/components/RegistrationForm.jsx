@@ -1,446 +1,495 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
 import { biharEngineeringColleges } from '../lib/colleges';
+import gsap from 'gsap';
 
-/* ── tiny SVG icons ─────────────────────────────────────────── */
-const Icon = ({ d, size = 16 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d={d} />
-    </svg>
+/* ── ICONS ─────────────────────────────────────────────────── */
+const StepIcon = ({ icon, active, done }) => (
+    <div style={{
+        width: '40px',
+        height: '40px',
+        borderRadius: '12px',
+        background: done ? '#ffb300' : active ? 'rgba(255, 179, 0, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+        border: `1px solid ${done || active ? '#ffb300' : 'rgba(255, 255, 255, 0.1)'}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: done ? '#000' : active ? '#ffb300' : '#444',
+        transition: 'all 0.4s cubic-bezier(0.23, 1, 0.32, 1)',
+        boxShadow: active ? '0 0 20px rgba(255, 179, 0, 0.2)' : 'none'
+    }}>
+        <iconify-icon icon={done ? 'solar:check-read-bold' : icon} width="22" />
+    </div>
 );
-const EyeIcon = () => <Icon d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />;
-const EyeOffIcon = () => (
-    <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-        <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-);
-const CheckIcon = () => <Icon d="M20 6L9 17l-5-5" />;
-const UserIcon = () => <Icon d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />;
-const MailIcon = () => <Icon d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6" />;
-const PhoneIcon = () => <Icon d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.18 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6 6l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />;
-const LockIcon = () => <Icon d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z M7 11V7a5 5 0 0 1 10 0v4" />;
-const BuildingIcon = () => <Icon d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10" />;
 
-/* ── Field wrapper ───────────────────────────────────────────── */
-const Field = ({ label, icon, children, hint }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+/* ── UI COMPONENTS ─────────────────────────────────────────── */
+const Field = ({ label, icon, children, hint, error }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
         <label style={{
-            display: 'flex', alignItems: 'center', gap: '6px',
-            fontSize: '0.72rem', fontFamily: "'Outfit', sans-serif",
-            fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.38)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '1.5px',
+            color: '#888'
         }}>
-            <span style={{ color: '#f97316', opacity: 0.8 }}>{icon}</span>
+            <iconify-icon icon={icon} style={{ color: '#ffb300' }} />
             {label}
         </label>
         {children}
-        {hint && <p style={{ margin: 0, fontSize: '0.72rem', color: 'rgba(255,255,255,0.22)', fontFamily: "'Outfit', sans-serif" }}>{hint}</p>}
+        {hint && <span style={{ fontSize: '0.7rem', color: '#555', fontWeight: 500 }}>{hint}</span>}
+        {error && <span style={{ fontSize: '0.7rem', color: '#ff4b4b', fontWeight: 600 }}>{error}</span>}
     </div>
 );
 
-/* ── Text / tel / email input ────────────────────────────────── */
-const Input = ({ type = 'text', value, onChange, onKeyDown, placeholder, required, minLength, inputMode, maxLength, rightEl, autoComplete }) => {
-    const [focused, setFocused] = useState(false);
-    const isPass = type === 'password';
-    const [visible, setVisible] = useState(false);
-    const resolvedType = isPass ? (visible ? 'text' : 'password') : type;
-
-    return (
-        <div style={{ position: 'relative' }}>
-            <input
-                type={resolvedType}
-                value={value}
-                onChange={onChange}
-                onKeyDown={onKeyDown}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
-                placeholder={placeholder}
-                required={required}
-                minLength={minLength}
-                inputMode={inputMode}
-                maxLength={maxLength}
-                autoComplete={autoComplete}
-                style={{
-                    width: '100%', boxSizing: 'border-box',
-                    background: focused ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${focused ? 'rgba(249,115,22,0.55)' : 'rgba(255,255,255,0.1)'}`,
-                    borderRadius: '10px',
-                    padding: isPass ? '0.8rem 2.8rem 0.8rem 1rem' : (rightEl ? '0.8rem 6rem 0.8rem 1rem' : '0.8rem 1rem'),
-                    color: '#fff',
-                    fontSize: '0.9rem',
-                    fontFamily: "'Outfit', sans-serif",
-                    outline: 'none',
-                    transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
-                    boxShadow: focused ? '0 0 0 3px rgba(249,115,22,0.1)' : 'none',
-                }}
-            />
-            {isPass && (
-                <button type="button" tabIndex={-1} onClick={() => setVisible(v => !v)}
-                    style={{
-                        position: 'absolute', right: '0.9rem', top: '50%', transform: 'translateY(-50%)',
-                        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                        color: visible ? '#f97316' : 'rgba(255,255,255,0.28)',
-                        display: 'flex', alignItems: 'center', transition: 'color 0.2s',
-                    }}>
-                    {visible ? <EyeOffIcon /> : <EyeIcon />}
-                </button>
-            )}
-            {rightEl && (
-                <div style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)' }}>
-                    {rightEl}
-                </div>
-            )}
-        </div>
-    );
-};
-
-/* ── Progress step bar ───────────────────────────────────────── */
-const steps = ['Details', 'Verification'];
-const StepBar = ({ current }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: '2rem' }}>
-        {steps.map((s, i) => {
-            const done = i < current;
-            const active = i === current;
-            return (
-                <React.Fragment key={s}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-                        <div style={{
-                            width: '32px', height: '32px', borderRadius: '50%',
-                            background: done ? '#f97316' : active ? 'rgba(249,115,22,0.15)' : 'rgba(255,255,255,0.05)',
-                            border: `2px solid ${done ? '#f97316' : active ? '#f97316' : 'rgba(255,255,255,0.1)'}`,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            transition: 'all 0.3s ease',
-                            color: done ? '#fff' : active ? '#f97316' : 'rgba(255,255,255,0.25)',
-                            fontSize: '0.75rem', fontWeight: 700, fontFamily: "'Outfit', sans-serif",
-                        }}>
-                            {done ? <CheckIcon /> : i + 1}
-                        </div>
-                        <span style={{
-                            fontSize: '0.62rem', letterSpacing: '0.08em', textTransform: 'uppercase',
-                            fontFamily: "'Outfit', sans-serif", fontWeight: 600,
-                            color: active ? '#f97316' : done ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.2)',
-                            transition: 'color 0.3s',
-                        }}>{s}</span>
-                    </div>
-                    {i < steps.length - 1 && (
-                        <div style={{
-                            flex: 1, height: '2px', marginBottom: '16px',
-                            background: done ? '#f97316' : 'rgba(255,255,255,0.08)',
-                            transition: 'background 0.3s',
-                        }} />
-                    )}
-                </React.Fragment>
-            );
-        })}
-    </div>
+const Input = ({ ...props }) => (
+    <input
+        {...props}
+        style={{
+            width: '100%',
+            background: 'rgba(255, 255, 255, 0.03)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '12px',
+            padding: '1rem 1.25rem',
+            color: '#fff',
+            fontSize: '1rem',
+            fontFamily: 'inherit',
+            outline: 'none',
+            transition: 'all 0.3s ease'
+        }}
+        onFocus={(e) => {
+            e.target.style.background = 'rgba(255, 179, 0, 0.05)';
+            e.target.style.borderColor = '#ffb300';
+            e.target.style.boxShadow = '0 0 0 4px rgba(255, 179, 0, 0.1)';
+        }}
+        onBlur={(e) => {
+            e.target.style.background = 'rgba(255, 255, 255, 0.03)';
+            e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+            e.target.style.boxShadow = 'none';
+        }}
+    />
 );
 
-/* ── Main Component ──────────────────────────────────────────── */
-const RegistrationForm = ({ onRegister, showToast }) => {
-    const [step, setStep] = useState(0);
-    const [otpSent, setOtpSent] = useState(false);
-    const [otpBtnText, setOtpBtnText] = useState('Send OTP');
+/* ── MAIN FORM COMPONENT ────────────────────────────────────── */
+const RegistrationForm = ({ onRegister, showToast, onClose }) => {
+    const [step, setStep] = useState(0); // 0: Category, 1: Details, 2: Verification
+    const [category, setCategory] = useState(null); // 'INTERNAL' or 'EXTERNAL'
+    
+    // Form State
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        college: '',
+        password: ''
+    });
+    
     const [otp, setOtp] = useState(['', '', '', '']);
-    const [phone, setPhone] = useState('');
-    const [password, setPassword] = useState('');
-    const [name, setName] = useState('');
-    const [college, setCollege] = useState('');
-    const [email, setEmail] = useState('');
+    const [otpSent, setOtpSent] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [statusMsg, setStatusMsg] = useState('');
-    const [statusType, setStatusType] = useState('');
+    const [status, setStatus] = useState({ msg: '', type: '' });
+    
+    const formRef = useRef(null);
     const otpRefs = useRef([]);
 
-    const handlePhoneChange = (e) => {
-        const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
-        setPhone(digits);
+    // Category Prices
+    const PRICES = {
+        INTERNAL: 349,
+        EXTERNAL: 699
     };
 
-    const handleOtpChange = (val, i) => {
-        const digit = val.replace(/\D/g, '').slice(-1);
-        const next = [...otp]; next[i] = digit; setOtp(next);
-        if (digit && i < 3) otpRefs.current[i + 1]?.focus();
-    };
-    const handleOtpKey = (e, i) => {
-        if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i - 1]?.focus();
+    const updateForm = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
+
+    const selectCategory = (type) => {
+        setCategory(type);
+        if (type === 'INTERNAL') {
+            updateForm('college', 'Government Engineering College (GEC), Samastipur');
+        } else {
+            updateForm('college', '');
+        }
+        setStep(1);
     };
 
     const sendOTP = async () => {
-        if (!email) return showToast?.('Please enter your email address first.', 'warning');
-        setOtpBtnText('...');
+        if (!formData.email) return showToast?.('Email is required for verification.', 'warning');
+        setLoading(true);
+        setStatus({ msg: 'Sending code...', type: '' });
         try {
-            await apiFetch('/api/auth/send-otp', { method: 'POST', body: JSON.stringify({ email }) });
-            setStatusType('success'); setStatusMsg('OTP sent! Check your inbox.');
-            setOtpSent(true); setOtpBtnText('Resend');
+            await apiFetch('/api/auth/send-otp', { 
+                method: 'POST', 
+                body: JSON.stringify({ email: formData.email }) 
+            });
+            setOtpSent(true);
+            setStatus({ msg: 'OTP sent! Please check your inbox.', type: 'success' });
         } catch (err) {
-            showToast?.(err.message, 'error'); setOtpBtnText('Send OTP');
+            setStatus({ msg: err.message, type: 'error' });
+        } finally {
+            setLoading(false);
         }
     };
 
-    const nextStep = () => {
-        if (step === 0) {
-            if (!name || !college || !email || !phone || !password) { 
-                setStatusType('error'); setStatusMsg('Please fill in all details.'); return; 
+    const handleNext = () => {
+        if (step === 1) {
+            const { name, email, phone, college, password } = formData;
+            if (!name || !email || !phone || !college || !password) {
+                return setStatus({ msg: 'Please complete all fields.', type: 'error' });
             }
-            if (phone.length < 10) { 
-                setStatusType('error'); setStatusMsg('Enter a valid 10-digit phone number.'); return; 
-            }
-            if (password.length < 6) { 
-                setStatusType('error'); setStatusMsg('Password must be at least 6 characters.'); return; 
-            }
+            if (phone.length < 10) return setStatus({ msg: 'Valid phone number required.', type: 'error' });
+            if (password.length < 6) return setStatus({ msg: 'Password must be 6+ chars.', type: 'error' });
+            setStep(2);
+            setStatus({ msg: '', type: '' });
         }
-        setStatusMsg(''); setStep(s => s + 1);
     };
-    const prevStep = () => { setStatusMsg(''); setStep(s => s - 1); };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         const otpStr = otp.join('');
-        if (otpStr.length < 4) return setStatusMsg('Please enter the 4-digit OTP.');
-        if (!phone || phone.length < 10) { setStatusType('error'); setStatusMsg('Enter a valid 10-digit phone number.'); return; }
-        setLoading(true); setStatusType(''); setStatusMsg('Initiating secure payment...');
+        if (otpStr.length < 4) return setStatus({ msg: 'Enter the 4-digit code.', type: 'error' });
+        
+        setLoading(true);
+        setStatus({ msg: 'Initializing secure transaction...', type: '' });
 
         try {
-            const orderData = await apiFetch('/api/payment/create-order', { method: 'POST' });
-            if (!orderData?.orderId) throw new Error('Unable to create payment session.');
+            // Include category in order creation
+            const orderData = await apiFetch('/api/payment/create-order', { 
+                method: 'POST',
+                body: JSON.stringify({ category })
+            });
+
+            if (!orderData?.orderId) throw new Error('Order creation failed.');
 
             const options = {
-                key: orderData.keyId, amount: orderData.amount, currency: orderData.currency,
-                name: "Festiverse'26", description: 'Event Pass Fee', order_id: orderData.orderId,
-                handler: async (response) => {
+                key: orderData.keyId,
+                amount: orderData.amount,
+                currency: orderData.currency,
+                name: "Festiverse'26",
+                description: `${category === 'INTERNAL' ? 'GEC Internal' : 'Inter-College'} Pass`,
+                order_id: orderData.orderId,
+                handler: async (paymentRes) => {
                     try {
-                        setStatusMsg('Finishing registration...');
-                        const data = await apiFetch('/api/auth/register', {
+                        setStatus({ msg: 'Finalizing registration...', type: '' });
+                        const regRes = await apiFetch('/api/auth/register', {
                             method: 'POST',
                             body: JSON.stringify({
-                                name, college, email, phone, otp: otpStr, password,
-                                razorpay_payment_id: response.razorpay_payment_id,
-                                razorpay_order_id: response.razorpay_order_id,
-                                razorpay_signature: response.razorpay_signature,
+                                ...formData,
+                                otp: otpStr,
+                                razorpay_payment_id: paymentRes.razorpay_payment_id,
+                                razorpay_order_id: paymentRes.razorpay_order_id,
+                                razorpay_signature: paymentRes.razorpay_signature,
                             }),
                         });
-                        setStatusType('success'); setStatusMsg(data.message);
-                        if (data.user) { localStorage.setItem('festiverse_user', JSON.stringify(data.user)); onRegister?.(data.user); }
-                    } catch (err) { setStatusType('error'); setStatusMsg(err.message); setLoading(false); }
+                        
+                        if (regRes.user) {
+                            localStorage.setItem('festiverse_user', JSON.stringify(regRes.user));
+                            setStatus({ msg: 'Welcome to Festiverse!', type: 'success' });
+                            setTimeout(() => onRegister?.(regRes.user), 1500);
+                        }
+                    } catch (err) {
+                        setStatus({ msg: err.message, type: 'error' });
+                        setLoading(false);
+                    }
                 },
-                prefill: { name, email, contact: phone },
-                theme: { color: '#f97316' },
-                modal: { ondismiss: () => { setStatusType('error'); setStatusMsg('Payment cancelled.'); setLoading(false); } },
+                prefill: {
+                    name: formData.name,
+                    email: formData.email,
+                    contact: formData.phone
+                },
+                theme: { color: '#ffb300' },
+                modal: { ondismiss: () => { setLoading(false); setStatus({ msg: 'Payment cancelled.', type: 'error' }); } }
             };
+
             const rzp = new window.Razorpay(options);
-            rzp.on('payment.failed', (r) => { setStatusType('error'); setStatusMsg('Payment failed: ' + r.error.description); setLoading(false); });
             rzp.open();
-        } catch (err) { setStatusType('error'); setStatusMsg(err.message); setLoading(false); }
+        } catch (err) {
+            setStatus({ msg: err.message, type: 'error' });
+            setLoading(false);
+        }
     };
 
+    useEffect(() => {
+        if (formRef.current) {
+            gsap.fromTo(formRef.current, 
+                { opacity: 0, scale: 0.98 }, 
+                { opacity: 1, scale: 1, duration: 0.5, ease: 'power3.out' }
+            );
+        }
+    }, [step]);
+
     return (
-        <>
-            <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Clash+Display:wght@600;700&display=swap');
-                @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
-                @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-                @keyframes spin { to { transform:rotate(360deg); } }
-                @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.5;} }
-                .rf-select option { background:#111; color:#fff; }
-                .rf-otp:focus { border-color: rgba(249,115,22,0.7) !important; box-shadow: 0 0 0 3px rgba(249,115,22,0.12) !important; }
-                .rf-next:hover:not(:disabled) { background: rgba(249,115,22,0.18) !important; }
-                .rf-submit:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
-                .rf-submit:active:not(:disabled) { transform: translateY(0); }
-            `}</style>
-
-            <div style={{
-                background: 'linear-gradient(145deg, #0f0a00 0%, #130d02 60%, #0a0a0a 100%)',
-                border: '1px solid rgba(249,115,22,0.18)',
-                borderRadius: '20px',
-                padding: '2.25rem 2rem',
-                boxShadow: '0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(249,115,22,0.06) inset',
-                position: 'relative',
-                overflow: 'hidden',
-                fontFamily: "'Outfit', sans-serif",
+        <div style={{ padding: '2.5rem' }}>
+            {/* Step Progress Indicators */}
+            <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                marginBottom: '3rem',
+                position: 'relative'
             }}>
-                {/* Glow blobs */}
-                <div style={{ position: 'absolute', top: '-80px', right: '-80px', width: '260px', height: '260px', background: 'radial-gradient(circle, rgba(249,115,22,0.1) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-                <div style={{ position: 'absolute', bottom: '-60px', left: '-60px', width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(234,88,12,0.07) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
-
-                {/* Header */}
-                <div style={{ marginBottom: '1.75rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <div style={{ width: '3px', height: '28px', background: 'linear-gradient(180deg,#f97316,#ea580c)', borderRadius: '2px' }} />
-                        <h2 style={{
-                            margin: 0,
-                            fontSize: '1.75rem',
-                            fontFamily: "'Bebas Neue', sans-serif",
-                            letterSpacing: '0.05em',
-                            color: '#fff',
-                            lineHeight: 1,
-                        }}>
-                            GET YOUR PASS
-                        </h2>
-                    </div>
-                    <p style={{ margin: '0 0 0 11px', color: 'rgba(255,255,255,0.32)', fontSize: '0.82rem', fontWeight: 400 }}>
-                        Festiverse'26 — complete the form below
-                    </p>
+                <div style={{ position: 'absolute', top: '20px', left: '10%', right: '10%', height: '1px', background: 'rgba(255,255,255,0.05)', zIndex: 0 }} />
+                
+                <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+                    <StepIcon icon="solar:user-bold" active={step === 0} done={step > 0} />
+                    <span style={{ display: 'block', marginTop: '8px', fontSize: '0.6rem', fontWeight: 800, color: step >= 0 ? '#ffb300' : '#444' }}>CATEGORY</span>
                 </div>
+                <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+                    <StepIcon icon="solar:document-bold" active={step === 1} done={step > 1} />
+                    <span style={{ display: 'block', marginTop: '8px', fontSize: '0.6rem', fontWeight: 800, color: step >= 1 ? '#ffb300' : '#444' }}>DETAILS</span>
+                </div>
+                <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
+                    <StepIcon icon="solar:shield-check-bold" active={step === 2} done={step > 2} />
+                    <span style={{ display: 'block', marginTop: '8px', fontSize: '0.6rem', fontWeight: 800, color: step >= 2 ? '#ffb300' : '#444' }}>VERIFY</span>
+                </div>
+            </div>
 
-                <StepBar current={step} />
+            {/* ERROR/SUCCESS MESSAGES */}
+            {status.msg && (
+                <div style={{
+                    padding: '1rem',
+                    borderRadius: '12px',
+                    marginBottom: '2rem',
+                    background: status.type === 'success' ? 'rgba(0, 255, 127, 0.1)' : status.type === 'error' ? 'rgba(255, 75, 75, 0.1)' : 'rgba(255, 179, 0, 0.1)',
+                    border: `1px solid ${status.type === 'success' ? '#00ffa4' : status.type === 'error' ? '#ff4b4b' : '#ffb300'}`,
+                    color: status.type === 'success' ? '#00ffa4' : status.type === 'error' ? '#ff4b4b' : '#ffb300',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                }}>
+                    <iconify-icon icon={status.type === 'error' ? 'solar:danger-bold' : 'solar:info-circle-bold'} width="20" />
+                    {status.msg}
+                </div>
+            )}
 
-                {/* Status message */}
-                {statusMsg && (
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                        padding: '0.65rem 0.9rem', borderRadius: '10px',
-                        marginBottom: '1.25rem',
-                        background: statusType === 'success' ? 'rgba(34,197,94,0.08)' : statusType === 'error' ? 'rgba(239,68,68,0.08)' : 'rgba(249,115,22,0.08)',
-                        border: `1px solid ${statusType === 'success' ? 'rgba(34,197,94,0.25)' : statusType === 'error' ? 'rgba(239,68,68,0.25)' : 'rgba(249,115,22,0.25)'}`,
-                        color: statusType === 'success' ? '#4ade80' : statusType === 'error' ? '#f87171' : '#fb923c',
-                        fontSize: '0.82rem', animation: 'fadeUp 0.2s ease',
-                    }}>
-                        <span>{statusType === 'success' ? '✓' : statusType === 'error' ? '⚠' : '○'}</span>
-                        {statusMsg}
+            <div ref={formRef}>
+                {/* STEP 0: Category Selection */}
+                {step === 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 800, textAlign: 'center', marginBottom: '1rem' }}>WHO ARE YOU?</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <button 
+                                onClick={() => selectCategory('INTERNAL')}
+                                style={{
+                                    padding: '2rem 1.5rem',
+                                    background: 'rgba(255, 255, 255, 0.03)',
+                                    border: '1px solid rgba(255, 179, 0, 0.2)',
+                                    borderRadius: '20px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: '12px'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 179, 0, 0.05)'; e.currentTarget.style.borderColor = '#ffb300'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'; e.currentTarget.style.borderColor = 'rgba(255, 179, 0, 0.2)'; }}
+                            >
+                                <iconify-icon icon="solar:home-bold" width="32" style={{ color: '#ffb300' }} />
+                                <span style={{ fontSize: '1rem', fontWeight: 800, color: '#fff' }}>GEC STUDENT</span>
+                                <span style={{ fontSize: '0.75rem', color: '#ffb300', fontWeight: 700 }}>₹{PRICES.INTERNAL} Only</span>
+                            </button>
+
+                            <button 
+                                onClick={() => selectCategory('EXTERNAL')}
+                                style={{
+                                    padding: '2rem 1.5rem',
+                                    background: 'rgba(255, 255, 255, 0.03)',
+                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    borderRadius: '20px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: '12px'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)'; }}
+                            >
+                                <iconify-icon icon="solar:globus-bold" width="32" style={{ color: '#fff' }} />
+                                <span style={{ fontSize: '1rem', fontWeight: 800, color: '#fff' }}>INTER-COLLEGE</span>
+                                <span style={{ fontSize: '0.75rem', color: '#888', fontWeight: 700 }}>₹{PRICES.EXTERNAL} Pass</span>
+                            </button>
+                        </div>
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit}>
-                    {/* STEP 0 — Details */}
-                    {step === 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', animation: 'fadeUp 0.25s ease' }}>
-                            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                                <div style={{ flex: '1 1 200px' }}>
-                                    <Field label="Full Name" icon={<UserIcon />}>
-                                        <Input type="text" placeholder="Your full name" value={name} onChange={e => setName(e.target.value)} required autoComplete="name" />
-                                    </Field>
-                                </div>
-                                <div style={{ flex: '1 1 200px' }}>
-                                    <Field label="Phone Number" icon={<PhoneIcon />} hint={`${phone.length}/10 digits`}>
-                                        <Input type="tel" placeholder="10-digit mobile number" value={phone} onChange={handlePhoneChange} inputMode="numeric" maxLength={10} required />
-                                    </Field>
-                                </div>
-                            </div>
-                            <Field label="College" icon={<BuildingIcon />}>
-                                <div style={{ position: 'relative' }}>
-                                    <select className="rf-select" required value={college} onChange={e => setCollege(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '0.8rem 1rem', color: college ? '#fff' : 'rgba(255,255,255,0.3)', fontSize: '0.9rem', fontFamily: "'Outfit', sans-serif", outline: 'none', cursor: 'pointer', appearance: 'none' }} onFocus={e => { e.target.style.borderColor = 'rgba(249,115,22,0.55)'; e.target.style.boxShadow = '0 0 0 3px rgba(249,115,22,0.1)'; e.target.style.background = 'rgba(255,255,255,0.06)'; }} onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.1)'; e.target.style.boxShadow = 'none'; e.target.style.background = 'rgba(255,255,255,0.03)'; }}>
-                                        <option value="" disabled hidden>Select your college</option>
-                                        {biharEngineeringColleges.map((c, i) => (<option key={i} value={c}>{c}</option>))}
-                                    </select>
-                                    <span style={{ position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', pointerEvents: 'none', fontSize: '10px' }}>▼</span>
-                                </div>
+                {/* STEP 1: Details */}
+                {step === 1 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <Field label="Full Name" icon="solar:user-bold">
+                                <Input placeholder="Enter your name" value={formData.name} onChange={e => updateForm('name', e.target.value)} />
                             </Field>
-                            <Field label="Email Address" icon={<MailIcon />}>
-                                <Input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" />
+                            <Field label="Phone No." icon="solar:phone-bold">
+                                <Input placeholder="10 Digits" type="tel" maxLength={10} value={formData.phone} onChange={e => updateForm('phone', e.target.value.replace(/\D/g, ''))} />
                             </Field>
-                            <Field label="Create Password" icon={<LockIcon />} hint="Minimum 6 characters">
-                                <Input type="password" placeholder="Choose a strong password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" />
-                            </Field>
-                        </div>
-                    )}
+                         </div>
 
-                    {/* STEP 1 — Verification */}
-                    {step === 1 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', animation: 'fadeUp 0.25s ease' }}>
-                            <Field label="Email Verification" icon={<MailIcon />}>
-                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
-                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '0.8rem 1rem', color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', fontFamily: "'Outfit', sans-serif" }}>
-                                        {email}
-                                    </div>
-                                    <button type="button" onClick={sendOTP} style={{ padding: '0 1rem', background: otpSent ? 'rgba(34,197,94,0.12)' : 'rgba(249,115,22,0.15)', border: `1px solid ${otpSent ? 'rgba(34,197,94,0.35)' : 'rgba(249,115,22,0.4)'}`, borderRadius: '10px', color: otpSent ? '#4ade80' : '#fb923c', fontSize: '0.75rem', fontWeight: 700, fontFamily: "'Outfit', sans-serif", letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
-                                        {otpBtnText === '...' ? (<span style={{ display: 'inline-block', width: 12, height: 12, border: '2px solid rgba(249,115,22,0.3)', borderTopColor: '#f97316', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />) : otpBtnText}
-                                    </button>
-                                </div>
-                            </Field>
-
-                            {otpSent && (
-                                <Field label="Verification Code" icon={<MailIcon />} hint="4-digit code sent to your email">
-                                    <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-start' }}>
-                                        {otp.map((d, i) => (<input key={i} ref={el => otpRefs.current[i] = el} className="rf-otp" type="text" inputMode="numeric" maxLength={1} value={d} onChange={e => handleOtpChange(e.target.value, i)} onKeyDown={e => handleOtpKey(e, i)} style={{ width: '52px', height: '56px', background: d ? 'rgba(249,115,22,0.08)' : 'rgba(255,255,255,0.03)', border: `1px solid ${d ? 'rgba(249,115,22,0.45)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '10px', color: '#fff', fontSize: '1.3rem', fontFamily: "'Bebas Neue', sans-serif", textAlign: 'center', outline: 'none', caretColor: '#f97316', transition: 'border-color 0.2s, background 0.2s' }} />))}
-                                    </div>
-                                </Field>
-                            )}
-
-                            {/* Summary card */}
-                            <div style={{ background: 'rgba(249,115,22,0.05)', border: '1px solid rgba(249,115,22,0.15)', borderRadius: '12px', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <p style={{ margin: 0, fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(249,115,22,0.6)', fontWeight: 600 }}>Registration Summary</p>
-                                {[['Name', name], ['College', college], ['Email', email]].map(([k, v]) => (
-                                    <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-                                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>{k}</span>
-                                        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.75)', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{v || '—'}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Navigation */}
-                    <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.75rem' }}>
-                        {step > 0 && (
-                            <button type="button" onClick={prevStep}
-                                className="rf-next"
-                                style={{
-                                    flex: 1, padding: '0.85rem',
-                                    background: 'rgba(255,255,255,0.04)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    borderRadius: '10px', color: 'rgba(255,255,255,0.5)',
-                                    fontSize: '0.85rem', fontWeight: 600,
-                                    fontFamily: "'Outfit', sans-serif",
-                                    cursor: 'pointer', transition: 'all 0.2s',
+                         <Field label="College" icon="solar:buildings-bold">
+                            {category === 'INTERNAL' ? (
+                                <div style={{
+                                    padding: '1rem 1.25rem',
+                                    background: 'rgba(255, 179, 0, 0.05)',
+                                    border: '1px solid #ffb300',
+                                    borderRadius: '12px',
+                                    color: '#ffb300',
+                                    fontSize: '0.9rem',
+                                    fontWeight: 700,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px'
                                 }}>
-                                ← Back
-                            </button>
-                        )}
-                        {step < 1 ? (
-                            <button type="button" onClick={nextStep}
+                                    <iconify-icon icon="solar:verified-check-bold" />
+                                    GEC SAMASTIPUR (Internal Pass)
+                                </div>
+                            ) : (
+                                <select 
+                                    value={formData.college} 
+                                    onChange={e => updateForm('college', e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        background: 'rgba(255, 255, 255, 0.03)',
+                                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                                        borderRadius: '12px',
+                                        padding: '1rem 1.25rem',
+                                        color: '#fff',
+                                        fontSize: '0.9rem',
+                                        outline: 'none',
+                                        appearance: 'none',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <option value="" disabled style={{ background: '#111' }}>Select College</option>
+                                    {biharEngineeringColleges.map((c, i) => (
+                                        <option key={i} value={c} style={{ background: '#111' }}>{c}</option>
+                                    ))}
+                                </select>
+                            )}
+                         </Field>
+
+                         <Field label="Email ID" icon="solar:letter-bold">
+                            <Input placeholder="university@email.com" type="email" value={formData.email} onChange={e => updateForm('email', e.target.value)} />
+                         </Field>
+
+                         <Field label="Password" icon="solar:lock-bold">
+                            <Input placeholder="Min 6 characters" type="password" value={formData.password} onChange={e => updateForm('password', e.target.value)} />
+                         </Field>
+
+                         <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                            <button onClick={() => setStep(0)} style={{ flex: 1, padding: '1rem', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#888', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' }}>BACK</button>
+                            <button onClick={handleNext} style={{ flex: 2, padding: '1rem', border: 'none', background: 'linear-gradient(90deg, #ffb300, #ff8f00)', color: '#000', borderRadius: '12px', fontWeight: 900, cursor: 'pointer', boxShadow: '0 5px 15px rgba(255, 179, 0, 0.3)' }}>NEXT STEP</button>
+                         </div>
+                    </div>
+                )}
+
+                {/* STEP 2: Verification */}
+                {step === 2 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                        <div style={{ textAlign: 'center' }}>
+                            <h4 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>VERIFY YOUR EMAIL</h4>
+                            <p style={{ fontSize: '0.875rem', color: '#888' }}>We've sent a 4-digit code to <br/><b style={{ color: '#ffb300' }}>{formData.email}</b></p>
+                        </div>
+
+                        {!otpSent ? (
+                            <button 
+                                onClick={sendOTP} 
+                                disabled={loading}
                                 style={{
-                                    flex: 2, padding: '0.85rem',
-                                    background: 'linear-gradient(135deg, rgba(249,115,22,0.9), rgba(234,88,12,0.9))',
-                                    border: 'none', borderRadius: '10px',
-                                    color: '#fff', fontSize: '0.85rem', fontWeight: 700,
-                                    fontFamily: "'Outfit', sans-serif",
-                                    letterSpacing: '0.04em',
-                                    cursor: 'pointer', transition: 'all 0.2s',
+                                    padding: '1.25rem',
+                                    borderRadius: '16px',
+                                    border: '1px solid #ffb300',
+                                    background: 'rgba(255, 179, 0, 0.05)',
+                                    color: '#ffb300',
+                                    fontWeight: 800,
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '12px'
                                 }}
-                                onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.1)'}
-                                onMouseLeave={e => e.currentTarget.style.filter = 'none'}
                             >
-                                Continue →
+                                {loading && <iconify-icon icon="line-md:loading-twotone-loop" />}
+                                SEND VERIFICATION CODE
                             </button>
                         ) : (
-                            <button type="submit" disabled={loading}
-                                className="rf-submit"
-                                style={{
-                                    flex: 2, padding: '0.9rem',
-                                    background: loading ? 'rgba(249,115,22,0.4)' : 'linear-gradient(135deg, #f97316, #ea580c)',
-                                    border: 'none', borderRadius: '10px',
-                                    color: '#fff', fontSize: '0.85rem', fontWeight: 700,
-                                    fontFamily: "'Outfit', sans-serif",
-                                    letterSpacing: '0.04em', textTransform: 'uppercase',
-                                    cursor: loading ? 'not-allowed' : 'pointer',
-                                    transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                                }}>
-                                {loading ? (
-                                    <>
-                                        <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                                        Processing…
-                                    </>
-                                ) : '🎟 Complete & Pay'}
-                            </button>
-                        )}
-                    </div>
-                </form>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                                    {otp.map((digit, i) => (
+                                        <input
+                                            key={i}
+                                            ref={el => otpRefs.current[i] = el}
+                                            type="text"
+                                            maxLength={1}
+                                            value={digit}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/\D/g, '');
+                                                const newOtp = [...otp];
+                                                newOtp[i] = val;
+                                                setOtp(newOtp);
+                                                if (val && i < 3) otpRefs.current[i+1].focus();
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i-1].focus();
+                                            }}
+                                            style={{
+                                                width: '60px',
+                                                height: '70px',
+                                                background: 'rgba(255, 255, 255, 0.03)',
+                                                border: digit ? '2px solid #ffb300' : '1px solid rgba(255, 255, 255, 0.1)',
+                                                borderRadius: '16px',
+                                                color: '#fff',
+                                                fontSize: '2rem',
+                                                fontWeight: 900,
+                                                textAlign: 'center',
+                                                outline: 'none',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        />
+                                    ))}
+                                </div>
 
-                {/* Footer */}
-                <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.15)', fontFamily: "'Outfit', sans-serif", letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                        🔒 Secured by Razorpay
-                    </span>
-                    <span style={{ color: 'rgba(255,255,255,0.08)' }}>·</span>
-                    <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.15)', fontFamily: "'Outfit', sans-serif", letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-                        Festiverse
-                    </span>
-                </div>
+                                <div style={{ background: 'rgba(255, 179, 0, 0.05)', border: '1px solid rgba(255, 179, 0, 0.1)', borderRadius: '16px', padding: '1.25rem' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                        <span style={{ fontSize: '0.8rem', color: '#888', fontWeight: 700 }}>PAYMENT TOTAL</span>
+                                        <span style={{ fontSize: '1rem', fontWeight: 900, color: '#ffb300' }}>₹{PRICES[category]}</span>
+                                    </div>
+                                    <p style={{ fontSize: '0.65rem', color: '#555', margin: 0 }}>* Includes All Events, Food, Merch, and Campus Access.</p>
+                                </div>
+
+                                <button 
+                                    onClick={handleSubmit} 
+                                    disabled={loading}
+                                    style={{
+                                        padding: '1.25rem',
+                                        borderRadius: '16px',
+                                        border: 'none',
+                                        background: 'linear-gradient(90deg, #ffb300, #ff8f00)',
+                                        color: '#000',
+                                        fontSize: '1rem',
+                                        fontWeight: 900,
+                                        cursor: 'pointer',
+                                        boxShadow: '0 10px 30px rgba(255, 179, 0, 0.2)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '12px'
+                                    }}
+                                >
+                                    {loading ? <iconify-icon icon="line-md:loading-twotone-loop" /> : <iconify-icon icon="solar:shield-keyhole-bold" />}
+                                    COMPLETE PAYMENT & REGISTER
+                                </button>
+                                
+                                <button onClick={() => setOtpSent(false)} style={{ background: 'none', border: 'none', color: '#555', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 700 }}>Didn't get the code? Resend Email</button>
+                            </div>
+                        )}
+                        <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', color: '#555', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 700 }}>‹ Back to Details</button>
+                    </div>
+                )}
             </div>
-        </>
+        </div>
     );
 };
 
