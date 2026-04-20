@@ -845,6 +845,74 @@ async function sendResultEmail(toEmail, name, result) {
   );
 }
 
+
+// ── Contact Confirmation ─────────────────────────────────────────────
+//   toEmail — recipient address
+//   name    — name of the user
+async function sendContactConfirmationEmail(toEmail, name) {
+  const body = `
+    <!-- Heading -->
+    <tr>
+      <td style="padding:40px 48px 0;">
+        <p style="margin:0 0 6px;color:${T.inkMute};font-size:10px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:500;
+          letter-spacing:4px;text-transform:uppercase;">
+          Inquiry Received
+        </p>
+        <h2 style="margin:0 0 14px;color:${T.ink};font-size:28px;
+          font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;
+          font-weight:600;line-height:1.25;">
+          Thank you for reaching out,<br>
+          <em style="color:${T.saffron};font-style:italic;">${name}.</em>
+        </h2>
+        <p style="margin:0;color:${T.inkMid};font-size:14px;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:300;line-height:1.8;">
+          We've received your message regarding Festiverse '26. Our team is currently reviewing 
+          your inquiry and will get back to you at this email address within 24-48 hours.
+        </p>
+      </td>
+    </tr>
+
+    <!-- Rule -->
+    <tr><td style="padding:24px 48px 0;"><div style="height:1px;background:${T.inkFaint};"></div></td></tr>
+
+    <!-- Next steps -->
+    <tr>
+      <td style="padding:24px 48px 0;">
+        <p style="margin:0 0 16px;color:${T.inkMute};font-size:10px;font-weight:600;
+          font-family:'Outfit',Helvetica,Arial,sans-serif;letter-spacing:2px;text-transform:uppercase;">
+          While You Wait
+        </p>
+        <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
+          <tr>
+            <td style="padding-bottom:12px;">
+              <p style="margin:0;color:${T.inkMid};font-size:13px;font-family:'Outfit',Arial,sans-serif;">
+                <strong style="color:${T.ink};">Explore Events:</strong> Check out the latest competitions and workshops on our dashboard.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-bottom:12px;">
+              <p style="margin:0;color:${T.inkMid};font-size:13px;font-family:'Outfit',Arial,sans-serif;">
+                <strong style="color:${T.ink};">Join the Buzz:</strong> Follow us on Instagram for behind-the-scenes updates.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- Bottom Padding -->
+    <tr><td style="padding-bottom:48px;"></td></tr>
+  `;
+
+  return await sendEmail(
+    toEmail,
+    `Message Received — Festiverse '26`,
+    shell(body)
+  );
+}
+
 module.exports = {
   sendEmail,
   sendOTPEmail,
@@ -852,4 +920,5 @@ module.exports = {
   sendEventRegistrationEmail,
   sendTeamInviteEmail,
   sendResultEmail,
-};
+  sendContactConfirmationEmail,
+};

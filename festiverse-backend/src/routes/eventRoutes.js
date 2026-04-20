@@ -2,7 +2,7 @@ const express = require('express');
 const QRCode = require('qrcode');
 const supabase = require('../config/supabaseClient');
 const { verifyToken } = require('../middlewares/authMiddleware');
-const { sendEventRegistrationEmail } = require('../config/emailClient');
+const { sendEventRegistrationEmail, sendTeamInviteEmail } = require('../config/emailClient');
 const logger = require('../config/logger');
 
 const router = express.Router();
@@ -175,9 +175,29 @@ router.post('/register', verifyToken, async (req, res) => {
                         : `${reg.events.team_size} Members`,
                     registrationId: reg.custom_id || reg.id,
                 };
+                
+                // 1. Email to the main registrant (Team Leader if team event)
                 sendEventRegistrationEmail(reg.users.email, reg.users.name, eventDetails).catch(err => {
                     logger.error('EVENT REG EMAIL ERROR', { message: err.message });
                 });
+
+                // 2. Emails to Teammates (if any)
+                if (Array.isArray(reg.team_members) && reg.team_members.length > 0) {
+                    reg.team_members.forEach(member => {
+                        if (member.email) {
+                            sendTeamInviteEmail(member.email, member.name || 'Teammate', {
+                                fromName: reg.users.name,
+                                teamName: `${reg.users.name}'s Team`,
+                                eventTitle: reg.events.name,
+                                message: `You've been added to our team for ${reg.events.name}! Get ready for the Festiverse.`,
+                                acceptUrl: 'https://festiverse.in/dashboard', // Direct since they are already added
+                                expiresIn: 'N/A'
+                            }).catch(err => {
+                                logger.error('TEAM INVITE EMAIL ERROR', { message: err.message });
+                            });
+                        }
+                    });
+                }
             }
         });
     } catch (err) {

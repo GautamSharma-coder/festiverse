@@ -23,7 +23,7 @@ const RegistrationDetails = () => {
 
                     {/* Left Content: Bold Typography */}
                     <div style={styles.contentCol}>
-                        <div style={styles.tag}>
+                        <div className="reg-tag" style={styles.tag}>
                             WARNING: HIGH ENERGY EVENT
                         </div>
 
@@ -37,7 +37,7 @@ const RegistrationDetails = () => {
                             Grab your pass before they vanish into the void.
                         </p>
 
-                        <div style={styles.listGrid}>
+                        <div className="inclusion-grid" style={styles.listGrid}>
                             {inclusions.map((item, idx) => (
                                 <div key={idx} className="brutalist-item" style={styles.listItem}>
                                     <div style={styles.iconBox}>
@@ -58,19 +58,19 @@ const RegistrationDetails = () => {
                                 <iconify-icon icon="solar:ticket-sale-bold" width="32"></iconify-icon>
                             </div>
 
-                            <div style={styles.priceContainer}>
+                            <div className="price-container" style={styles.priceContainer}>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <span style={{ fontSize: '0.8rem', fontWeight: 800, background: '#000', color: '#ccff00', padding: '2px 8px', width: 'fit-content' }}>GEC INTERNAL</span>
                                     <div style={{ display: 'flex', alignItems: 'baseline' }}>
-                                        <span style={{ ...styles.currency, fontSize: '1.5rem' }}>₹</span>
-                                        <span style={{ ...styles.price, fontSize: '4rem' }}>349</span>
+                                        <span className="price-currency-small" style={{ ...styles.currency, fontSize: '1.5rem' }}>₹</span>
+                                        <span className="price-value-small" style={{ ...styles.price, fontSize: '4rem' }}>349</span>
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <span style={{ fontSize: '0.8rem', fontWeight: 800, background: '#000', color: '#ccff00', padding: '2px 8px', width: 'fit-content' }}>INTER-COLLEGE</span>
                                     <div style={{ display: 'flex', alignItems: 'baseline' }}>
-                                        <span style={{ ...styles.currency, fontSize: '1.5rem' }}>₹</span>
-                                        <span style={{ ...styles.price, fontSize: '4rem' }}>699</span>
+                                        <span className="price-currency-large" style={{ ...styles.currency, fontSize: '1.5rem' }}>₹</span>
+                                        <span className="price-value-large" style={{ ...styles.price, fontSize: '4rem' }}>699</span>
                                     </div>
                                 </div>
                             </div>
@@ -142,8 +142,49 @@ const RegistrationDetails = () => {
                 }
 
                 @media (max-width: 968px) {
-                    .brutalist-grid { grid-template-columns: 1fr !important; gap: 4rem !important; }
-                    .heading { font-size: 3.5rem !important; }
+                    .brutalist-grid { grid-template-columns: 1fr !important; gap: 3rem !important; }
+                }
+
+                @media (max-width: 768px) {
+                    #registration { padding: 60px 0 !important; }
+                    #registration .container { padding: 0 1rem !important; }
+                    #registration h2 { font-size: 3rem !important; }
+                    #registration .brutalist-grid { gap: 2.5rem !important; }
+                    .ticket-wrapper { justify-content: center !important; }
+                    .brutalist-card {
+                        max-width: 100% !important;
+                        padding: 2rem !important;
+                        box-shadow: 8px 8px 0px #fff !important;
+                    }
+                    .brutalist-card:hover {
+                        transform: translate(-4px, -4px) !important;
+                        box-shadow: 8px 8px 0px #fff !important;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    #registration { padding: 40px 0 !important; }
+                    #registration .container { padding: 0 0.75rem !important; }
+                    #registration h2 { font-size: 2.2rem !important; }
+                    #registration p { font-size: 1rem !important; }
+                    .brutalist-card {
+                        padding: 1.5rem !important;
+                        border-width: 3px !important;
+                        box-shadow: 6px 6px 0px #fff !important;
+                    }
+                    .brutalist-card h3 { font-size: 1.1rem !important; }
+                    .price-value-large { font-size: 3rem !important; }
+                    .price-value-small { font-size: 2.8rem !important; }
+                    .price-currency-large { font-size: 1.2rem !important; }
+                    .price-currency-small { font-size: 1.2rem !important; }
+                    .price-container { flex-direction: column !important; gap: 0.5rem !important; }
+                    .inclusion-grid { grid-template-columns: 1fr !important; }
+                    .brutalist-btn {
+                        padding: 1rem !important;
+                        font-size: 1rem !important;
+                        box-shadow: 4px 4px 0px #fff !important;
+                    }
+                    .reg-tag { font-size: 0.75rem !important; padding: 4px 10px !important; }
                 }
             `}</style>
         </section>

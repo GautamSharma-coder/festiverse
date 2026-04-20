@@ -39,21 +39,21 @@ const FestEvents = () => {
       {/* Ambient Background Glow */}
       <div style={styles.ambientGlow}></div>
 
-      <div style={styles.container}>
+      <div className="events-container" style={styles.container}>
         {/* Header Section */}
-        <div style={styles.header}>
+        <div className="events-header" style={styles.header}>
           <div>
-            <span style={styles.subtitle}>
+            <span className="events-subtitle" style={styles.subtitle}>
               <iconify-icon icon="solar:calendar-date-bold-duotone" style={{ marginRight: '6px' }}></iconify-icon>
               {loading ? 'LOADING LINEUP' : 'OFFICIAL LINEUP'}
             </span>
-            <h2 style={styles.title}>
+            <h2 className="events-title" style={styles.title}>
               Featured <span style={styles.gradientText}>Events.</span>
             </h2>
           </div>
 
           {!loading && events.length > 0 && (
-            <button style={styles.viewAllBtn} onClick={() => navigate('/events')} className="hover-btn">
+            <button className="view-all-btn hover-btn" style={styles.viewAllBtn} onClick={() => navigate('/events')}>
               Explore All <iconify-icon icon="solar:arrow-right-linear"></iconify-icon>
             </button>
           )}
@@ -61,7 +61,7 @@ const FestEvents = () => {
 
         {/* Loading State */}
         {loading ? (
-          <div style={styles.grid}>
+          <div className="events-grid" style={styles.grid}>
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="skeleton-card" style={styles.skeletonCard}>
                 <div className="shimmer" style={styles.shimmer}></div>
@@ -76,7 +76,7 @@ const FestEvents = () => {
         ) : (
           <>
             {/* Event Grid */}
-            <div style={styles.grid}>
+            <div className="events-grid" style={styles.grid}>
               {currentEvents.map((ev) => (
                 <div
                   key={ev.id}
@@ -106,15 +106,15 @@ const FestEvents = () => {
                   </div>
 
                   {/* Content */}
-                  <div style={styles.cardContent}>
+                  <div className="event-card-content" style={styles.cardContent}>
                     <div style={styles.dateWrap}>
                       <span style={styles.dateText}>{formatDate(ev.date)}</span>
                     </div>
 
-                    <h3 style={styles.cardTitle}>{ev.name}</h3>
+                    <h3 className="event-card-title" style={styles.cardTitle}>{ev.name}</h3>
 
                     {ev.description && (
-                      <p style={styles.cardDesc}>{ev.description}</p>
+                      <p className="event-card-desc" style={styles.cardDesc}>{ev.description}</p>
                     )}
 
                     <div style={styles.cardFooter}>
@@ -132,7 +132,7 @@ const FestEvents = () => {
             </div>
 
             {/* Pagination */}
-            <div style={styles.pagination}>
+            <div className="events-pagination" style={styles.pagination}>
               <button
                 className="page-btn"
                 disabled={currentPage === 1}
@@ -198,8 +198,55 @@ const FestEvents = () => {
                     background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
                     animation: shimmerEffect 1.5s infinite;
                 }
+
                 @media (max-width: 768px) {
-                    .events-section { padding: 80px 0 !important; }
+                    .events-section { padding: 60px 0 !important; }
+                    .events-section .events-container { padding: 0 16px !important; }
+                    .events-header {
+                        flex-direction: column !important;
+                        align-items: flex-start !important;
+                        gap: 1rem !important;
+                    }
+                    .events-grid {
+                        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+                        gap: 1.5rem !important;
+                    }
+                    .events-pagination {
+                        margin-top: 2.5rem !important;
+                        padding-top: 1.5rem !important;
+                    }
+                    .page-btn {
+                        padding: 8px 14px !important;
+                        font-size: 0.85rem !important;
+                    }
+                }
+
+                @media (max-width: 480px) {
+                    .events-section { padding: 40px 0 !important; }
+                    .events-section .events-container { padding: 0 12px !important; }
+                    .events-grid {
+                        grid-template-columns: 1fr !important;
+                        gap: 1.25rem !important;
+                    }
+                    .events-title { font-size: 2rem !important; }
+                    .events-subtitle { font-size: 0.75rem !important; }
+                    .view-all-btn {
+                        padding: 10px 18px !important;
+                        font-size: 0.8rem !important;
+                    }
+                    .event-card-content { padding: 0 1rem 1rem 1rem !important; }
+                    .event-card-title { font-size: 1.15rem !important; }
+                    .event-card-desc { font-size: 0.85rem !important; }
+                    .events-pagination {
+                        margin-top: 2rem !important;
+                        gap: 0.5rem !important;
+                    }
+                    .page-btn {
+                        padding: 8px 12px !important;
+                        font-size: 0.8rem !important;
+                        gap: 4px !important;
+                    }
+                    .skeleton-card { aspect-ratio: 3/3.5 !important; }
                 }
             `}</style>
     </section>

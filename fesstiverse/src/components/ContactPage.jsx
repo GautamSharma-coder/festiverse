@@ -1,19 +1,26 @@
 import React, { useState } from 'react';
 import Navbar from './Navbar';
 import FestFooter from './FestFooter';
+import { apiFetch } from '../lib/api';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
   const [status, setStatus] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus('sending');
-    // Simulated API call
-    setTimeout(() => {
+    try {
+      await apiFetch('/api/contact', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      });
       setStatus('success');
       setFormData({ name: '', email: '', subject: '', message: '' });
-    }, 1500);
+    } catch (err) {
+      console.error('CONTACT SUBMIT ERROR:', err);
+      setStatus('error');
+    }
   };
 
   const contactInfo = [
@@ -141,12 +148,14 @@ const ContactPage = () => {
                   style={{
                     background: '#7c3aed', color: '#fff', border: 'none',
                     padding: '1.2rem', borderRadius: '1rem', fontSize: '1rem', fontWeight: 600,
-                    cursor: 'pointer', transition: 'all 0.3s ease', marginTop: '1rem'
+                    cursor: 'pointer', transition: 'all 0.3s ease', marginTop: '1rem',
+                    opacity: status === 'sending' ? 0.7 : 1
                   }}
                 >
-                  {status === 'sending' ? 'Sending Message...' : status === 'success' ? 'Message Sent!' : 'Send Message'}
+                  {status === 'sending' ? 'Sending Message...' : status === 'success' ? 'Message Sent!' : status === 'error' ? 'Retry Sending' : 'Send Message'}
                 </button>
                 {status === 'success' && <p style={{ color: '#10b981', textAlign: 'center', fontSize: '0.9rem' }}>We'll get back to you shortly!</p>}
+                {status === 'error' && <p style={{ color: '#ef4444', textAlign: 'center', fontSize: '0.9rem' }}>Something went wrong. Please try again.</p>}
               </form>
             </div>
           </div>

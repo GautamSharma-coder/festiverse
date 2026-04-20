@@ -1,5 +1,6 @@
 const express = require('express');
 const supabase = require('../config/supabaseClient');
+const { sendContactConfirmationEmail } = require('../config/emailClient');
 const { rateLimit } = require('../middlewares/rateLimit');
 
 const router = express.Router();
@@ -24,6 +25,11 @@ router.post('/', contactLimiter, async (req, res) => {
             .single();
 
         if (error) throw error;
+        
+        // Send confirmation email asynchronously
+        sendContactConfirmationEmail(email, name).catch(err => {
+            console.error('CONTACT EMAIL ERROR:', err.message);
+        });
 
         res.status(201).json({ success: true, message: 'Message received!' });
     } catch (err) {
