@@ -106,15 +106,20 @@ router.post('/register', async (req, res) => {
 
         delete otpStore[email.toLowerCase()]; // Clear used OTP
 
-        // Check if user already exists
+        // Check if user already exists (Check both Email and Phone)
         const { data: existing } = await supabase
             .from('users')
-            .select('id')
-            .eq('phone', phone)
-            .single();
+            .select('id, email, phone')
+            .or(`email.eq.${email.toLowerCase()},phone.eq.${phone}`)
+            .limit(1)
+            .maybeSingle();
 
         if (existing) {
-            return res.status(400).json({ success: false, message: 'Phone number already registered.' });
+            const isEmailMatch = existing.email.toLowerCase() === email.toLowerCase();
+            return res.status(400).json({ 
+                success: false, 
+                message: isEmailMatch ? 'Email address already registered.' : 'Phone number already registered.' 
+            });
         }
 
         // Hash password

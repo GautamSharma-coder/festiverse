@@ -925,6 +925,16 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                       </div>
                       <button
                         className="d-btn-ghost"
+                        style={{ padding: '6px 12px', fontSize: '0.75rem', color: 'var(--accent)', borderColor: 'rgba(249,115,22,0.3)' }}
+                        onClick={() => {
+                          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+                          window.open(`${API_URL}/api/certificates/download/${festiverseId}?event_id=${reg.event_id}`, '_blank');
+                        }}
+                      >
+                        🎓 Cert
+                      </button>
+                      <button
+                        className="d-btn-ghost"
                         style={{ padding: '6px 12px', fontSize: '0.75rem' }}
                         onClick={() => showQr(reg.id)}
                       >

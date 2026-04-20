@@ -1,25 +1,37 @@
 import React, { useState } from 'react';
 import Navbar from './Navbar';
 import FestFooter from './FestFooter';
+import API_BASE_URL, { apiFetch } from '../lib/api';
 
 const CertificatesPage = () => {
     const [searchId, setSearchId] = useState('');
     const [status, setStatus] = useState('idle'); // idle, searching, found, not_found
+    const [certificates, setCertificates] = useState([]);
+    const [userName, setUserName] = useState('');
 
-    const handleSearch = (e) => {
+    const handleSearch = async (e) => {
         e.preventDefault();
         if (!searchId) return;
         
         setStatus('searching');
-        // Simulated API call
-        setTimeout(() => {
-            // Placeholder logic: IDs starting with 'F26' are "found"
-            if (searchId.toUpperCase().startsWith('F26')) {
-                setStatus('not_ready'); // Most certificates won't be ready yet
+        setCertificates([]);
+        try {
+            const data = await apiFetch(`/api/certificates/check/${searchId.trim()}`);
+            if (data.success && data.certificates && data.certificates.length > 0) {
+                setCertificates(data.certificates);
+                setUserName(data.userName);
+                setStatus('found');
             } else {
                 setStatus('not_found');
             }
-        }, 1500);
+        } catch (err) {
+            console.error('Search error:', err);
+            setStatus('not_found');
+        }
+    };
+
+    const handleDownload = (eventId) => {
+        window.open(`${API_BASE_URL}/api/certificates/download/${searchId.toUpperCase().trim()}?event_id=${eventId}`, '_blank');
     };
 
     return (
@@ -85,32 +97,72 @@ const CertificatesPage = () => {
                                     cursor: 'pointer',
                                     transition: 'all 0.3s ease'
                                 }}
+                                className="find-btn"
                             >
                                 {status === 'searching' ? 'Searching...' : 'Find Certificate'}
                             </button>
                         </form>
 
                         {/* Status Messages */}
-                        <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                        <div style={{ marginTop: '2rem' }}>
                             {status === 'not_found' && (
-                                <div style={{ color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                                <div style={{ color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', textAlign: 'center' }}>
                                     <iconify-icon icon="solar:danger-circle-linear"></iconify-icon>
-                                    <span>No record found with this ID. Please check and try again.</span>
+                                    <span>No records found for ID "{searchId}". Please check and try again.</span>
                                 </div>
                             )}
-                            {status === 'not_ready' && (
-                                <div style={{ 
-                                    background: 'rgba(124, 58, 237, 0.1)', 
-                                    padding: '1.5rem', 
-                                    borderRadius: '1rem', 
-                                    border: '1px solid rgba(124, 58, 237, 0.2)',
-                                    color: '#c4b5fd'
-                                }}>
-                                    <h4 style={{ margin: '0 0 0.5rem 0', color: '#fff' }}>Records Found!</h4>
-                                    <p style={{ margin: 0, fontSize: '0.95rem' }}>
-                                        Certificates for Festiverse '26 are currently being processed. 
-                                        They will be available for download here within 7 days after the event concludes.
-                                    </p>
+                            
+                            {status === 'found' && (
+                                <div>
+                                    <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                                        <h4 style={{ margin: '0 0 0.5rem 0', color: '#fff', fontSize: '1.4rem' }}>Found Certificates for {userName} ✨</h4>
+                                        <p style={{ margin: 0, fontSize: '0.95rem', color: 'rgba(255,255,255,0.5)' }}>
+                                            Select an event below to download its certificate.
+                                        </p>
+                                    </div>
+                                    
+                                    <div style={{ display: 'grid', gap: '1rem' }}>
+                                        {certificates.map((cert) => (
+                                            <div key={cert.event_id} style={{
+                                                background: 'rgba(255,255,255,0.02)',
+                                                border: '1px solid rgba(255,255,255,0.05)',
+                                                padding: '1.5rem',
+                                                borderRadius: '1.5rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                gap: '1.5rem'
+                                            }}>
+                                                <div>
+                                                    <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.25rem' }}>{cert.event_name}</div>
+                                                    <div style={{ fontSize: '0.85rem', color: cert.type === 'Achievement' ? '#fbbf24' : '#7c3aed', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                        <iconify-icon icon={cert.type === 'Achievement' ? "solar:crown-minimalistic-bold" : "solar:verified-check-bold"} />
+                                                        {cert.type === 'Achievement' ? `Winner (${cert.rank})` : 'Participation'}
+                                                    </div>
+                                                </div>
+                                                <button 
+                                                    onClick={() => handleDownload(cert.event_id)}
+                                                    style={{
+                                                        background: '#7c3aed',
+                                                        color: '#fff',
+                                                        border: 'none',
+                                                        padding: '0.75rem 1.5rem',
+                                                        borderRadius: '1rem',
+                                                        fontWeight: 700,
+                                                        fontSize: '0.9rem',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '8px',
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                >
+                                                    <iconify-icon icon="solar:download-bold" />
+                                                    Download
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>

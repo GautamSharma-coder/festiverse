@@ -152,10 +152,13 @@ const RegistrationForm = ({ onRegister, showToast, onClose }) => {
         setStatus({ msg: 'Initializing secure transaction...', type: '' });
 
         try {
-            // Include category in order creation
+            // Include category and userData in order creation for webhook support
             const orderData = await apiFetch('/api/payment/create-order', { 
                 method: 'POST',
-                body: JSON.stringify({ category })
+                body: JSON.stringify({ 
+                    category,
+                    userData: formData // Pass full form data to be saved as "pending"
+                })
             });
 
             if (!orderData?.orderId) throw new Error('Order creation failed.');
