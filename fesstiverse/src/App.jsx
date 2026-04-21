@@ -37,6 +37,9 @@ import CertificatesPage from './components/CertificatesPage';
 import NotFoundPage from './components/NotFoundPage';
 import FAQSection from './components/FAQSection';
 import RegistrationDetails from './components/RegistrationDetails';
+import PreviousTeamsPage from './components/PreviousTeamsPage';
+import SchedulePage from './components/SchedulePage';
+
 
 function App() {
   const [isFestiverse, setIsFestiverse] = useState(false);
@@ -212,6 +215,8 @@ function App() {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/sponsors" element={<SponsorsPage />} />
         <Route path="/certificates" element={<CertificatesPage />} />
+        <Route path="/previous-teams" element={<PreviousTeamsPage />} />
+        <Route path="/schedule" element={<SchedulePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </div>

@@ -264,9 +264,10 @@ const FestFooter = ({ onAdminClick }) => {
             <div>
               <div className="min-nav-title">Navigate</div>
               <div className="min-nav-list">
-                {['Home', 'Events', 'Schedule', 'Gallery'].map(l => (
-                  <a key={l} href={`#${l.toLowerCase()}`} className="min-nav-link">{l}</a>
-                ))}
+                <a href="#fest-home" className="min-nav-link">Home</a>
+                <a href="#events" className="min-nav-link">Events</a>
+                <Link to="/schedule" className="min-nav-link">Schedule</Link>
+                <a href="#gallery" className="min-nav-link">Gallery</a>
               </div>
             </div>
 
@@ -279,6 +280,7 @@ const FestFooter = ({ onAdminClick }) => {
                 <Link to="/certificates" className="min-nav-link">Certificates</Link>
                 <a href="#team" className="min-nav-link">Team</a>
                 <Link to="/contact" className="min-nav-link">Contact</Link>
+                <Link to="/previous-teams" className="min-nav-link">Previous Teams</Link>
               </div>
             </div>
 

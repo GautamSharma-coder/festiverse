@@ -15,6 +15,7 @@ const TopFloatingNavbar = ({ isFestiverse, toggleUniverse }) => {
   const festLinks = [
     { href: '#fest-home', label: 'Fest Home', icon: 'solar:home-smile-linear' },
     { href: '/register', label: 'Register', isRoute: true, icon: 'solar:pen-new-square-linear' },
+    { href: '/schedule', label: 'Schedule', isRoute: true, icon: 'solar:calendar-date-linear' },
     { href: '#events', label: 'Events', icon: 'solar:calendar-linear' },
     { href: '#gallery', label: 'Gallery', icon: 'solar:gallery-linear' },
     { href: '/leaderboard', label: 'Results', isRoute: true, icon: 'lucide:trophy' },

@@ -13,9 +13,9 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Festiverse UDAAN',
-        short_name: 'Festiverse',
-        description: 'The official Arts & Cultural Club App',
+        name: 'UDAAN x FESTIVERSE\'26',
+        short_name: 'Festiverse\'26',
+        description: 'The official Arts & Cultural Club App of GEC Samastipur',
         theme_color: '#000000',
         background_color: '#000000',
         display: 'standalone',

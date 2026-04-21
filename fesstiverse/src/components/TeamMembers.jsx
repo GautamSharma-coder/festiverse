@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { proxyImageUrl } from '../lib/proxyImage';
 
 const roles = ['Senior Coordinator', 'Coordinator', 'Sub Coordinator'];
@@ -265,6 +266,39 @@ const TeamMembers = () => {
                         </button>
                     </div>
                 )}
+                {/* Previous Teams Link */}
+                <div style={{ textAlign: 'center', marginTop: '4rem' }}>
+                    <Link
+                        to="/previous-teams"
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.75rem',
+                            padding: '0.75rem 2rem',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            borderRadius: '12px',
+                            color: '#a1a1aa',
+                            fontSize: '0.9rem',
+                            fontWeight: 500,
+                            textDecoration: 'none',
+                            transition: 'all 0.3s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                            e.currentTarget.style.color = '#fff';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                            e.currentTarget.style.color = '#a1a1aa';
+                        }}
+                    >
+                        <span>View Previous Teams</span>
+                        <span style={{ fontSize: '1.1rem' }}>→</span>
+                    </Link>
+                </div>
             </div>
         </section>
     );
