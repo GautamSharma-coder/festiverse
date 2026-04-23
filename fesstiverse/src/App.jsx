@@ -36,7 +36,8 @@ import SponsorsPage from './components/SponsorsPage';
 import CertificatesPage from './components/CertificatesPage';
 import NotFoundPage from './components/NotFoundPage';
 import FAQSection from './components/FAQSection';
-import RegistrationDetails from './components/RegistrationDetails';
+import CampusRegistration from './components/CampusRegistration';
+import InterCollegeRegistration from './components/InterCollegeRegistration';
 import PreviousTeamsPage from './components/PreviousTeamsPage';
 import SchedulePage from './components/SchedulePage';
 
@@ -74,6 +75,33 @@ function App() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [navigate]);
+
+  // ─── Analytics Tracking ───
+  useEffect(() => {
+    // 1. Record Visit (once per session)
+    const recordVisit = async () => {
+      try {
+        await apiFetch('/api/analytics/visit', { method: 'POST' });
+      } catch (err) {
+        console.warn('Analytics visit failed:', err);
+      }
+    };
+    recordVisit();
+
+    // 2. Heartbeat (every 30 seconds for live users)
+    const heartbeat = async () => {
+      try {
+        await apiFetch('/api/analytics/heartbeat', { method: 'POST' });
+      } catch (err) {
+        // Silently fail heartbeats
+        console.warn('Analytics heartbeat failed:', err);
+      }
+    };
+
+    heartbeat(); // Initial beat
+    const interval = setInterval(heartbeat, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const toggleUniverse = () => {
     setIsFestiverse((prev) => !prev);
@@ -137,7 +165,9 @@ function App() {
         {/* Featured Events Section */}
         <ScrollReveal delay={100}><FestEvents /></ScrollReveal>
 
-        <ScrollReveal delay={100}><RegistrationDetails /></ScrollReveal>
+        {/* Registration Sections */}
+        <ScrollReveal delay={100}><CampusRegistration /></ScrollReveal>
+        <ScrollReveal delay={100}><InterCollegeRegistration /></ScrollReveal>
 
         <ScrollReveal delay={100}><FestGallery /></ScrollReveal>
         <ScrollReveal delay={100}><FAQSection /></ScrollReveal>
@@ -205,10 +235,10 @@ function App() {
         <Route
           path="/register"
           element={
-            <RegistrationPage 
-              onRegister={handleLogin} 
-              showToast={showToast} 
-              onClose={() => navigate('/')} 
+            <RegistrationPage
+              onRegister={handleLogin}
+              showToast={showToast}
+              onClose={() => navigate('/')}
             />
           }
         />

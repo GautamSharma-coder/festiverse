@@ -206,6 +206,15 @@ const CSS = `
     .ap-sec-head{flex-direction:column;align-items:stretch}
     .ap-team-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
   }
+  
+  .live-indicator {
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+  }
 ` ;
 
 const NAV_ITEMS = [
@@ -253,6 +262,7 @@ const AdminPanel = ({ onClose }) => {
     const [loading, setLoading] = useState(false);
     const [msg, setMsg] = useState({ text: '', type: '' });
     const [search, setSearch] = useState('');
+    const [analytics, setAnalytics] = useState({ uniqueVisitors: 0, liveUsers: 0 });
     const [newNotice, setNewNotice] = useState({ title: '', description: '', color: '#3b82f6' });
 
     const [newEvent, setNewEvent] = useState({ name: '', location: '', date: '', description: '', rules: '', schedule: '', prizes: '' });
@@ -277,7 +287,7 @@ const AdminPanel = ({ onClose }) => {
     const [checkinResult, setCheckinResult] = useState(null);
     const [checkinLoading, setCheckinLoading] = useState(false);
     const [results, setResults] = useState([]);
-    const [newResult, setNewResult] = useState({ event_id: '', position: 1, participant_name: '', participant_college: '', score: '' });
+    const [newResult, setNewResult] = useState({ event_id: '', position: 1, participant_name: '', participant_college: '', participant_email: '', user_id: '', score: '' });
     const [sponsors, setSponsors] = useState([]);
     const [newSponsor, setNewSponsor] = useState({ name: '', tier: 'bronze', website: '', sort_order: 0 });
     const [sponsorLogo, setSponsorLogo] = useState(null);
@@ -326,7 +336,7 @@ const AdminPanel = ({ onClose }) => {
 
     const fetchAll = async () => {
         try {
-            const [r, m, u, e, t, f, g, n] = await Promise.all([
+            const [r, m, u, e, t, f, g, n, a] = await Promise.all([
                 adminFetch('/api/admin/registrations').catch(() => ({})),
                 adminFetch('/api/admin/messages').catch(() => ({})),
                 adminFetch('/api/admin/users').catch(() => ({})),
@@ -335,6 +345,7 @@ const AdminPanel = ({ onClose }) => {
                 fetch(`${API}/api/faculty`).then(r => r.json()).catch(() => ({})),
                 fetch(`${API}/api/gallery`).then(r => r.json()).catch(() => ({})),
                 adminFetch('/api/admin/notices').catch(() => ({})),
+                adminFetch('/api/admin/analytics').catch(() => ({ uniqueVisitors: 0, liveUsers: 0 })),
             ]);
             setRegistrations(r.registrations || []);
             setMessages(m.messages || []);
@@ -344,6 +355,7 @@ const AdminPanel = ({ onClose }) => {
             setFaculty(f.faculty || []);
             setGallery(g.images || []);
             setNotices(n.notices || []);
+            setAnalytics(a);
         } catch (err) {
             console.error(err);
 
@@ -365,6 +377,7 @@ const AdminPanel = ({ onClose }) => {
                 case 'results': { const d = await fetch(`${API}/api/results`).then(r => r.json()); setResults(d.results || []); break; }
                 case 'sponsors': { const d = await adminFetch('/api/admin/sponsors'); setSponsors(d.sponsors || []); break; }
                 case 'hiring': { const d = await adminFetch('/api/admin/hiring'); setHiringApps(d.applications || []); break; }
+                case 'overview': { const d = await adminFetch('/api/admin/analytics'); setAnalytics(d); break; }
             }
         } catch (err) {
             console.error(err);
@@ -592,7 +605,7 @@ const AdminPanel = ({ onClose }) => {
         e.preventDefault();
         try {
             await adminFetch('/api/admin/results', { method: 'POST', body: JSON.stringify(newResult) });
-            setNewResult({ event_id: '', position: 1, participant_name: '', participant_college: '', score: '' });
+            setNewResult({ event_id: '', position: 1, participant_name: '', participant_college: '', participant_email: '', user_id: '', score: '' });
             flash('Result added'); fetchTabData();
         } catch (err) { flash(err.message, 'err'); }
     };
@@ -653,7 +666,7 @@ const AdminPanel = ({ onClose }) => {
     const renderTab = () => {
         switch (activeTab) {
             case 'overview':
-                return <OverviewTab registrations={registrations} users={users} events={events} messages={messages} />;
+                return <OverviewTab registrations={registrations} users={users} events={events} messages={messages} analytics={analytics} />;
             case 'registrations':
                 return <RegistrationsTab registrations={registrations} search={search} setSearch={setSearch} loading={loading} />;
             case 'users':
@@ -673,7 +686,7 @@ const AdminPanel = ({ onClose }) => {
             case 'checkin':
                 return <CheckinTab checkinId={checkinId} setCheckinId={setCheckinId} checkinLoading={checkinLoading} checkinResult={checkinResult} handleCheckin={handleCheckin} />;
             case 'results':
-                return <ResultsTab results={results} events={events} newResult={newResult} setNewResult={setNewResult} addResult={addResult} deleteResult={deleteResult} />;
+                return <ResultsTab results={results} events={events} users={users} registrations={registrations} newResult={newResult} setNewResult={setNewResult} addResult={addResult} deleteResult={deleteResult} />;
             case 'sponsors':
                 return <SponsorsTab sponsors={sponsors} newSponsor={newSponsor} setNewSponsor={setNewSponsor} sponsorLogo={sponsorLogo} setSponsorLogo={setSponsorLogo} addSponsor={addSponsor} deleteSponsor={deleteSponsor} />;
             case 'hiring':

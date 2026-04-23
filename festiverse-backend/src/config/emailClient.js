@@ -712,30 +712,37 @@ async function sendTeamInviteEmail(toEmail, inviteeName, invite) {
 //   toEmail  — recipient address
 //   name     — participant name
 //   result   — { eventTitle, position, rank, score, certificateUrl, message }
-//              position: 'winner' | 'runner-up' | 'participant'
+//              position: 1 | 2 | 3 | 'winner' | 'runner-up' | 'participant'
 async function sendResultEmail(toEmail, name, result) {
-  const isWinner = result.position === 'winner';
-  const isRunnerUp = result.position === 'runner-up';
-  const isParticipant = result.position === 'participant';
+  // Map numeric positions to descriptive ones if needed
+  const posMap = { 1: 'winner', 2: 'runner-up', 3: 'third-place' };
+  const position = posMap[result.position] || result.position || 'participant';
+
+  const isWinner = position === 'winner';
+  const isRunnerUp = position === 'runner-up';
+  const isThirdPlace = position === 'third-place';
+  const isTop3 = isWinner || isRunnerUp || isThirdPlace;
 
   const badgeMap = {
-    'winner': { label: '1st Place', color: T.saffron, bg: T.saffronBg },
-    'runner-up': { label: '2nd Place', color: '#6B7280', bg: '#F3F4F6' },
-    'participant': { label: 'Participant', color: T.inkMute, bg: T.bg },
+    'winner': { label: 'Winner (1st)', color: '#C9820A', bg: '#FDF5E6', icon: '🏆' },
+    'runner-up': { label: 'Runner Up (2nd)', color: '#475569', bg: '#F1F5F9', icon: '🥈' },
+    'third-place': { label: '3rd Place', color: '#92400E', bg: '#FFF7ED', icon: '🥉' },
+    'participant': { label: 'Participant', color: T.inkMute, bg: T.bg, icon: '✨' },
   };
-  const badge = badgeMap[result.position] || badgeMap['participant'];
+
+  const badge = badgeMap[position] || badgeMap['participant'];
 
   const headline = isWinner
-    ? `Congratulations,<br><em style="color:${T.saffron};font-style:italic;">${name}.</em>`
-    : isRunnerUp
-      ? `Well played,<br><em style="color:${T.ink};font-style:italic;">${name}.</em>`
-      : `Thank you,<br><em style="color:${T.ink};font-style:italic;">${name}.</em>`;
+    ? `Exceptional Victory,<br><em style="color:${T.saffron};font-style:italic;">${name}.</em>`
+    : isTop3
+      ? `Brilliant Performance,<br><em style="color:${T.ink};font-style:italic;">${name}.</em>`
+      : `Gratitude for Joining,<br><em style="color:${T.ink};font-style:italic;">${name}.</em>`;
 
   const subtext = isWinner
-    ? `You've claimed the top position at <strong style="font-weight:500;color:${T.ink};">${result.eventTitle}</strong>. A remarkable performance.`
-    : isRunnerUp
-      ? `A strong showing at <strong style="font-weight:500;color:${T.ink};">${result.eventTitle}</strong>. You made it count.`
-      : `Your participation at <strong style="font-weight:500;color:${T.ink};">${result.eventTitle}</strong> is appreciated. Every stage performance matters.`;
+    ? `You have secured the <h3> top position </h3> at <strong style="font-weight:500;color:${T.ink};">${result.eventTitle}</strong>. Your talent truly stood out among the best.`
+    : isTop3
+      ? `You achieved a prestigious podium finish at <strong style="font-weight:500;color:${T.ink};">${result.eventTitle}</strong>. A significant milestone.`
+      : `Your contribution to <strong style="font-weight:500;color:${T.ink};">${result.eventTitle}</strong> made the event special. Every participant adds a thread to the festival's tapestry.`;
 
   const body = `
     <!-- Heading -->
@@ -744,7 +751,7 @@ async function sendResultEmail(toEmail, name, result) {
         <p style="margin:0 0 6px;color:${T.inkMute};font-size:10px;
           font-family:'Outfit',Helvetica,Arial,sans-serif;font-weight:500;
           letter-spacing:4px;text-transform:uppercase;">
-          Results Declared
+          Results Announced
         </p>
         <h2 style="margin:0 0 14px;color:${T.ink};font-size:28px;
           font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;
@@ -766,32 +773,37 @@ async function sendResultEmail(toEmail, name, result) {
       <td style="padding:24px 48px 0;">
         <table cellpadding="0" cellspacing="0" border="0" style="width:100%;">
           <tr>
-            <!-- Event & badge -->
-            <td style="vertical-align:top;padding-right:16px;">
+            <td style="vertical-align:top;">
               <table cellpadding="0" cellspacing="0" border="0"
-                style="width:100%;background:${T.bg};border-radius:2px;border:1px solid ${T.inkFaint};">
+                style="width:100%;background:${isTop3 ? T.saffronBg : T.bg};border-radius:4px;border:1px solid ${isTop3 ? T.saffron : T.inkFaint};">
                 <tr>
-                  <td style="padding:20px 24px;">
-                    <p style="margin:0 0 3px;color:${T.inkMute};font-size:10px;font-weight:500;
+                  <td style="padding:24px;">
+                    <p style="margin:0 0 4px;color:${T.inkMute};font-size:10px;font-weight:600;
                       font-family:'Outfit',Helvetica,Arial,sans-serif;letter-spacing:3px;text-transform:uppercase;">
                       Event
                     </p>
-                    <p style="margin:0 0 18px;color:${T.ink};font-size:18px;
+                    <p style="margin:0 0 20px;color:${T.ink};font-size:20px;
                       font-family:'Cormorant Garamond','Georgia','Times New Roman',serif;font-weight:600;">
                       ${result.eventTitle}
                     </p>
+                    
                     <!-- Badge -->
-                    <span style="display:inline-block;padding:7px 16px;
-                      background:${badge.bg};border-radius:2px;
-                      color:${badge.color};font-size:10px;font-weight:600;
-                      font-family:'Outfit',Helvetica,Arial,sans-serif;
-                      letter-spacing:3px;text-transform:uppercase;">
-                      ${badge.label}
-                    </span>
+                    <table cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="background:${badge.bg};border-radius:4px;padding:8px 16px;border:1px solid ${badge.color}30;">
+                          <span style="color:${badge.color};font-size:11px;font-weight:700;
+                            font-family:'Outfit',Helvetica,Arial,sans-serif;
+                            letter-spacing:2px;text-transform:uppercase;display:flex;align-items:center;">
+                            <span style="font-size:14px;margin-right:8px;">${badge.icon}</span> ${badge.label}
+                          </span>
+                        </td>
+                      </tr>
+                    </table>
+
                     ${result.score ? `
-                    <p style="margin:14px 0 0;color:${T.inkMute};font-size:11px;font-weight:400;
+                    <p style="margin:20px 0 0;color:${T.inkMute};font-size:12px;font-weight:400;
                       font-family:'Outfit',Helvetica,Arial,sans-serif;letter-spacing:1px;">
-                      Score: <span style="color:${T.ink};font-weight:500;">${result.score}</span>
+                      Final Score: <span style="color:${T.ink};font-weight:600;font-size:14px;">${result.score}</span>
                     </p>` : ''}
                   </td>
                 </tr>
@@ -816,31 +828,29 @@ async function sendResultEmail(toEmail, name, result) {
 
     <!-- Certificate CTA -->
     <tr>
-      <td style="padding:28px 48px 40px;">
+      <td style="padding:32px 48px 40px; text-align: center;">
         <a href="${result.certificateUrl || '#'}"
-          style="display:inline-block;padding:13px 36px;background:${T.ink};
-            color:${T.white};font-size:11px;font-weight:500;border-radius:2px;
+          style="display:inline-block;padding:15px 40px;background:${T.ink};
+            color:${T.white};font-size:12px;font-weight:600;border-radius:4px;
             font-family:'Outfit',Helvetica,Arial,sans-serif;
-            letter-spacing:3px;text-transform:uppercase;text-decoration:none;">
-          Download Certificate &rarr;
+            letter-spacing:3px;text-transform:uppercase;text-decoration:none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          Download Certificate
         </a>
-        <p style="margin:14px 0 0;color:${T.inkMute};font-size:12px;font-weight:300;
+        <p style="margin:20px 0 0;color:${T.inkMute};font-size:12px;font-weight:300;
           font-family:'Outfit',Helvetica,Arial,sans-serif;line-height:1.7;">
-          Your certificate of ${isWinner ? 'achievement' : 'participation'} is ready for download.
-          Keep it as a memento of Festiverse&nbsp;'26.
+          Your official certificate is ready. Click the button above to view and download it from your dashboard.
         </p>
       </td>
     </tr>`;
 
-  const subjectMap = {
-    'winner': `You Won — ${result.eventTitle} | Festiverse'26`,
-    'runner-up': `Runner-Up — ${result.eventTitle} | Festiverse'26`,
-    'participant': `Your Certificate — ${result.eventTitle} | Festiverse'26`,
-  };
-
   await sendEmail(
     toEmail,
-    subjectMap[result.position] || subjectMap['participant'],
+    isWinner
+      ? `🏆 Victory at ${result.eventTitle}! — Festiverse'26`
+      : isTop3
+        ? `Podium Finish at ${result.eventTitle} — Festiverse'26`
+        : `Results for ${result.eventTitle} — Festiverse'26`,
     shell(body)
   );
 }
@@ -921,4 +931,4 @@ module.exports = {
   sendTeamInviteEmail,
   sendResultEmail,
   sendContactConfirmationEmail,
-};
+};

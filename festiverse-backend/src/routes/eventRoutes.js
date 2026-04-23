@@ -3,6 +3,7 @@ const QRCode = require('qrcode');
 const supabase = require('../config/supabaseClient');
 const { verifyToken } = require('../middlewares/authMiddleware');
 const { sendEventRegistrationEmail, sendTeamInviteEmail } = require('../config/emailClient');
+const { enforceMaxLength } = require('../middlewares/sanitize');
 const logger = require('../config/logger');
 
 const router = express.Router();
@@ -106,7 +107,12 @@ router.post('/register', verifyToken, async (req, res) => {
                             return res.status(400).json({ success: false, message: `Festiverse ID "${fid}" not found. Please check and try again.` });
                         }
                     } else {
-                        resolved.push(member); // Legacy format — already has name/phone/email
+                    resolved.push({
+                            name: enforceMaxLength(member.name, 100),
+                            phone: enforceMaxLength(member.phone || '', 15),
+                            email: enforceMaxLength(member.email || '', 254),
+                            festiverse_id: member.festiverse_id || '',
+                        }); // Legacy format — already has name/phone/email
                     }
                 }
                 reg.team_members = resolved;

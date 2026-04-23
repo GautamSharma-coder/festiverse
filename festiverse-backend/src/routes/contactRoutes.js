@@ -2,6 +2,7 @@ const express = require('express');
 const supabase = require('../config/supabaseClient');
 const { sendContactConfirmationEmail } = require('../config/emailClient');
 const { rateLimit } = require('../middlewares/rateLimit');
+const { isValidEmail, enforceMaxLength } = require('../middlewares/sanitize');
 
 const router = express.Router();
 const contactLimiter = rateLimit({ windowMs: 300000, max: 5, message: 'Too many messages. Please wait a few minutes.' });
@@ -18,9 +19,18 @@ router.post('/', contactLimiter, async (req, res) => {
             return res.status(400).json({ success: false, message: 'All fields are required.' });
         }
 
+        if (!isValidEmail(email)) {
+            return res.status(400).json({ success: false, message: 'A valid email address is required.' });
+        }
+
+        // Enforce field length limits
+        const sanitizedName = enforceMaxLength(name, 100);
+        const sanitizedMessage = enforceMaxLength(message, 1000);
+        const sanitizedEmail = enforceMaxLength(email, 254);
+
         const { data, error } = await supabase
             .from('messages')
-            .insert([{ name, email, message }])
+            .insert([{ name: sanitizedName, email: sanitizedEmail, message: sanitizedMessage }])
             .select()
             .single();
 

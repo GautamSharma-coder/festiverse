@@ -3,6 +3,15 @@ import { apiFetch } from '../lib/api';
 import { biharEngineeringColleges } from '../lib/colleges';
 import gsap from 'gsap';
 
+/* ── INPUT SANITIZER (XSS Prevention) ───────────────────────── */
+const sanitizeInput = (str) => {
+    if (typeof str !== 'string') return str;
+    return str
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<[^>]*>/g, '')
+        .trim();
+};
+
 /* ── ICONS ─────────────────────────────────────────────────── */
 const StepIcon = ({ icon, active, done }) => (
     <div style={{
@@ -86,9 +95,10 @@ const RegistrationForm = ({ onRegister, showToast, onClose }) => {
         password: ''
     });
     
-    const [otp, setOtp] = useState(['', '', '', '']);
+    const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [otpSent, setOtpSent] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [submitted, setSubmitted] = useState(false); // Double-submit prevention
     const [status, setStatus] = useState({ msg: '', type: '' });
     
     const formRef = useRef(null);
@@ -100,7 +110,11 @@ const RegistrationForm = ({ onRegister, showToast, onClose }) => {
         EXTERNAL: 699
     };
 
-    const updateForm = (field, val) => setFormData(prev => ({ ...prev, [field]: val }));
+    const updateForm = (field, val) => {
+        // Sanitize text inputs (not password)
+        const sanitized = field === 'password' ? val : sanitizeInput(val);
+        setFormData(prev => ({ ...prev, [field]: sanitized }));
+    };
 
     const selectCategory = (type) => {
         setCategory(type);
@@ -136,8 +150,18 @@ const RegistrationForm = ({ onRegister, showToast, onClose }) => {
             if (!name || !email || !phone || !college || !password) {
                 return setStatus({ msg: 'Please complete all fields.', type: 'error' });
             }
+            // Validate name doesn't contain injection attempts
+            if (!/^[a-zA-Z\s.'-]+$/.test(name.trim())) {
+                return setStatus({ msg: 'Name contains invalid characters.', type: 'error' });
+            }
+            if (name.length > 100) return setStatus({ msg: 'Name is too long (max 100 chars).', type: 'error' });
             if (phone.length < 10) return setStatus({ msg: 'Valid phone number required.', type: 'error' });
             if (password.length < 6) return setStatus({ msg: 'Password must be 6+ chars.', type: 'error' });
+            if (password.length > 128) return setStatus({ msg: 'Password is too long.', type: 'error' });
+            // Basic email format check
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                return setStatus({ msg: 'Please enter a valid email address.', type: 'error' });
+            }
             setStep(2);
             setStatus({ msg: '', type: '' });
         }
@@ -145,10 +169,12 @@ const RegistrationForm = ({ onRegister, showToast, onClose }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (submitted || loading) return; // Prevent double submission
         const otpStr = otp.join('');
-        if (otpStr.length < 4) return setStatus({ msg: 'Enter the 4-digit code.', type: 'error' });
+        if (otpStr.length < 6) return setStatus({ msg: 'Enter the 6-digit code.', type: 'error' });
         
         setLoading(true);
+        setSubmitted(true);
         setStatus({ msg: 'Initializing secure transaction...', type: '' });
 
         try {
@@ -200,7 +226,7 @@ const RegistrationForm = ({ onRegister, showToast, onClose }) => {
                     contact: formData.phone
                 },
                 theme: { color: '#ffb300' },
-                modal: { ondismiss: () => { setLoading(false); setStatus({ msg: 'Payment cancelled.', type: 'error' }); } }
+                modal: { ondismiss: () => { setLoading(false); setSubmitted(false); setStatus({ msg: 'Payment cancelled.', type: 'error' }); } }
             };
 
             const rzp = new window.Razorpay(options);
@@ -208,6 +234,7 @@ const RegistrationForm = ({ onRegister, showToast, onClose }) => {
         } catch (err) {
             setStatus({ msg: err.message, type: 'error' });
             setLoading(false);
+            setSubmitted(false);
         }
     };
 
@@ -324,7 +351,7 @@ const RegistrationForm = ({ onRegister, showToast, onClose }) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                             <Field label="Full Name" icon="solar:user-bold">
-                                <Input placeholder="Enter your name" value={formData.name} onChange={e => updateForm('name', e.target.value)} />
+                                <Input placeholder="Enter your name" value={formData.name} maxLength={100} onChange={e => updateForm('name', e.target.value)} />
                             </Field>
                             <Field label="Phone No." icon="solar:phone-bold">
                                 <Input placeholder="10 Digits" type="tel" maxLength={10} value={formData.phone} onChange={e => updateForm('phone', e.target.value.replace(/\D/g, ''))} />
@@ -374,11 +401,11 @@ const RegistrationForm = ({ onRegister, showToast, onClose }) => {
                          </Field>
 
                          <Field label="Email ID" icon="solar:letter-bold">
-                            <Input placeholder="university@email.com" type="email" value={formData.email} onChange={e => updateForm('email', e.target.value)} />
+                            <Input placeholder="university@email.com" type="email" maxLength={254} value={formData.email} onChange={e => updateForm('email', e.target.value)} />
                          </Field>
 
                          <Field label="Password" icon="solar:lock-bold">
-                            <Input placeholder="Min 6 characters" type="password" value={formData.password} onChange={e => updateForm('password', e.target.value)} />
+                            <Input placeholder="Min 6 characters" type="password" maxLength={128} value={formData.password} onChange={e => updateForm('password', e.target.value)} />
                          </Field>
 
                          <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
@@ -425,6 +452,8 @@ const RegistrationForm = ({ onRegister, showToast, onClose }) => {
                                             key={i}
                                             ref={el => otpRefs.current[i] = el}
                                             type="text"
+                                            inputMode="numeric"
+                                            autoComplete="one-time-code"
                                             maxLength={1}
                                             value={digit}
                                             onChange={(e) => {
@@ -432,19 +461,19 @@ const RegistrationForm = ({ onRegister, showToast, onClose }) => {
                                                 const newOtp = [...otp];
                                                 newOtp[i] = val;
                                                 setOtp(newOtp);
-                                                if (val && i < 3) otpRefs.current[i+1].focus();
+                                                if (val && i < 5) otpRefs.current[i+1].focus();
                                             }}
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i-1].focus();
                                             }}
                                             style={{
-                                                width: '60px',
-                                                height: '70px',
+                                                width: '50px',
+                                                height: '60px',
                                                 background: 'rgba(255, 255, 255, 0.03)',
                                                 border: digit ? '2px solid #ffb300' : '1px solid rgba(255, 255, 255, 0.1)',
-                                                borderRadius: '16px',
+                                                borderRadius: '12px',
                                                 color: '#fff',
-                                                fontSize: '2rem',
+                                                fontSize: '1.5rem',
                                                 fontWeight: 900,
                                                 textAlign: 'center',
                                                 outline: 'none',

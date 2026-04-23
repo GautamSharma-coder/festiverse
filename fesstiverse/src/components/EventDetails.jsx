@@ -234,200 +234,201 @@ const CSS = `
 `;
 
 const EventDetails = () => {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const [event, setEvent] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-    useEffect(() => {
-        const fetchEvent = async () => {
-            try {
-                const data = await apiFetch(`/api/events/${id}`);
-                setEvent(data.event);
-            } catch (err) {
-                setError(err.message || 'Event not found');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchEvent();
-    }, [id]);
-
-    const formatDate = (dateStr) => {
-        if (!dateStr) return '';
-        const d = new Date(dateStr);
-        return d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  useEffect(() => {
+    const fetchEvent = async () => {
+      try {
+        const data = await apiFetch(`/api/events/${id}`);
+        setEvent(data.event);
+      } catch (err) {
+        setError(err.message || 'Event not found');
+      } finally {
+        setLoading(false);
+      }
     };
+    fetchEvent();
+  }, [id]);
 
-    if (loading) return (
-        <div className="ed-wrap"><style>{CSS}</style><div className="ed-center"><div className="ed-spinner"></div><div style={{ color: '#71717a' }}>Loading event info...</div></div></div>
-    );
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  };
 
-    if (error || !event) return (
-        <div className="ed-wrap"><style>{CSS}</style>
-            <div className="ed-topbar"><button className="ed-back" onClick={() => navigate(-1)}>← Back</button></div>
-            <div className="ed-center">
-                <div style={{ fontSize: '3rem', marginBottom: '10px' }}>⚠️</div>
-                <div style={{ fontFamily: 'Syne', fontSize: '1.5rem', fontWeight: 700, color: '#fca5a5' }}>Event Not Found</div>
-                <div style={{ color: '#71717a' }}>{error || "The event you're looking for doesn't exist."}</div>
-                <button className="ed-back" style={{ marginTop: 20 }} onClick={() => navigate('/')}>Return Home</button>
-            </div>
-        </div>
-    );
+  if (loading) return (
+    <div className="ed-wrap"><style>{CSS}</style><div className="ed-center"><div className="ed-spinner"></div><div style={{ color: '#71717a' }}>Loading event info...</div></div></div>
+  );
 
-    // Parse schedule string to Array if needed
-    let parsedSchedule = [];
-    try {
-        if (event.schedule) {
-            parsedSchedule = typeof event.schedule === 'string' ? JSON.parse(event.schedule) : event.schedule;
-        }
-    } catch (e) {
-        parsedSchedule = [event.schedule];
+  if (error || !event) return (
+    <div className="ed-wrap"><style>{CSS}</style>
+      <div className="ed-topbar"><button className="ed-back" onClick={() => navigate(-1)}>← Back</button></div>
+      <div className="ed-center">
+        <div style={{ fontSize: '3rem', marginBottom: '10px' }}>⚠️</div>
+        <div style={{ fontFamily: 'Syne', fontSize: '1.5rem', fontWeight: 700, color: '#fca5a5' }}>Event Not Found</div>
+        <div style={{ color: '#71717a' }}>{error || "The event you're looking for doesn't exist."}</div>
+        <button className="ed-back" style={{ marginTop: 20 }} onClick={() => navigate('/')}>Return Home</button>
+      </div>
+    </div>
+  );
+
+  // Parse schedule string to Array if needed
+  let parsedSchedule = [];
+  try {
+    if (event.schedule) {
+      parsedSchedule = typeof event.schedule === 'string' ? JSON.parse(event.schedule) : event.schedule;
     }
+  } catch (e) {
+    parsedSchedule = [event.schedule];
+    console.log(e);
+  }
 
-    return (
-        <div className="ed-wrap">
-            <style>{CSS}</style>
-            <Navbar isFestiverse={true} toggleUniverse={() => navigate('/')} />
+  return (
+    <div className="ed-wrap">
+      <style>{CSS}</style>
+      <Navbar isFestiverse={true} toggleUniverse={() => navigate('/')} />
 
-            <main className="ed-main">
-                {/* Back Link */}
-                <button className="ed-back" style={{ border: 'none', padding: 0, marginBottom: 24 }} onClick={() => navigate(-1)}>
-                    ← Back to Events
-                </button>
+      <main className="ed-main">
+        {/* Back Link */}
+        <button className="ed-back" style={{ border: 'none', padding: 0, marginBottom: 24 }} onClick={() => navigate(-1)}>
+          ← Back to Events
+        </button>
 
-                {/* Hero Card */}
-                <div className="ed-hero-card">
-                    {/* Image Area */}
-                    <div className="ed-hero-img-wrap">
-                        {event.image_url ? (
-                            <>
-                                <img src={event.image_url.startsWith('http') ? event.image_url : `${import.meta.env.VITE_API_URL}${event.image_url}`} alt={event.name} className="ed-hero-img" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
-                                <div className="ed-hero-img-grad" />
-                            </>
-                        ) : (
-                            <div className="ed-hero-fallback"><span>FESTIVERSE</span></div>
-                        )}
-                        {!event.image_url && <div className="ed-hero-img-grad" />}
-                    </div>
+        {/* Hero Card */}
+        <div className="ed-hero-card">
+          {/* Image Area */}
+          <div className="ed-hero-img-wrap">
+            {event.image_url ? (
+              <>
+                <img src={event.image_url.startsWith('http') ? event.image_url : `${import.meta.env.VITE_API_URL}${event.image_url}`} alt={event.name} className="ed-hero-img" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
+                <div className="ed-hero-img-grad" />
+              </>
+            ) : (
+              <div className="ed-hero-fallback"><span>FESTIVERSE</span></div>
+            )}
+            {!event.image_url && <div className="ed-hero-img-grad" />}
+          </div>
 
-                    {/* Meta Content overlaying image at bottom */}
-                    <div className={`ed-hero-content ${event.image_url ? '' : 'no-img'}`}>
-                        <div className="ed-category">{event.category || 'Event'}</div>
-                        <h1 className="ed-title">{event.name}</h1>
+          {/* Meta Content overlaying image at bottom */}
+          <div className={`ed-hero-content ${event.image_url ? '' : 'no-img'}`}>
+            <div className="ed-category">{event.category || 'Event'}</div>
+            <h1 className="ed-title">{event.name}</h1>
 
-                        <div className="ed-meta-grid">
-                            {event.date && (
-                                <div className="ed-meta-item">
-                                    <span className="ed-meta-icon">📅</span>
-                                    {formatDate(event.date)}
-                                </div>
-                            )}
-                            {event.location && (
-                                <div className="ed-meta-item">
-                                    <span className="ed-meta-icon">📍</span>
-                                    {event.location}
-                                </div>
-                            )}
-                            <div className="ed-meta-item">
-                                <span className="ed-meta-icon">👥</span>
-                                {event.team_size > 1 ? `Team of ${event.team_size}` : 'Solo Event'}
-                            </div>
-                        </div>
-                    </div>
+            <div className="ed-meta-grid">
+              {event.date && (
+                <div className="ed-meta-item">
+                  <span className="ed-meta-icon">📅</span>
+                  {formatDate(event.date)}
                 </div>
-
-                {/* Two Column Layout */}
-                <div className="ed-grid">
-
-                    {/* Left Col (Main Text) */}
-                    <div>
-                        {event.description && (
-                            <>
-                                <h2 className="ed-sec-title"><span>◈</span> About the Event</h2>
-                                <div className="ed-desc">{event.description}</div>
-                            </>
-                        )}
-
-                        {event.rules && event.rules.trim() !== '' && (
-                            <>
-                                <h2 className="ed-sec-title"><span>◈</span> Rules & Guidelines</h2>
-                                <div className="ed-rules">{event.rules}</div>
-                            </>
-                        )}
-                    </div>
-
-                    {/* Right Col (Sidebar) */}
-                    <div>
-                        {/* Schedule */}
-                        {parsedSchedule && parsedSchedule.length > 0 && parsedSchedule[0] && (
-                            <div className="ed-box">
-                                <div className="ed-box-label">Schedule</div>
-                                <div className="ed-sched-list">
-                                    {parsedSchedule.map((item, idx) => (
-                                        <div key={idx} className="ed-sched-item">
-                                            <div className="ed-sched-dot" />
-                                            <div>{item}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Prizes */}
-                        {event.prizes && event.prizes.trim() !== '' && (
-                            <div className="ed-box ed-prize-box">
-                                <div className="ed-box-label ed-prize-label">Prizes & Rewards</div>
-                                <div className="ed-prize-text">{event.prizes}</div>
-                            </div>
-                        )}
-
-                        {/* Registration CTA */}
-                        <div style={{ marginTop: 32, textAlign: 'center' }}>
-                            <p style={{ fontSize: '0.85rem', color: '#71717a', marginBottom: 12 }}>Ready to participate?</p>
-                            <button className="ed-cta-btn" onClick={() => navigate('/dashboard')}>
-                                Register Now
-                            </button>
-                        </div>
-
-                        {/* Share CTA */}
-                        <div style={{ marginTop: 20, textAlign: 'center' }}>
-                            <button
-                                onClick={() => {
-                                    if (navigator.share) {
-                                        navigator.share({
-                                            title: event.name,
-                                            text: `Check out ${event.name} at Festiverse!`,
-                                            url: window.location.href,
-                                        }).catch(console.error);
-                                    } else {
-                                        navigator.clipboard.writeText(window.location.href);
-                                        alert('Link copied to clipboard!');
-                                    }
-                                }}
-                                style={{
-                                    width: '100%', padding: '12px',
-                                    background: 'transparent', color: '#a1a1aa',
-                                    border: '1px solid #252529', borderRadius: '12px',
-                                    cursor: 'pointer', fontFamily: 'Outfit, sans-serif',
-                                    fontWeight: 600, fontSize: '0.9rem',
-                                    transition: 'all .2s'
-                                }}
-                                onMouseOver={(e) => { e.currentTarget.style.color = '#e4e4e7'; e.currentTarget.style.borderColor = '#3f3f46'; }}
-                                onMouseOut={(e) => { e.currentTarget.style.color = '#a1a1aa'; e.currentTarget.style.borderColor = '#252529'; }}
-                            >
-                                🔗 Share Event
-                            </button>
-                        </div>
-                    </div>
-
+              )}
+              {event.location && (
+                <div className="ed-meta-item">
+                  <span className="ed-meta-icon">📍</span>
+                  {event.location}
                 </div>
-            </main >
+              )}
+              <div className="ed-meta-item">
+                <span className="ed-meta-icon">👥</span>
+                {event.team_size > 1 ? `Team of ${event.team_size}` : 'Solo Event'}
+              </div>
+            </div>
+          </div>
+        </div>
 
-            <FestFooter onAdminClick={() => navigate('/admin')} />
-        </div >
-    );
+        {/* Two Column Layout */}
+        <div className="ed-grid">
+
+          {/* Left Col (Main Text) */}
+          <div>
+            {event.description && (
+              <>
+                <h2 className="ed-sec-title"><span>◈</span> About the Event</h2>
+                <div className="ed-desc">{event.description}</div>
+              </>
+            )}
+
+            {event.rules && event.rules.trim() !== '' && (
+              <>
+                <h2 className="ed-sec-title"><span>◈</span> Rules & Guidelines</h2>
+                <div className="ed-rules">{event.rules}</div>
+              </>
+            )}
+          </div>
+
+          {/* Right Col (Sidebar) */}
+          <div>
+            {/* Schedule */}
+            {parsedSchedule && parsedSchedule.length > 0 && parsedSchedule[0] && (
+              <div className="ed-box">
+                <div className="ed-box-label">Schedule</div>
+                <div className="ed-sched-list">
+                  {parsedSchedule.map((item, idx) => (
+                    <div key={idx} className="ed-sched-item">
+                      <div className="ed-sched-dot" />
+                      <div>{item}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Prizes */}
+            {event.prizes && event.prizes.trim() !== '' && (
+              <div className="ed-box ed-prize-box">
+                <div className="ed-box-label ed-prize-label">Prizes & Rewards</div>
+                <div className="ed-prize-text">{event.prizes}</div>
+              </div>
+            )}
+
+            {/* Registration CTA */}
+            <div style={{ marginTop: 32, textAlign: 'center' }}>
+              <p style={{ fontSize: '0.85rem', color: '#71717a', marginBottom: 12 }}>Ready to participate?</p>
+              <button className="ed-cta-btn" onClick={() => navigate('/dashboard')}>
+                Register Now
+              </button>
+            </div>
+
+            {/* Share CTA */}
+            <div style={{ marginTop: 20, textAlign: 'center' }}>
+              <button
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: event.name,
+                      text: `Check out ${event.name} at Festiverse!`,
+                      url: window.location.href,
+                    }).catch(console.error);
+                  } else {
+                    navigator.clipboard.writeText(window.location.href);
+                    alert('Link copied to clipboard!');
+                  }
+                }}
+                style={{
+                  width: '100%', padding: '12px',
+                  background: 'transparent', color: '#a1a1aa',
+                  border: '1px solid #252529', borderRadius: '12px',
+                  cursor: 'pointer', fontFamily: 'Outfit, sans-serif',
+                  fontWeight: 600, fontSize: '0.9rem',
+                  transition: 'all .2s'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.color = '#e4e4e7'; e.currentTarget.style.borderColor = '#3f3f46'; }}
+                onMouseOut={(e) => { e.currentTarget.style.color = '#a1a1aa'; e.currentTarget.style.borderColor = '#252529'; }}
+              >
+                🔗 Share Event
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </main >
+
+      <FestFooter onAdminClick={() => navigate('/admin')} />
+    </div >
+  );
 };
 
 export default EventDetails;

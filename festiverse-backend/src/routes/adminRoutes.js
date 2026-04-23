@@ -1,11 +1,13 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const multer = require('multer');
 const path = require('path');
 const supabase = require('../config/supabaseClient');
 const { verifyToken, verifyAdmin } = require('../middlewares/authMiddleware');
 const { sendResultEmail } = require('../config/emailClient');
 const { rateLimit } = require('../middlewares/rateLimit');
+const { validateIdParam, enforceMaxLength } = require('../middlewares/sanitize');
 const logger = require('../config/logger');
 
 const router = express.Router();
@@ -32,13 +34,40 @@ const upload = multer({
 // ───────────────────────────────────────────────────
 // POST /api/admin/login
 // ───────────────────────────────────────────────────
-router.post('/login', adminLoginLimiter, (req, res) => {
+router.post('/login', adminLoginLimiter, async (req, res) => {
     const { password } = req.body;
-    if (password === ADMIN_PASSWORD) {
-        const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '4h' });
-        res.json({ success: true, token });
-    } else {
-        res.status(401).json({ success: false, message: 'Invalid admin password.' });
+    const clientIp = req.ip || req.socket.remoteAddress;
+
+    if (!password || typeof password !== 'string' || password.length > 128) {
+        logger.warn('Admin login: invalid password format', { ip: clientIp });
+        return res.status(401).json({ success: false, message: 'Invalid admin password.' });
+    }
+
+    try {
+        // Support both hashed and plain-text admin passwords for migration
+        let isValid = false;
+        if (ADMIN_PASSWORD.startsWith('$2b$') || ADMIN_PASSWORD.startsWith('$2a$')) {
+            // Admin password is bcrypt-hashed in env
+            isValid = await bcrypt.compare(password, ADMIN_PASSWORD);
+        } else {
+            // Fallback: plain-text comparison (log warning to migrate)
+            isValid = password === ADMIN_PASSWORD;
+            if (isValid) {
+                logger.warn('Admin password is stored as plain-text. Please hash it with bcrypt and update ADMIN_PASSWORD env var.');
+            }
+        }
+
+        if (isValid) {
+            const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '4h' });
+            logger.info('Admin login successful', { ip: clientIp });
+            res.json({ success: true, token });
+        } else {
+            logger.warn('Admin login failed: wrong password', { ip: clientIp });
+            res.status(401).json({ success: false, message: 'Invalid admin password.' });
+        }
+    } catch (err) {
+        logger.error('Admin login error', { message: err.message, ip: clientIp });
+        res.status(500).json({ success: false, message: 'Login failed. Please try again.' });
     }
 });
 
@@ -81,7 +110,7 @@ router.get('/messages', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 // DELETE /api/admin/messages/:id
 // ───────────────────────────────────────────────────
-router.delete('/messages/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.delete('/messages/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         const { error } = await supabase
             .from('messages')
@@ -92,6 +121,41 @@ router.delete('/messages/:id', verifyToken, verifyAdmin, async (req, res) => {
         res.json({ success: true, message: 'Message deleted.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Delete error.' });
+    }
+});
+
+// ───────────────────────────────────────────────────
+// GET /api/admin/analytics
+// ───────────────────────────────────────────────────
+router.get('/analytics', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        // 1. Get unique visitors (all time or filtered by date)
+        const { count, error } = await supabase
+            .from('visitors')
+            .select('*', { count: 'exact', head: true });
+
+        // Get unique IPs
+        const { data: uniqueIps, error: ipError } = await supabase
+            .from('visitors')
+            .select('ip_hash');
+
+        const uniqueCount = uniqueIps ? new Set(uniqueIps.map(v => v.ip_hash)).size : 0;
+
+        if (error || ipError) throw error || ipError;
+
+        // 2. Get live users from the map stored in app
+        const liveUsers = req.app.get('liveUsersMap');
+        const liveCount = liveUsers ? liveUsers.size : 0;
+
+        res.json({
+            success: true,
+            uniqueVisitors: uniqueCount,
+            totalLogs: count,
+            liveUsers: liveCount
+        });
+    } catch (err) {
+        logger.error('ADMIN ANALYTICS ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Fetch error.' });
     }
 });
 
@@ -139,7 +203,7 @@ router.put('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 // DELETE /api/admin/users/:id
 // ───────────────────────────────────────────────────
-router.delete('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.delete('/users/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         const { error } = await supabase
             .from('users')
@@ -259,7 +323,7 @@ router.put('/gallery/:id', verifyToken, verifyAdmin, upload.single('image'), asy
 // ───────────────────────────────────────────────────
 // DELETE /api/admin/gallery/:id
 // ───────────────────────────────────────────────────
-router.delete('/gallery/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.delete('/gallery/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         // Get the image record first to delete from storage
         const { data: image, error: fetchErr } = await supabase
@@ -346,7 +410,7 @@ router.post('/team', verifyToken, verifyAdmin, upload.single('image'), async (re
 // ───────────────────────────────────────────────────
 // DELETE /api/admin/team/:id
 // ───────────────────────────────────────────────────
-router.delete('/team/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.delete('/team/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         const { data: member, error: fetchErr } = await supabase
             .from('team')
@@ -490,7 +554,7 @@ router.put('/faculty/:id', verifyToken, verifyAdmin, upload.single('image'), asy
 // ───────────────────────────────────────────────────
 // DELETE /api/admin/faculty/:id
 // ───────────────────────────────────────────────────
-router.delete('/faculty/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.delete('/faculty/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         const { data: member, error: fetchErr } = await supabase
             .from('faculty')
@@ -643,7 +707,7 @@ router.put('/team/:id', verifyToken, verifyAdmin, upload.single('image'), async 
 // ───────────────────────────────────────────────────
 // DELETE /api/admin/events/:id
 // ───────────────────────────────────────────────────
-router.delete('/events/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.delete('/events/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         const { error } = await supabase
             .from('events')
@@ -788,7 +852,7 @@ router.put('/notices/:id', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 // DELETE /api/admin/notices/:id
 // ───────────────────────────────────────────────────
-router.delete('/notices/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.delete('/notices/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         const { error } = await supabase.from('notices').delete().eq('id', req.params.id);
         if (error) throw error;
@@ -860,35 +924,63 @@ router.post('/checkin', verifyToken, verifyAdmin, async (req, res) => {
 
 router.post('/results', verifyToken, verifyAdmin, async (req, res) => {
     try {
-        const { event_id, position, participant_name, participant_college, score } = req.body;
+        const { event_id, position, participant_name, participant_college, participant_email, score } = req.body;
         if (!event_id || !position || !participant_name) {
             return res.status(400).json({ success: false, message: 'Event, position, and participant name are required.' });
         }
         const { data, error } = await supabase
             .from('results')
-            .insert([{ event_id, position, participant_name, participant_college: participant_college || '', score: score || '' }])
+            .insert([{
+                event_id,
+                position,
+                participant_name,
+                participant_college: participant_college || '',
+                participant_email: participant_email || '',
+                user_id: req.body.user_id || null, // Allow frontend to pass matched user_id
+                score: score || ''
+            }])
             .select('*, events(name)')
             .single();
         if (error) throw error;
 
-        // Try to dispatch result email
-        // We look up the user by name who is registered for this event
+        // Try to dispatch result email & link account if not provided
         try {
-            const { data: regUser } = await supabase
-                .from('event_registrations')
-                .select('users(name, email)')
-                .eq('event_id', event_id)
-                .ilike('users.name', participant_name)
-                .single();
+            let targetEmail = participant_email;
+            let targetName = participant_name;
+            let matchedUserId = data.user_id;
 
-            if (regUser && regUser.users && regUser.users.email) {
+            // If no user_id or email, try to find registered user
+            if (!matchedUserId || !targetEmail) {
+                // Query users who are registered for this event
+                const { data: match } = await supabase
+                    .from('users')
+                    .select('id, name, email, event_registrations!inner(event_id)')
+                    .eq('event_registrations.event_id', event_id)
+                    .or(`email.ilike.${participant_name},name.ilike.${participant_name}`)
+                    .limit(1)
+                    .single();
+
+                if (match) {
+                    if (!matchedUserId) matchedUserId = match.id;
+                    if (!targetEmail) targetEmail = match.email;
+                    if (!targetName) targetName = match.name || participant_name;
+
+                    // Update result with matched user_id if we found one
+                    if (!data.user_id && matchedUserId) {
+                        await supabase.from('results').update({ user_id: matchedUserId }).eq('id', data.id);
+                    }
+                }
+            }
+
+            if (targetEmail) {
                 const resultDetails = {
-                    title: data.events.name,
+                    eventTitle: data.events.name,
                     position: position,
                     score: score || 'N/A',
                     certificateUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard`
                 };
-                sendResultEmail(regUser.users.email, regUser.users.name, resultDetails).catch(e => console.error('RESULT EMAIL ERR:', e.message));
+                sendResultEmail(targetEmail, targetName, resultDetails)
+                    .catch(e => console.error('RESULT EMAIL ERR:', e.message));
             }
         } catch (emailErr) {
             console.error('Failed to look up user for result email:', emailErr.message);
@@ -903,12 +995,13 @@ router.post('/results', verifyToken, verifyAdmin, async (req, res) => {
 
 router.put('/results/:id', verifyToken, verifyAdmin, async (req, res) => {
     try {
-        const { event_id, position, participant_name, participant_college, score } = req.body;
+        const { event_id, position, participant_name, participant_college, participant_email, score } = req.body;
         const updates = {};
         if (event_id !== undefined) updates.event_id = event_id;
         if (position !== undefined) updates.position = position;
         if (participant_name !== undefined) updates.participant_name = participant_name;
         if (participant_college !== undefined) updates.participant_college = participant_college;
+        if (participant_email !== undefined) updates.participant_email = participant_email;
         if (score !== undefined) updates.score = score;
 
         const { data, error } = await supabase
@@ -925,7 +1018,7 @@ router.put('/results/:id', verifyToken, verifyAdmin, async (req, res) => {
     }
 });
 
-router.delete('/results/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.delete('/results/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         const { error } = await supabase.from('results').delete().eq('id', req.params.id);
         if (error) throw error;
@@ -1020,14 +1113,14 @@ router.put('/sponsors/:id', verifyToken, verifyAdmin, upload.single('logo'), asy
     }
 });
 
-router.delete('/sponsors/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.delete('/sponsors/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         const { data: sponsor } = await supabase.from('sponsors').select('logo_url').eq('id', req.params.id).single();
         if (sponsor && sponsor.logo_url) {
             const storagePath = sponsor.logo_url.split('/storage/v1/object/public/assets/')[1];
             if (storagePath) await supabase.storage.from('assets').remove([storagePath]);
         }
-        const { error } = await supabase.from('sponsors').delete().eq('id', req.params.id);
+    const { error } = await supabase.from('sponsors').delete().eq('id', req.params.id);
         if (error) throw error;
         res.json({ success: true, message: 'Sponsor deleted.' });
     } catch (err) {
@@ -1053,7 +1146,7 @@ router.get('/hiring', verifyToken, verifyAdmin, async (req, res) => {
     }
 });
 
-router.delete('/hiring/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.delete('/hiring/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         const { error } = await supabase
             .from('hiring_applications')

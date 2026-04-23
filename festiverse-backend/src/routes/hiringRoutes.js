@@ -4,6 +4,7 @@ const path = require('path');
 const router = express.Router();
 const supabase = require('../config/supabaseClient');
 const { rateLimit } = require('../middlewares/rateLimit');
+const { isValidEmail, isValidPhone, enforceMaxLength } = require('../middlewares/sanitize');
 
 const hiringLimiter = rateLimit({ windowMs: 300000, max: 3, message: 'Too many applications submitted. Please wait a few minutes.' });
 
@@ -34,6 +35,23 @@ router.post('/submit', hiringLimiter, upload.single('file'), async (req, res) =>
             return res.status(400).json({ success: false, message: 'All fields and resume file are required.' });
         }
 
+        if (!isValidEmail(email)) {
+            return res.status(400).json({ success: false, message: 'A valid email address is required.' });
+        }
+
+        if (!isValidPhone(phone)) {
+            return res.status(400).json({ success: false, message: 'A valid 10-digit phone number is required.' });
+        }
+
+        // Enforce max lengths
+        const safeName = enforceMaxLength(name, 100);
+        const safeEmail = enforceMaxLength(email, 254);
+        const safeRole = enforceMaxLength(role, 100);
+        const safeReg = enforceMaxLength(reg, 30);
+        const safeRoll = enforceMaxLength(roll, 30);
+        const safeBranch = enforceMaxLength(branch, 100);
+        const safeBatch = enforceMaxLength(batch, 10);
+
         // Upload to Supabase Storage
         // Use the assets bucket, inside resumes/ folder
         const fileName = `resumes/${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
@@ -63,14 +81,14 @@ router.post('/submit', hiringLimiter, upload.single('file'), async (req, res) =>
         const { data, error } = await supabase
             .from('hiring_applications')
             .insert([{
-                role,
-                name,
-                email,
+                role: safeRole,
+                name: safeName,
+                email: safeEmail,
                 phone,
-                reg_no: reg,
-                roll_no: roll,
-                branch,
-                batch,
+                reg_no: safeReg,
+                roll_no: safeRoll,
+                branch: safeBranch,
+                batch: safeBatch,
                 resume_url: resumeUrl
             }])
             .select()

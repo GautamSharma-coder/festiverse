@@ -25,9 +25,15 @@ router.post('/create-order', paymentLimiter, async (req, res) => {
         if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
             return res.status(503).json({ success: false, message: 'Payment service is not configured.' });
         }
-        const { category, userData } = req.body; // userData contains registration details
-        let fee;
+        const { category, userData } = req.body;
 
+        // Strict enum validation for category
+        const validCategories = ['INTERNAL', 'EXTERNAL'];
+        if (!category || !validCategories.includes(category)) {
+            return res.status(400).json({ success: false, message: 'Invalid registration category.' });
+        }
+
+        let fee;
         if (category === 'INTERNAL') {
             fee = parseInt(process.env.REGISTRATION_FEE_INTERNAL || '349', 10);
         } else {
@@ -35,7 +41,7 @@ router.post('/create-order', paymentLimiter, async (req, res) => {
         }
 
         const options = {
-            amount: fee * 100, 
+            amount: fee * 100,
             currency: 'INR',
             receipt: `receipt_order_${Date.now()}`,
         };
@@ -85,14 +91,18 @@ router.post('/webhook', async (req, res) => {
     const body = JSON.stringify(req.body);
 
     try {
-        // 1. Verify Signature
+        // 1. Verify Signature (timing-safe)
         if (secret) {
             const expectedSignature = crypto
                 .createHmac('sha256', secret)
                 .update(body)
                 .digest('hex');
 
-            if (expectedSignature !== signature) {
+            // Prevent timing attacks
+            const sigBuffer = Buffer.from(signature || '', 'utf-8');
+            const expectedBuffer = Buffer.from(expectedSignature, 'utf-8');
+            if (sigBuffer.length !== expectedBuffer.length ||
+                !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
                 logger.warn('⚠️ WEBHOOK: Invalid signature');
                 return res.status(400).json({ status: 'invalid signature' });
             }
@@ -137,7 +147,7 @@ router.post('/webhook', async (req, res) => {
                 if (!existingUser) {
                     const salt = await bcrypt.genSalt(10);
                     const password_hash = await bcrypt.hash(userData.password, salt);
-                    
+
                     // a. Create User
                     const { data: newUser, error: userError } = await supabase
                         .from('users')

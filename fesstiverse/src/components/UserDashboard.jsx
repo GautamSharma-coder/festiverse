@@ -569,6 +569,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState('');
   const [myEvents, setMyEvents] = useState([]);
+  const [results, setResults] = useState([]);
   const [allEvents, setAllEvents] = useState([]);
   const [selectedEvents, setSelectedEvents] = useState([]);
   const [teamMembers, setTeamMembers] = useState({});
@@ -582,10 +583,22 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
   const [qrLoading, setQrLoading] = useState(false);
   const [idCopied, setIdCopied] = useState(false);
 
-  useEffect(() => { fetchProfile(); fetchMyEvents(); fetchAllEvents(); }, []);
+  useEffect(() => { fetchProfile(); fetchAllEvents(); }, []);
+  useEffect(() => { if (festiverseId) fetchMyEvents(); }, [festiverseId]);
 
   const fetchProfile = async () => { try { const d = await apiFetch('/api/auth/profile'); if (d.user) { setProfile({ name: d.user.name || '', email: d.user.email || '', phone: d.user.phone || '', college: d.user.college || '' }); if (d.user.avatar_url) setAvatarUrl(d.user.avatar_url); if (d.user.festiverse_id) setFestiverseId(d.user.festiverse_id); } } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } };
-  const fetchMyEvents = async () => { try { const d = await apiFetch('/api/events/my-events'); setMyEvents(d.registrations || []); } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } };
+  const fetchMyEvents = async () => { 
+    try { 
+      const d = await apiFetch('/api/events/my-events'); 
+      setMyEvents(d.registrations || []); 
+      
+      // Also fetch results/achievements if we have a festiverse ID
+      if (festiverseId) {
+        const res = await apiFetch(`/api/certificates/check/${festiverseId}`);
+        if (res.success) setResults(res.certificates || []);
+      }
+    } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } 
+  };
   const fetchAllEvents = async () => { try { const d = await apiFetch('/api/events'); setAllEvents(d.events || []); } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } };
 
   const saveProfile = async () => {
@@ -914,35 +927,53 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
               ) : (
                 <>
                   <div className="d-section-label" style={{ marginBottom: 14 }}>Your Registrations</div>
-                  {myEvents.map((reg, i) => (
-                    <div key={reg.id} className="d-my-ev d-fade" style={{ animationDelay: `${i * 0.05}s` }}>
-                      <div className="d-my-ev-dot" />
-                      <div className="d-my-ev-info">
-                        <div className="d-my-ev-name">{reg.events?.name || 'Event'} {reg.custom_id && <span style={{ fontSize: '0.65rem', padding: '1px 5px', background: 'var(--border)', borderRadius: 4, marginLeft: 6, color: 'var(--muted)', fontWeight: 'normal', letterSpacing: '0.05em' }}>{reg.custom_id}</span>}</div>
-                        <div className="d-my-ev-meta">
-                          {[reg.events?.location, reg.events?.date && new Date(reg.events.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })].filter(Boolean).join('  ·  ')}
+                  {myEvents.map((reg, i) => {
+                    const achievement = results.find(r => r.event_id === reg.event_id && r.type === 'Achievement');
+                    const rank = achievement?.rank;
+                    const rankColor = rank === '1st' ? '#fbbf24' : rank === '2nd' ? '#94a3b8' : rank === '3rd' ? '#b45309' : null;
+
+                    return (
+                      <div key={reg.id} className="d-my-ev d-fade" style={{ animationDelay: `${i * 0.05}s` }}>
+                        <div className="d-my-ev-dot" />
+                        <div className="d-my-ev-info">
+                          <div className="d-my-ev-name">
+                            {reg.events?.name || 'Event'} 
+                            {reg.custom_id && <span style={{ fontSize: '0.65rem', padding: '1px 5px', background: 'var(--border)', borderRadius: 4, marginLeft: 6, color: 'var(--muted)', fontWeight: 'normal', letterSpacing: '0.05em' }}>{reg.custom_id}</span>}
+                            {rank && (
+                              <span style={{ 
+                                marginLeft: 8, padding: '2px 8px', borderRadius: '12px', 
+                                background: `${rankColor}20`, color: rankColor, fontSize: '0.65rem', 
+                                fontWeight: 800, border: `1px solid ${rankColor}40`, textTransform: 'uppercase'
+                              }}>
+                                🏆 {rank} Place
+                              </span>
+                            )}
+                          </div>
+                          <div className="d-my-ev-meta">
+                            {[reg.events?.location, reg.events?.date && new Date(reg.events.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })].filter(Boolean).join('  ·  ')}
+                          </div>
                         </div>
+                        <button
+                          className="d-btn-ghost"
+                          style={{ padding: '6px 12px', fontSize: '0.75rem', color: 'var(--accent)', borderColor: 'rgba(249,115,22,0.3)' }}
+                          onClick={() => {
+                            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+                            window.open(`${API_URL}/api/certificates/download/${festiverseId}?event_id=${reg.event_id}`, '_blank');
+                          }}
+                        >
+                          🎓 Cert
+                        </button>
+                        <button
+                          className="d-btn-ghost"
+                          style={{ padding: '6px 12px', fontSize: '0.75rem' }}
+                          onClick={() => showQr(reg.id)}
+                        >
+                          📱 QR
+                        </button>
+                        <span className="d-my-ev-badge">{reg.checked_in ? 'Checked In' : 'Confirmed'}</span>
                       </div>
-                      <button
-                        className="d-btn-ghost"
-                        style={{ padding: '6px 12px', fontSize: '0.75rem', color: 'var(--accent)', borderColor: 'rgba(249,115,22,0.3)' }}
-                        onClick={() => {
-                          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-                          window.open(`${API_URL}/api/certificates/download/${festiverseId}?event_id=${reg.event_id}`, '_blank');
-                        }}
-                      >
-                        🎓 Cert
-                      </button>
-                      <button
-                        className="d-btn-ghost"
-                        style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-                        onClick={() => showQr(reg.id)}
-                      >
-                        📱 QR
-                      </button>
-                      <span className="d-my-ev-badge">{reg.checked_in ? 'Checked In' : 'Confirmed'}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </>
               )}
 

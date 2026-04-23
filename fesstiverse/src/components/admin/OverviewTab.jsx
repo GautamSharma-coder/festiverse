@@ -1,13 +1,16 @@
 import React from 'react';
 
-const OverviewTab = ({ registrations, users, events, messages }) => {
+const OverviewTab = ({ registrations, users, messages, analytics }) => {
     return (
         <div className="ap-fade">
             <div className="ap-stats">
                 <div className="ap-stat s-orange"><div className="ap-stat-val">{registrations.length}</div><div className="ap-stat-lbl">Registrations</div></div>
-                <div className="ap-stat s-blue"><div className="ap-stat-val">{users.length}</div><div className="ap-stat-lbl">Users</div></div>
-                <div className="ap-stat s-green"><div className="ap-stat-val">{events.length}</div><div className="ap-stat-lbl">Events</div></div>
-                <div className="ap-stat s-red"><div className="ap-stat-val">{messages.length}</div><div className="ap-stat-lbl">Messages</div></div>
+                <div className="ap-stat s-blue"><div className="ap-stat-val">{users.length}</div><div className="ap-stat-lbl">Total Users</div></div>
+                <div className="ap-stat s-green"><div className="ap-stat-val">{analytics.uniqueVisitors || 0}</div><div className="ap-stat-lbl">Unique Visitors</div></div>
+                <div className="ap-stat s-red"><div className="ap-stat-val" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {analytics.liveUsers || 0}
+                    <span className="live-indicator" style={{ width: 8, height: 8, background: '#ef4444', borderRadius: '50%', boxShadow: '0 0 10px #ef4444' }}></span>
+                </div><div className="ap-stat-lbl">Live Users</div></div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div className="ap-card">

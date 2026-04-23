@@ -18,10 +18,28 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
+const crypto = require('crypto');
 const logger = require('./src/config/logger');
+const { sanitizeInputs } = require('./src/middlewares/sanitize');
+const { rateLimit } = require('./src/middlewares/rateLimit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// ─── Live User Tracking ───
+const liveUsers = new Map(); // Store userHash -> lastSeen
+const CLEANUP_INTERVAL = 60000; // 1 minute
+const STALE_THRESHOLD = 45000; // 45 seconds
+
+setInterval(() => {
+    const now = Date.now();
+    for (const [hash, lastSeen] of liveUsers.entries()) {
+        if (now - lastSeen > STALE_THRESHOLD) {
+            liveUsers.delete(hash);
+        }
+    }
+}, CLEANUP_INTERVAL);
+
 
 // ─── Request/Response Logging Middleware ───
 app.use((req, res, next) => {
@@ -73,14 +91,36 @@ const allowedOrigins = [
     process.env.FRONTEND_URL, // Set in production .env
 ].filter(Boolean);
 
-// Security headers
+// ─── Security Headers (Hardened Helmet) ───
 app.use(helmet({
-    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow cross-origin image loading
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://code.iconify.design", "https://api.iconify.design"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "blob:", "https://*.supabase.co", "https://grainy-gradients.vercel.app"],
+            connectSrc: ["'self'", "https://checkout.razorpay.com", "https://api.razorpay.com", "https://*.supabase.co", "https://api.iconify.design"],
+            frameSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
+        },
+    },
+    crossOriginEmbedderPolicy: false, // Allow cross-origin resources (Supabase images)
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }, // Allow Razorpay popup
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    hsts: process.env.NODE_ENV === 'production'
+        ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+        : false,
 }));
 
+// ─── Remove X-Powered-By (defense in depth) ───
+app.disable('x-powered-by');
+
+// ─── CORS ───
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl, Postman)
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
@@ -89,10 +129,31 @@ app.use(cors({
         }
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    maxAge: 86400, // Cache preflight for 24 hours
 }));
+
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// ─── Global Rate Limiter (100 requests/min per IP) ───
+app.use(rateLimit({
+    windowMs: 60000,
+    max: 100,
+    message: 'Too many requests from this IP. Please slow down.'
+}));
+
+// ─── Input Sanitization (XSS Prevention) ───
+app.use(sanitizeInputs);
+
+// ─── Request ID (for debugging without leaking internals) ───
+app.use((req, res, next) => {
+    req.requestId = crypto.randomUUID();
+    res.setHeader('X-Request-ID', req.requestId);
+    next();
+});
 
 // ─── Routes ───
 const authRoutes = require('./src/routes/authRoutes');
@@ -109,6 +170,7 @@ const sponsorRoutes = require('./src/routes/sponsorRoutes');
 const paymentRoutes = require('./src/routes/paymentRoutes');
 const hiringRoutes = require('./src/routes/hiringRoutes');
 const certificateRoutes = require('./src/routes/certificateRoutes');
+const analyticsRoutes = require('./src/routes/analyticsRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
@@ -124,6 +186,21 @@ app.use('/api/sponsors', sponsorRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/hiring', hiringRoutes);
 app.use('/api/certificates', certificateRoutes);
+app.use('/api/analytics', analyticsRoutes);
+
+// ─── Analytics & Heartbeat ───
+app.post('/api/analytics/heartbeat', (req, res) => {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'] || '';
+    const hash = crypto.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex').slice(0, 16);
+
+    liveUsers.set(hash, Date.now());
+    res.json({ success: true, liveCount: liveUsers.size });
+});
+
+// Internal helper for admin routes to get live count
+app.set('liveUsersMap', liveUsers);
+
 
 // ─── Health Check ───
 app.get('/', (req, res) => {
@@ -139,10 +216,22 @@ app.use((req, res) => {
     res.status(404).json({ success: false, message: 'Route not found.' });
 });
 
-// ─── Error Handler ───
+// ─── Error Handler (never leak internals) ───
 app.use((err, req, res, next) => {
-    logger.error('Unhandled Error', { message: err.message, stack: err.stack });
-    res.status(500).json({ success: false, message: 'Internal Server Error.' });
+    logger.error('Unhandled Error', {
+        requestId: req.requestId,
+        message: err.message,
+        stack: err.stack,
+        path: req.originalUrl,
+        method: req.method,
+    });
+    // Never send stack traces or detailed errors to the client
+    const statusCode = err.status || err.statusCode || 500;
+    res.status(statusCode).json({
+        success: false,
+        message: statusCode === 500 ? 'Internal Server Error.' : err.message || 'An error occurred.',
+        requestId: req.requestId, // Allow user to reference for support
+    });
 });
 
 // ─── Start Server ───

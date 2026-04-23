@@ -1,9 +1,11 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const supabase = require('../config/supabaseClient');
 const { sendOTPEmail, sendConfirmationEmail } = require('../config/emailClient');
 const { rateLimit } = require('../middlewares/rateLimit');
+const { isValidEmail, isValidPhone, enforceMaxLength } = require('../middlewares/sanitize');
 const logger = require('../config/logger');
 
 const router = express.Router();
@@ -12,6 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET; // Required — validated at startup
 // Rate limiters
 const otpLimiter = rateLimit({ windowMs: 60000, max: 3, message: 'Too many OTP requests. Please wait 1 minute.' });
 const loginLimiter = rateLimit({ windowMs: 60000, max: 5, message: 'Too many login attempts. Please wait 1 minute.' });
+const registerLimiter = rateLimit({ windowMs: 60000, max: 3, message: 'Too many registration attempts. Please wait 1 minute.' });
 
 // In-memory OTP store keyed by email (use Redis in production for multi-instance)
 const otpStore = {};
@@ -36,12 +39,12 @@ function generateFestiverseId(fullName) {
  */
 router.post('/send-otp', otpLimiter, async (req, res) => {
     const { email } = req.body;
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email || !isValidEmail(email)) {
         return res.status(400).json({ success: false, message: 'A valid email address is required.' });
     }
 
-    // Generate a 4-digit OTP
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    // Generate a 6-digit OTP (harder to brute-force than 4-digit)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[email.toLowerCase()] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 }; // 5 min expiry
 
     try {
@@ -59,38 +62,56 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
  * POST /api/auth/register
  * Validates OTP and registers the user.
  */
-router.post('/register', async (req, res) => {
+router.post('/register', registerLimiter, async (req, res) => {
     try {
-        const { name, college, email, phone, otp, password, razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+        let { name, college, email, phone, otp, password, razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+
+        // Enforce max lengths to prevent oversized payloads
+        name = enforceMaxLength(name, 100);
+        college = enforceMaxLength(college, 200);
+        email = enforceMaxLength(email, 254);
 
         // Input validation
         if (!name || !name.trim()) {
             return res.status(400).json({ success: false, message: 'Name is required.' });
         }
-        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        if (!/^[a-zA-Z\s.'-]+$/.test(name.trim())) {
+            return res.status(400).json({ success: false, message: 'Name contains invalid characters.' });
+        }
+        if (!email || !isValidEmail(email)) {
             return res.status(400).json({ success: false, message: 'A valid email is required.' });
         }
-        if (!phone || !/^\d{10}$/.test(phone)) {
+        if (!phone || !isValidPhone(phone)) {
             return res.status(400).json({ success: false, message: 'A valid 10-digit phone number is required.' });
         }
         if (!password || password.length < 6) {
             return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
         }
-        if (!otp || !/^\d{4}$/.test(otp)) {
-            return res.status(400).json({ success: false, message: 'A valid 4-digit OTP is required.' });
+        if (password.length > 128) {
+            return res.status(400).json({ success: false, message: 'Password is too long.' });
+        }
+        if (!otp || !/^\d{6}$/.test(otp)) {
+            return res.status(400).json({ success: false, message: 'A valid 6-digit OTP is required.' });
         }
 
-        // Validate OTP by email
+        // Timing-safe OTP comparison
         const stored = otpStore[email.toLowerCase()];
-        if (!stored || stored.otp !== otp || Date.now() > stored.expiresAt) {
+        if (!stored || Date.now() > stored.expiresAt) {
             return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
         }
+        const otpMatch = crypto.timingSafeEqual(
+            Buffer.from(stored.otp, 'utf-8'),
+            Buffer.from(otp, 'utf-8')
+        );
+        if (!otpMatch) {
+            return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
+        }
+
         // Verify Razorpay Payment Signature
         if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
             return res.status(400).json({ success: false, message: 'Payment verification details are missing.' });
         }
 
-        const crypto = require('crypto');
         const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
         if (!razorpaySecret) {
             return res.status(500).json({ success: false, message: 'Payment verification is not configured.' });
@@ -100,7 +121,13 @@ router.post('/register', async (req, res) => {
             .update(razorpay_order_id + '|' + razorpay_payment_id)
             .digest('hex');
 
-        if (expectedSignature !== razorpay_signature) {
+        // Timing-safe signature comparison
+        const sigMatch = expectedSignature.length === razorpay_signature.length &&
+            crypto.timingSafeEqual(
+                Buffer.from(expectedSignature, 'utf-8'),
+                Buffer.from(razorpay_signature, 'utf-8')
+            );
+        if (!sigMatch) {
             return res.status(400).json({ success: false, message: 'Invalid payment signature. Payment verification failed.' });
         }
 
@@ -250,7 +277,7 @@ router.post('/login', loginLimiter, async (req, res) => {
  */
 router.post('/forgot-password-otp', otpLimiter, async (req, res) => {
     const { email } = req.body;
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!email || !isValidEmail(email)) {
         return res.status(400).json({ success: false, message: 'A valid email address is required.' });
     }
 
@@ -267,11 +294,9 @@ router.post('/forgot-password-otp', otpLimiter, async (req, res) => {
             return res.json({ success: true, message: 'If an account exists with this email, an OTP has been sent.' });
         }
 
-        // Generate a 4-digit OTP
-        const otp = Math.floor(1000 + Math.random() * 9000).toString();
-        // Use a prefix to separate reset OTPs from registration OTPs (optional, but good)
-        // For simplicity, we can just overwrite any existing OTPs for the email in the store
-        otpStore[`reset_${email.toLowerCase()}`] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 }; // 5 min expiry
+        // Generate a 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        otpStore[`reset_${email.toLowerCase()}`] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 };
 
         await sendOTPEmail(email, otp);
         logger.info(`📧 Reset Password OTP sent to ${email}`);
@@ -295,19 +320,35 @@ router.post('/reset-password', otpLimiter, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required.' });
         }
 
+        if (!isValidEmail(email)) {
+            return res.status(400).json({ success: false, message: 'Invalid email format.' });
+        }
+
         if (newPassword.length < 6) {
             return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+        }
+
+        if (newPassword.length > 128) {
+            return res.status(400).json({ success: false, message: 'Password is too long.' });
         }
 
         const emailKey = email.toLowerCase();
         const stored = otpStore[`reset_${emailKey}`];
 
-        if (!stored || stored.otp !== otp || Date.now() > stored.expiresAt) {
+        if (!stored || Date.now() > stored.expiresAt) {
+            return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
+        }
+
+        // Timing-safe OTP comparison
+        const otpBufferStored = Buffer.from(stored.otp, 'utf-8');
+        const otpBufferInput = Buffer.from(otp, 'utf-8');
+        if (otpBufferStored.length !== otpBufferInput.length ||
+            !crypto.timingSafeEqual(otpBufferStored, otpBufferInput)) {
             return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
         }
 
         // OTP is valid. Hash the new password.
-        const salt = await bcrypt.genSalt(10);
+        const salt = await bcrypt.genSalt(12);
         const password_hash = await bcrypt.hash(newPassword, salt);
 
         // Update the user's password in the database

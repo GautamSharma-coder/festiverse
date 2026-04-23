@@ -2,3 +2,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://udaangecsamastipur.in/sitemap.xml
+Sitemap: https://www.udaangecsamastipur.in/sitemap.xml
