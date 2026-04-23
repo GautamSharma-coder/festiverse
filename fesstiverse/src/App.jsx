@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import './App.css';
 import { useToast } from './components/Toast';
 import { ScrollReveal } from './components/ScrollReveal';
 import { apiFetch } from './lib/api';
 
-// UDAAN Components
+// ─── CRITICAL PATH: Loaded immediately (home page) ───
 import Navbar from './components/Navbar';
 import HeroSection from './components/HeroSection';
 import Societies from './components/Societies';
@@ -13,33 +13,60 @@ import Faculty from './components/Faculty';
 import GalleryCarousel from './components/GalleryCarousel';
 import TeamMembers from './components/TeamMembers';
 import NoticeBoard from './components/NoticeBoard';
-
-// FESTIVERSE Components
 import FestHero from './components/FestHero';
 import SponsorMarquee from './components/SponsorMarquee';
 import FestEvents from './components/FestEvents';
-import RegistrationPage from './components/RegistrationPage';
 import FestGallery from './components/FestGallery';
-import LoginModal from './components/LoginModal';
 import FestFooter from './components/FestFooter';
-import AdminPanel from './components/AdminPanel';
-import UserDashboard from './components/UserDashboard';
-import AboutPage from './components/AboutPage';
-import EventDetails from './components/EventDetails';
-import EventsPage from './components/EventsPage';
-import Leaderboard from './components/Leaderboard';
-import HiringForm from './components/HiringForm';
-import GalleryPage from './components/GalleryPage';
+import LoginModal from './components/LoginModal';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
-import ContactPage from './components/ContactPage';
-import SponsorsPage from './components/SponsorsPage';
-import CertificatesPage from './components/CertificatesPage';
-import NotFoundPage from './components/NotFoundPage';
 import FAQSection from './components/FAQSection';
 import CampusRegistration from './components/CampusRegistration';
 import InterCollegeRegistration from './components/InterCollegeRegistration';
-import PreviousTeamsPage from './components/PreviousTeamsPage';
-import SchedulePage from './components/SchedulePage';
+
+// ─── LAZY LOADED: Only fetched when navigated to ───
+const RegistrationPage = lazy(() => import('./components/RegistrationPage'));
+const AdminPanel = lazy(() => import('./components/AdminPanel'));
+const UserDashboard = lazy(() => import('./components/UserDashboard'));
+const AboutPage = lazy(() => import('./components/AboutPage'));
+const EventDetails = lazy(() => import('./components/EventDetails'));
+const EventsPage = lazy(() => import('./components/EventsPage'));
+const Leaderboard = lazy(() => import('./components/Leaderboard'));
+const HiringForm = lazy(() => import('./components/HiringForm'));
+const GalleryPage = lazy(() => import('./components/GalleryPage'));
+const ContactPage = lazy(() => import('./components/ContactPage'));
+const SponsorsPage = lazy(() => import('./components/SponsorsPage'));
+const CertificatesPage = lazy(() => import('./components/CertificatesPage'));
+const NotFoundPage = lazy(() => import('./components/NotFoundPage'));
+const PreviousTeamsPage = lazy(() => import('./components/PreviousTeamsPage'));
+const SchedulePage = lazy(() => import('./components/SchedulePage'));
+
+// ─── Loading Fallback ───
+const PageLoader = () => (
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100vh',
+    background: '#000',
+    color: '#ffb300',
+    fontSize: '0.9rem',
+    fontWeight: 700,
+    letterSpacing: '2px',
+    gap: '12px'
+  }}>
+    <div style={{
+      width: '24px',
+      height: '24px',
+      border: '3px solid rgba(255,179,0,0.2)',
+      borderTopColor: '#ffb300',
+      borderRadius: '50%',
+      animation: 'spin 0.8s linear infinite'
+    }} />
+    LOADING...
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+);
 
 
 function App() {
@@ -187,6 +214,7 @@ function App() {
     <div className="antialiased">
       <PWAInstallPrompt />
       <ToastContainer />
+      <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/" element={homePageContent} />
         <Route
@@ -249,6 +277,7 @@ function App() {
         <Route path="/schedule" element={<SchedulePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </Suspense>
     </div>
   );
 }

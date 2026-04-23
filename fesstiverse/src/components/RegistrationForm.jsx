@@ -3,6 +3,22 @@ import { apiFetch } from '../lib/api';
 import { biharEngineeringColleges } from '../lib/colleges';
 import gsap from 'gsap';
 
+/* ── LAZY RAZORPAY LOADER ──────────────────────────────────── */
+const loadRazorpay = () => {
+    return new Promise((resolve, reject) => {
+        if (window.Razorpay) return resolve(window.Razorpay);
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        script.onload = () => {
+            if (window.Razorpay) resolve(window.Razorpay);
+            else reject(new Error('Razorpay SDK failed to load.'));
+        };
+        script.onerror = () => reject(new Error('Failed to load payment gateway. Check your network.'));
+        document.body.appendChild(script);
+    });
+};
+
 /* ── INPUT SANITIZER (XSS Prevention) ───────────────────────── */
 const sanitizeInput = (str) => {
     if (typeof str !== 'string') return str;
@@ -82,7 +98,7 @@ const Input = ({ ...props }) => (
 );
 
 /* ── MAIN FORM COMPONENT ────────────────────────────────────── */
-const RegistrationForm = ({ onRegister, showToast, onClose }) => {
+const RegistrationForm = ({ onRegister, showToast }) => {
     const [step, setStep] = useState(0); // 0: Category, 1: Details, 2: Verification
     const [category, setCategory] = useState(null); // 'INTERNAL' or 'EXTERNAL'
     
@@ -189,6 +205,10 @@ const RegistrationForm = ({ onRegister, showToast, onClose }) => {
 
             if (!orderData?.orderId) throw new Error('Order creation failed.');
 
+        setStatus({ msg: 'Loading payment gateway...', type: '' });
+
+            const RazorpaySDK = await loadRazorpay();
+
             const options = {
                 key: orderData.keyId,
                 amount: orderData.amount,
@@ -229,7 +249,7 @@ const RegistrationForm = ({ onRegister, showToast, onClose }) => {
                 modal: { ondismiss: () => { setLoading(false); setSubmitted(false); setStatus({ msg: 'Payment cancelled.', type: 'error' }); } }
             };
 
-            const rzp = new window.Razorpay(options);
+            const rzp = new RazorpaySDK(options);
             rzp.open();
         } catch (err) {
             setStatus({ msg: err.message, type: 'error' });
