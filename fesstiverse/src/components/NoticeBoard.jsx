@@ -80,6 +80,38 @@ const NoticeBoard = () => {
                                 }}>
                                     <p style={{ fontSize: '0.875rem', color: '#fff', fontWeight: 500 }}>{n.title}</p>
                                     <p style={{ fontSize: '0.75rem', color: '#71717a' }}>{n.description || n.desc}</p>
+                                    {n.link_url && (
+                                        <a
+                                            href={n.link_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '0.35rem',
+                                                marginTop: '0.4rem',
+                                                fontSize: '0.72rem',
+                                                fontWeight: 600,
+                                                color: n.color || '#3b82f6',
+                                                textDecoration: 'none',
+                                                padding: '0.2rem 0.55rem',
+                                                borderRadius: '4px',
+                                                background: 'rgba(255,255,255,0.05)',
+                                                border: `1px solid ${n.color || '#3b82f6'}33`,
+                                                transition: 'all 0.2s ease',
+                                            }}
+                                            onMouseEnter={e => {
+                                                e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                                                e.currentTarget.style.transform = 'translateX(2px)';
+                                            }}
+                                            onMouseLeave={e => {
+                                                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                                                e.currentTarget.style.transform = 'translateX(0)';
+                                            }}
+                                        >
+                                            {n.link_text || 'View Link'} →
+                                        </a>
+                                    )}
                                 </div>
                             ))}
                             {notices.length === 0 && (
@@ -110,7 +142,7 @@ const NoticeBoard = () => {
                         <a href="https://www.linkedin.com/in/udaan-arts-and-cultural-club-gec-samastipur-111153254/" target="_blank" rel="noopener noreferrer" style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <iconify-icon icon="skill-icons:linkedin" width="20"></iconify-icon>
                         </a>
-                        <a href="mailto:udaanclube@gmail.com" style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <a href="mailto:contact@udaangecsamastipur.in" style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: '#18181b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <iconify-icon icon="logos:google-gmail" width="20"></iconify-icon>
                         </a>
                     </div>

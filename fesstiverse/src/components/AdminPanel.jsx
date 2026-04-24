@@ -263,7 +263,7 @@ const AdminPanel = ({ onClose }) => {
     const [msg, setMsg] = useState({ text: '', type: '' });
     const [search, setSearch] = useState('');
     const [analytics, setAnalytics] = useState({ uniqueVisitors: 0, liveUsers: 0 });
-    const [newNotice, setNewNotice] = useState({ title: '', description: '', color: '#3b82f6' });
+    const [newNotice, setNewNotice] = useState({ title: '', description: '', color: '#3b82f6', link_url: '', link_text: '' });
 
     const [newEvent, setNewEvent] = useState({ name: '', location: '', date: '', description: '', rules: '', schedule: '', prizes: '' });
     const [newTeam, setNewTeam] = useState({ name: '', role: '', bio: '', social_link: '', society: '', category: 'Coordinator' });
@@ -401,7 +401,7 @@ const AdminPanel = ({ onClose }) => {
         e.preventDefault();
         try {
             await adminFetch('/api/admin/notices', { method: 'POST', body: JSON.stringify(newNotice) });
-            setNewNotice({ title: '', description: '', color: '#3b82f6' });
+            setNewNotice({ title: '', description: '', color: '#3b82f6', link_url: '', link_text: '' });
             flash('Notice added');
             fetchTabData();
         } catch (err) { flash(err.message, 'err'); }

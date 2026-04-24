@@ -17,6 +17,7 @@ const TopFloatingNavbar = ({ isFestiverse, toggleUniverse }) => {
     { href: '/register', label: 'Register', isRoute: true, icon: 'solar:pen-new-square-linear' },
     { href: '/schedule', label: 'Schedule', isRoute: true, icon: 'solar:calendar-date-linear' },
     { href: '#events', label: 'Events', icon: 'solar:calendar-linear' },
+    { href: '/sponsors', label: 'Sponsors', isRoute: true, icon: 'solar:star-linear' },
     { href: '#gallery', label: 'Gallery', icon: 'solar:gallery-linear' },
     { href: '/leaderboard', label: 'Results', isRoute: true, icon: 'lucide:trophy' },
   ];

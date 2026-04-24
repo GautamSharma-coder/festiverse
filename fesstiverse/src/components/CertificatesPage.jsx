@@ -169,7 +169,7 @@ const CertificatesPage = () => {
                     </div>
 
                     <div style={{ marginTop: '4rem', textAlign: 'center', color: 'rgba(255, 255, 255, 0.4)', fontSize: '0.9rem' }}>
-                        <p>Need help? Contact our support team at <a href="mailto:contact@udaangecsamastipur.in" style={{ color: '#7c3aed', textDecoration: 'none' }}>contact@udaangecsamastipur.in</a></p>
+                        <p>Need help? Contact our support team at <a href="mailto:support@udaangecsamastipur.in" style={{ color: '#7c3aed', textDecoration: 'none' }}>support@udaangecsamastipur.in</a></p>
                     </div>
                 </div>
             </main>

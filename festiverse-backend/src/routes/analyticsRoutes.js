@@ -11,9 +11,12 @@ const router = express.Router();
 // ───────────────────────────────────────────────────
 router.post('/visit', async (req, res) => {
     try {
+        const clientId = req.body.clientId;
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
         const userAgent = req.headers['user-agent'] || '';
-        const ipHash = crypto.createHash('sha256').update(`${ip}`).digest('hex').slice(0, 32);
+        
+        // Use client-generated UUID as the unique identifier, fallback to IP hash
+        const ipHash = clientId || crypto.createHash('sha256').update(`${ip}`).digest('hex').slice(0, 32);
 
         // Check if this IP has visited in the last 24 hours to avoid spamming the DB
         // (Optional optimization: only record if last visit > 24h)

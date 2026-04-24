@@ -105,10 +105,25 @@ function App() {
 
   // ─── Analytics Tracking ───
   useEffect(() => {
+    // Generate or retrieve a persistent client ID for accurate unique user tracking
+    const getClientId = () => {
+      let id = localStorage.getItem('festiverse_client_id');
+      if (!id) {
+        id = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+        localStorage.setItem('festiverse_client_id', id);
+      }
+      return id;
+    };
+
+    const clientId = getClientId();
+
     // 1. Record Visit (once per session)
     const recordVisit = async () => {
       try {
-        await apiFetch('/api/analytics/visit', { method: 'POST' });
+        await apiFetch('/api/analytics/visit', { 
+          method: 'POST',
+          body: JSON.stringify({ clientId })
+        });
       } catch (err) {
         console.warn('Analytics visit failed:', err);
       }
@@ -118,7 +133,10 @@ function App() {
     // 2. Heartbeat (every 30 seconds for live users)
     const heartbeat = async () => {
       try {
-        await apiFetch('/api/analytics/heartbeat', { method: 'POST' });
+        await apiFetch('/api/analytics/heartbeat', { 
+          method: 'POST',
+          body: JSON.stringify({ clientId })
+        });
       } catch (err) {
         // Silently fail heartbeats
         console.warn('Analytics heartbeat failed:', err);

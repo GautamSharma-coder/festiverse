@@ -68,17 +68,26 @@ function createApp() {
 
     // Heartbeat endpoint (before route registrar since it's a special case)
     app.post('/api/v1/analytics/heartbeat', (req, res) => {
+        const clientId = req.body.clientId;
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
         const userAgent = req.headers['user-agent'] || '';
-        const hash = crypto.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex').slice(0, 16);
+        
+        // Use client-generated UUID for 100% accurate tracking, fallback to IP+UA hash
+        const hash = clientId || crypto.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex').slice(0, 16);
+        console.log('[DEBUG Heartbeat v1] clientId:', clientId, 'hash:', hash, 'liveCount before:', liveUsers.size);
+        
         liveUsers.set(hash, Date.now());
         res.json({ success: true, liveCount: liveUsers.size });
     });
     // Backward compat heartbeat
     app.post('/api/analytics/heartbeat', (req, res) => {
+        const clientId = req.body.clientId;
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
         const userAgent = req.headers['user-agent'] || '';
-        const hash = crypto.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex').slice(0, 16);
+        
+        const hash = clientId || crypto.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex').slice(0, 16);
+        console.log('[DEBUG Heartbeat fallback] clientId:', clientId, 'hash:', hash, 'liveCount before:', liveUsers.size);
+        
         liveUsers.set(hash, Date.now());
         res.json({ success: true, liveCount: liveUsers.size });
     });

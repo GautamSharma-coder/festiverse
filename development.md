@@ -226,7 +226,7 @@ The app has two visual "universes" toggled by a pill switch in the navbar:
 | `gallery` | Uploaded images | `url`, `title`, `category`, `filename` |
 | `team` | Organizing committee | `name`, `role`, `bio`, `society`, `category`, `image_url` |
 | `faculty` | Faculty members | `name`, `designation`, `department`, `image_url` |
-| `notices` | Digital notice board | `title`, `description`, `color`, `is_active` |
+| `notices` | Digital notice board | `title`, `description`, `color`, `is_active`, `link_url`, `link_text` |
 | `results` | Competition results | `event_id`, `participant_name`, `participant_email`, `position`, `user_id` |
 | `sponsors` | Sponsors | `name`, `logo_url`, `tier`, `website` |
 | `hiring_applications` | Team recruitment | `name`, `email`, `phone`, `role`, `portfolio_url` |

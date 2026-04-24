@@ -811,12 +811,12 @@ router.get('/notices', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 router.post('/notices', verifyToken, verifyAdmin, async (req, res) => {
     try {
-        const { title, description, color } = req.body;
+        const { title, description, color, link_url, link_text } = req.body;
         if (!title) return res.status(400).json({ success: false, message: 'Title is required.' });
 
         const { data, error } = await supabase
             .from('notices')
-            .insert([{ title, description: description || '', color: color || '#3b82f6' }])
+            .insert([{ title, description: description || '', color: color || '#3b82f6', link_url: link_url || '', link_text: link_text || '' }])
             .select()
             .single();
         if (error) throw error;
@@ -832,12 +832,12 @@ router.post('/notices', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 router.put('/notices/:id', verifyToken, verifyAdmin, async (req, res) => {
     try {
-        const { title, description, color } = req.body;
+        const { title, description, color, link_url, link_text } = req.body;
         if (!title) return res.status(400).json({ success: false, message: 'Title is required.' });
 
         const { data: updatedNotice, error } = await supabase
             .from('notices')
-            .update({ title, description: description || '', color: color || '#3b82f6' })
+            .update({ title, description: description || '', color: color || '#3b82f6', link_url: link_url || '', link_text: link_text || '' })
             .eq('id', req.params.id)
             .select()
             .single();
