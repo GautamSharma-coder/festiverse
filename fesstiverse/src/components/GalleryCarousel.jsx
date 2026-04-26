@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { proxyImageUrl } from '../lib/proxyImage';
-import { apiFetch } from '../lib/api';
+import { apiFetchCached } from '../lib/api';
 
 const AUTO_PLAY_SPEED = 3000;
 
@@ -32,7 +32,7 @@ const GalleryCarousel = () => {
     useEffect(() => {
         const loadImages = async () => {
             try {
-                const res = await apiFetch('/api/gallery');
+                const res = await apiFetchCached('/api/gallery');
                 if (res.images && res.images.length > 0) {
                     setImages(res.images.slice(0, 20));
                 }

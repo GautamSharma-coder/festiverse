@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { apiFetch } from '../lib/api';
 import { biharEngineeringColleges } from '../lib/colleges';
-import gsap from 'gsap';
 
 /* ── LAZY RAZORPAY LOADER ──────────────────────────────────── */
 const loadRazorpay = () => {
@@ -101,6 +100,7 @@ const Input = ({ ...props }) => (
 const RegistrationForm = ({ onRegister, showToast }) => {
     const [step, setStep] = useState(0); // 0: Category, 1: Details, 2: Verification
     const [category, setCategory] = useState(null); // 'INTERNAL' or 'EXTERNAL'
+    const [stepMounted, setStepMounted] = useState(false);
     
     // Form State
     const [formData, setFormData] = useState({
@@ -259,13 +259,11 @@ const RegistrationForm = ({ onRegister, showToast }) => {
         }
     };
 
+    // CSS-based entrance animation (replaces gsap.fromTo)
     useEffect(() => {
-        if (formRef.current) {
-            gsap.fromTo(formRef.current, 
-                { opacity: 0, scale: 0.98 }, 
-                { opacity: 1, scale: 1, duration: 0.5, ease: 'power3.out' }
-            );
-        }
+        setStepMounted(false);
+        const raf = requestAnimationFrame(() => setStepMounted(true));
+        return () => cancelAnimationFrame(raf);
     }, [step]);
 
     return (
@@ -314,7 +312,11 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                 </div>
             )}
 
-            <div ref={formRef}>
+            <div ref={formRef} style={{
+                opacity: stepMounted ? 1 : 0,
+                transform: stepMounted ? 'scale(1)' : 'scale(0.98)',
+                transition: 'opacity 0.5s cubic-bezier(0.33, 1, 0.68, 1), transform 0.5s cubic-bezier(0.33, 1, 0.68, 1)',
+            }}>
                 {/* STEP 0: Category Selection */}
                 {step === 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

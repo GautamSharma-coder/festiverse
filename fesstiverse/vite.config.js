@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import viteImagemin from 'vite-plugin-imagemin'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -37,7 +38,44 @@ export default defineConfig({
       devOptions: {
         enabled: true,
         type: 'module',
+      },
+      workbox: {
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\/api\/(events|sponsors|team|faculty|gallery)/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'api-cache',
+              expiration: { maxAgeSeconds: 300 }
+            }
+          },
+          {
+            urlPattern: /\.(?:woff2|png|webp|jpg|svg)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'asset-cache',
+              expiration: { maxEntries: 60, maxAgeSeconds: 2592000 }
+            }
+          }
+        ]
       }
+    }),
+    viteImagemin({
+      pngquant: { quality: [0.65, 0.8], speed: 4 },
+      optipng: { optimizationLevel: 5 },
+      webp: { quality: 75 }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['gsap']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 600
+  }
 })
+

@@ -15,6 +15,7 @@ router.get('/', async (req, res) => {
             .order('created_at', { ascending: true });
 
         if (error) throw error;
+        res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
         res.json({ success: true, members: data });
     } catch (err) {
         console.error('TEAM FETCH ERROR:', err);

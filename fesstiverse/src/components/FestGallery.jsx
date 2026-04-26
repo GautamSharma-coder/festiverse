@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { proxyImageUrl } from '../lib/proxyImage';
-import { apiFetch } from '../lib/api';
+import { apiFetchCached } from '../lib/api';
 
 const styles = `
   /* Imported Playfair Display for elegant headings, alongside Inter for crisp UI */
@@ -252,7 +252,7 @@ const FestGallery = () => {
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        const res = await apiFetch('/api/gallery');
+        const res = await apiFetchCached('/api/gallery');
         if (res.images && res.images.length > 0) {
           setGalleryImages(res.images.slice(0, 9).map(img => proxyImageUrl(img.url)));
         }

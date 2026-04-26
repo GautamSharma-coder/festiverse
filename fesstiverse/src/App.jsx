@@ -130,7 +130,7 @@ function App() {
     };
     recordVisit();
 
-    // 2. Heartbeat (every 30 seconds for live users)
+    // 2. Heartbeat (every 2 minutes for live users)
     const heartbeat = async () => {
       try {
         await apiFetch('/api/analytics/heartbeat', { 
@@ -144,7 +144,7 @@ function App() {
     };
 
     heartbeat(); // Initial beat
-    const interval = setInterval(heartbeat, 30000);
+    const interval = setInterval(heartbeat, 120000);
     return () => clearInterval(interval);
   }, []);
 

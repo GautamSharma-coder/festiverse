@@ -7,7 +7,7 @@ const router = express.Router();
 
 // ───────────────────────────────────────────────────
 // POST /api/analytics/visit
-// Record a unique visit
+// Record a unique visit (deduplicated per 24 hours)
 // ───────────────────────────────────────────────────
 router.post('/visit', async (req, res) => {
     try {
@@ -18,9 +18,19 @@ router.post('/visit', async (req, res) => {
         // Use client-generated UUID as the unique identifier, fallback to IP hash
         const ipHash = clientId || crypto.createHash('sha256').update(`${ip}`).digest('hex').slice(0, 32);
 
-        // Check if this IP has visited in the last 24 hours to avoid spamming the DB
-        // (Optional optimization: only record if last visit > 24h)
-        // For simplicity, we record every session start and count unique IPs in admin view
+        // 24h deduplication: only insert if no existing visit from this ip_hash in the last 24 hours
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: existing } = await supabase
+            .from('visitors')
+            .select('id')
+            .eq('ip_hash', ipHash)
+            .gte('created_at', twentyFourHoursAgo)
+            .limit(1);
+
+        if (existing && existing.length > 0) {
+            // Already visited in last 24h, skip insert
+            return res.json({ success: true, deduplicated: true });
+        }
 
         const { error } = await supabase
             .from('visitors')
@@ -41,4 +51,38 @@ router.post('/visit', async (req, res) => {
     }
 });
 
+// ───────────────────────────────────────────────────
+// POST /api/analytics/heartbeat
+// Upsert live-user presence (updates last_seen timestamp)
+// ───────────────────────────────────────────────────
+router.post('/heartbeat', async (req, res) => {
+    try {
+        const clientId = req.body.clientId;
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        
+        const ipHash = clientId || crypto.createHash('sha256').update(`${ip}`).digest('hex').slice(0, 32);
+
+        const { error } = await supabase
+            .from('visitors')
+            .upsert(
+                {
+                    ip_hash: ipHash,
+                    user_agent: req.headers['user-agent'] || '',
+                    last_seen: new Date().toISOString()
+                },
+                { onConflict: 'ip_hash' }
+            );
+
+        if (error) {
+            logger.error('HEARTBEAT LOG ERROR', { message: error.message });
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        logger.error('ANALYTICS HEARTBEAT ERROR', { message: err.message });
+        res.status(500).json({ success: false });
+    }
+});
+
 module.exports = router;
+

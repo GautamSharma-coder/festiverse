@@ -16,6 +16,7 @@ router.get('/', async (req, res) => {
             .order('sort_order', { ascending: true });
 
         if (error) throw error;
+        res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
         res.json({ success: true, sponsors: data });
     } catch (err) {
         console.error('SPONSORS FETCH ERROR:', err);

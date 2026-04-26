@@ -15,6 +15,7 @@ router.get('/', async (req, res) => {
             .order('uploaded_at', { ascending: false });
 
         if (error) throw error;
+        res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
         res.json({ success: true, images: data });
     } catch (err) {
         console.error('GALLERY FETCH ERROR:', err);

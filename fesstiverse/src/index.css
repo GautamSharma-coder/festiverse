@@ -1,5 +1,22 @@
 @import "tailwindcss";
 
+/* ========== Custom Font Faces (WOFF2 from public/fonts/) ========== */
+@font-face {
+  font-family: 'HigherJump';
+  src: url('/fonts/HigherJump.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'RubikPuddles';
+  src: url('/fonts/RubikPuddles-Regular.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ========== Design Tokens ========== */
 :root {
   --udaan-red: #991b1b;

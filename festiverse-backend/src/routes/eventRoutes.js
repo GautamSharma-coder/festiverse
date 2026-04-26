@@ -20,6 +20,7 @@ router.get('/', async (req, res) => {
             .order('date', { ascending: true });
 
         if (error) throw error;
+        res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
         res.json({ success: true, events: data });
     } catch (err) {
         logger.error('EVENTS FETCH ERROR', { message: err.message });

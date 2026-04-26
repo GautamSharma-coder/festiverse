@@ -1,5 +1,5 @@
 //import React, { useState, useEffect } from 'react';
-import rubikPuddlesFont from '../assets/RubikPuddles-Regular.ttf';
+
 
 import festHeroImage from '../assets/festHeroImage.webp';
 import GlassSurface from './GlassSurface';
@@ -40,9 +40,10 @@ const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, onLogout, onDashb
                 {`
                     @font-face {
                         font-family: 'HigherJump';
-                        src: url(${rubikPuddlesFont}) format('truetype');
+                        src: url('/fonts/RubikPuddles-Regular.woff2') format('woff2');
                         font-weight: normal;
                         font-style: normal;
+                        font-display: swap;
                     }
                     @keyframes shimmer {
                         0% { background-position: 0% 50%; }

@@ -168,6 +168,7 @@ const societies = [
 const EventCard = ({ event, accentColor, index, bgImage }) => {
     const [hovered, setHovered] = useState(false);
     const [visible, setVisible] = useState(false);
+    const [isInView, setIsInView] = useState(false);
     const ref = useRef(null);
 
     const floatIndex = index % 5;
@@ -182,6 +183,23 @@ const EventCard = ({ event, accentColor, index, bgImage }) => {
         );
         if (ref.current) observer.observe(ref.current);
         return () => observer.disconnect();
+    }, []);
+
+    // Lazy-load background image via IntersectionObserver
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const imgObserver = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsInView(true);
+                    imgObserver.disconnect();
+                }
+            },
+            { threshold: 0.01, rootMargin: '200px' }
+        );
+        imgObserver.observe(el);
+        return () => imgObserver.disconnect();
     }, []);
 
     return (
@@ -210,11 +228,11 @@ const EventCard = ({ event, accentColor, index, bgImage }) => {
                 willChange: 'transform',
             }}
         >
-            {/* Background Image Layer */}
+            {/* Background Image Layer — lazy loaded */}
             <div style={{
                 position: 'absolute',
                 inset: 0,
-                backgroundImage: `url(${bgImage})`,
+                backgroundImage: isInView ? `url(${bgImage})` : 'none',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 opacity: hovered ? 0.35 : 0.12,
