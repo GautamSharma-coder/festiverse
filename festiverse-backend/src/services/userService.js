@@ -86,7 +86,7 @@ async function findExisting(email, phone) {
  * Retries up to 5 times if Festiverse ID conflicts.
  * Used by BOTH auth registration and payment webhook.
  */
-async function createUser({ name, email, phone, college, password, razorpay_order_id, razorpay_payment_id }) {
+async function createUser({ name, email, phone, college, password, tShirtSize, razorpay_order_id, razorpay_payment_id }) {
     // Check for existing user
     const existing = await findExisting(email, phone);
     if (existing) {
@@ -116,6 +116,7 @@ async function createUser({ name, email, phone, college, password, razorpay_orde
                 razorpay_payment_id,
                 password_hash,
                 festiverse_id,
+                t_shirt_size: tShirtSize,
             }])
             .select()
             .single();

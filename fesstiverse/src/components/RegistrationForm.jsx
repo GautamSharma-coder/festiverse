@@ -108,7 +108,8 @@ const RegistrationForm = ({ onRegister, showToast }) => {
         email: '',
         phone: '',
         college: '',
-        password: ''
+        password: '',
+        tShirtSize: ''
     });
     
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -162,8 +163,8 @@ const RegistrationForm = ({ onRegister, showToast }) => {
 
     const handleNext = () => {
         if (step === 1) {
-            const { name, email, phone, college, password } = formData;
-            if (!name || !email || !phone || !college || !password) {
+            const { name, email, phone, college, password, tShirtSize } = formData;
+            if (!name || !email || !phone || !college || !password || !tShirtSize) {
                 return setStatus({ msg: 'Please complete all fields.', type: 'error' });
             }
             // Validate name doesn't contain injection attempts
@@ -420,9 +421,35 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                             )}
                          </Field>
 
-                         <Field label="Email ID" icon="solar:letter-bold">
-                            <Input placeholder="university@email.com" type="email" maxLength={254} value={formData.email} onChange={e => updateForm('email', e.target.value)} />
-                         </Field>
+                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                             <Field label="Email ID" icon="solar:letter-bold">
+                                <Input placeholder="university@email.com" type="email" maxLength={254} value={formData.email} onChange={e => updateForm('email', e.target.value)} />
+                             </Field>
+
+                             <Field label="T-Shirt Size" icon="solar:shirt-bold">
+                                <select 
+                                    value={formData.tShirtSize} 
+                                    onChange={e => updateForm('tShirtSize', e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        background: 'rgba(255, 255, 255, 0.03)',
+                                        border: '1px solid rgba(255, 255, 255, 0.08)',
+                                        borderRadius: '12px',
+                                        padding: '1rem 1.25rem',
+                                        color: '#fff',
+                                        fontSize: '0.9rem',
+                                        outline: 'none',
+                                        appearance: 'none',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <option value="" disabled style={{ background: '#111' }}>Select Size</option>
+                                    <option value="S" style={{ background: '#111' }}>Small (S)</option>
+                                    <option value="M" style={{ background: '#111' }}>Medium (M)</option>
+                                    <option value="L" style={{ background: '#111' }}>Large (L)</option>
+                                </select>
+                             </Field>
+                         </div>
 
                          <Field label="Password" icon="solar:lock-bold">
                             <Input placeholder="Min 6 characters" type="password" maxLength={128} value={formData.password} onChange={e => updateForm('password', e.target.value)} />

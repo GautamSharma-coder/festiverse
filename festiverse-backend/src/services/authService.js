@@ -89,7 +89,7 @@ function verifyOTP(email, otp, prefix = '') {
  * Full registration flow: verify OTP → verify payment → create user → issue JWT.
  */
 async function register(data) {
-    const { name, email, phone, college, password, otp,
+    const { name, email, phone, college, password, otp, tShirtSize,
         razorpay_payment_id, razorpay_order_id, razorpay_signature } = data;
 
     // 1. Verify OTP
@@ -100,7 +100,7 @@ async function register(data) {
 
     // 3. Create user (handles duplicate checks internally)
     const newUser = await userService.createUser({
-        name, email, phone, college, password,
+        name, email, phone, college, password, tShirtSize,
         razorpay_order_id, razorpay_payment_id,
     });
 

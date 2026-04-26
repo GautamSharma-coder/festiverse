@@ -12,6 +12,7 @@ const registerValidation = [
     body('phone').matches(/^\d{10}$/).withMessage('A valid 10-digit phone number is required.'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters.')
         .isLength({ max: 128 }).withMessage('Password is too long.'),
+    body('tShirtSize').isIn(['S', 'M', 'L']).withMessage('Invalid T-Shirt Size. Must be S, M, or L.'),
     body('otp').matches(/^\d{6}$/).withMessage('A valid 6-digit OTP is required.'),
     body('razorpay_payment_id').notEmpty().withMessage('Payment ID is required.'),
     body('razorpay_order_id').notEmpty().withMessage('Order ID is required.'),

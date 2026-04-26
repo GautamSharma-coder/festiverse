@@ -289,6 +289,7 @@ const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, onLogout, onDashb
             </div>
 
 
+
             {/* Action Buttons */}
             <div className="action-buttons" style={{
                 marginTop: '4rem',
@@ -440,6 +441,68 @@ const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, onLogout, onDashb
                 }}>
                     GEC Samastipur
                 </span>
+            </div>
+            {/* Prize Pool Badge - Design 3 (Holographic HUD) */}
+            <div style={{
+                position: 'relative',
+                zIndex: 10,
+                textAlign: 'center',
+                marginTop: '3.5rem',
+                display: 'flex',
+                justifyContent: 'center',
+            }}>
+                <div style={{
+                    position: 'relative',
+                    padding: '16px 48px',
+                    background: 'rgba(30, 10, 0, 0.4)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    borderTop: '2px solid rgba(255, 179, 0, 0.6)',
+                    borderBottom: '2px solid rgba(255, 179, 0, 0.6)',
+                    boxShadow: '0 0 40px rgba(255, 100, 0, 0.2), inset 0 0 20px rgba(255, 150, 0, 0.1)',
+                }}>
+                    {/* HUD Corners */}
+                    <div style={{ position: 'absolute', top: '-2px', left: '-2px', width: '12px', height: '12px', borderTop: '2px solid #fff', borderLeft: '2px solid #fff', boxShadow: '-2px -2px 10px rgba(255,255,255,0.5)' }}></div>
+                    <div style={{ position: 'absolute', top: '-2px', right: '-2px', width: '12px', height: '12px', borderTop: '2px solid #fff', borderRight: '2px solid #fff', boxShadow: '2px -2px 10px rgba(255,255,255,0.5)' }}></div>
+                    <div style={{ position: 'absolute', bottom: '-2px', left: '-2px', width: '12px', height: '12px', borderBottom: '2px solid #fff', borderLeft: '2px solid #fff', boxShadow: '-2px 2px 10px rgba(255,255,255,0.5)' }}></div>
+                    <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '12px', height: '12px', borderBottom: '2px solid #fff', borderRight: '2px solid #fff', boxShadow: '2px 2px 10px rgba(255,255,255,0.5)' }}></div>
+
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '6px'
+                    }}>
+                        <span style={{
+                            color: '#ffffff',
+                            fontFamily: "'Outfit', 'Inter', sans-serif",
+                            fontWeight: 900,
+                            fontSize: 'clamp(1.2rem, 4vw, 1.8rem)',
+                            letterSpacing: '4px',
+                            textTransform: 'uppercase',
+                            textShadow: '0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px #ff6600, 0 0 40px #ff0000',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '16px'
+                        }}>
+                            <span style={{ color: '#ffb300', textShadow: '0 0 15px #ffb300', fontSize: '1rem', animation: 'twinkle 2s infinite' }}>◈</span>
+                            ₹60K+ PRIZE POOL
+                            <span style={{ color: '#ffb300', textShadow: '0 0 15px #ffb300', fontSize: '1rem', animation: 'twinkle 2s infinite 1s' }}>◈</span>
+                        </span>
+                        
+                        <span style={{
+                            fontSize: '0.75rem',
+                            color: '#ffb300',
+                            letterSpacing: '0.3em',
+                            textTransform: 'uppercase',
+                            fontWeight: 600,
+                            opacity: 0.9,
+                            textShadow: '0 0 10px rgba(255, 179, 0, 0.5)'
+                        }}>
+                            Total Rewards Valuation
+                        </span>
+                    </div>
+                </div>
             </div>
 
         </header>
