@@ -23,8 +23,7 @@ const sanitizeInput = (str) => {
     if (typeof str !== 'string') return str;
     return str
         .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/<[^>]*>/g, '')
-        .trim();
+        .replace(/<[^>]*>/g, '');
 };
 
 /* ── ICONS ─────────────────────────────────────────────────── */
@@ -101,7 +100,7 @@ const RegistrationForm = ({ onRegister, showToast }) => {
     const [step, setStep] = useState(0); // 0: Category, 1: Details, 2: Verification
     const [category, setCategory] = useState(null); // 'INTERNAL' or 'EXTERNAL'
     const [stepMounted, setStepMounted] = useState(false);
-    
+
     // Form State
     const [formData, setFormData] = useState({
         name: '',
@@ -111,13 +110,13 @@ const RegistrationForm = ({ onRegister, showToast }) => {
         password: '',
         tShirtSize: ''
     });
-    
+
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [otpSent, setOtpSent] = useState(false);
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false); // Double-submit prevention
     const [status, setStatus] = useState({ msg: '', type: '' });
-    
+
     const formRef = useRef(null);
     const otpRefs = useRef([]);
 
@@ -148,9 +147,9 @@ const RegistrationForm = ({ onRegister, showToast }) => {
         setLoading(true);
         setStatus({ msg: 'Sending code...', type: '' });
         try {
-            await apiFetch('/api/auth/send-otp', { 
-                method: 'POST', 
-                body: JSON.stringify({ email: formData.email }) 
+            await apiFetch('/api/auth/send-otp', {
+                method: 'POST',
+                body: JSON.stringify({ email: formData.email })
             });
             setOtpSent(true);
             setStatus({ msg: 'OTP sent! Please check your inbox.', type: 'success' });
@@ -189,16 +188,16 @@ const RegistrationForm = ({ onRegister, showToast }) => {
         if (submitted || loading) return; // Prevent double submission
         const otpStr = otp.join('');
         if (otpStr.length < 6) return setStatus({ msg: 'Enter the 6-digit code.', type: 'error' });
-        
+
         setLoading(true);
         setSubmitted(true);
         setStatus({ msg: 'Initializing secure transaction...', type: '' });
 
         try {
             // Include category and userData in order creation for webhook support
-            const orderData = await apiFetch('/api/payment/create-order', { 
+            const orderData = await apiFetch('/api/payment/create-order', {
                 method: 'POST',
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     category,
                     userData: formData // Pass full form data to be saved as "pending"
                 })
@@ -206,7 +205,7 @@ const RegistrationForm = ({ onRegister, showToast }) => {
 
             if (!orderData?.orderId) throw new Error('Order creation failed.');
 
-        setStatus({ msg: 'Loading payment gateway...', type: '' });
+            setStatus({ msg: 'Loading payment gateway...', type: '' });
 
             const RazorpaySDK = await loadRazorpay();
 
@@ -230,7 +229,7 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                 razorpay_signature: paymentRes.razorpay_signature,
                             }),
                         });
-                        
+
                         if (regRes.user) {
                             localStorage.setItem('festiverse_user', JSON.stringify(regRes.user));
                             setStatus({ msg: 'Welcome to Festiverse!', type: 'success' });
@@ -269,15 +268,15 @@ const RegistrationForm = ({ onRegister, showToast }) => {
     return (
         <div style={{ padding: '2.5rem' }}>
             {/* Step Progress Indicators */}
-            <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'space-between',
                 marginBottom: '3rem',
                 position: 'relative'
             }}>
                 <div style={{ position: 'absolute', top: '20px', left: '10%', right: '10%', height: '1px', background: 'rgba(255,255,255,0.05)', zIndex: 0 }} />
-                
+
                 <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
                     <StepIcon icon="solar:user-bold" active={step === 0} done={step > 0} />
                     <span style={{ display: 'block', marginTop: '8px', fontSize: '0.6rem', fontWeight: 800, color: step >= 0 ? '#ffb300' : '#444' }}>CATEGORY</span>
@@ -322,7 +321,7 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                         <h3 style={{ fontSize: '1.5rem', fontWeight: 800, textAlign: 'center', marginBottom: '1rem' }}>WHO ARE YOU?</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            <button 
+                            <button
                                 onClick={() => selectCategory('INTERNAL')}
                                 style={{
                                     padding: '2rem 1.5rem',
@@ -344,7 +343,7 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                 <span style={{ fontSize: '0.75rem', color: '#ffb300', fontWeight: 700 }}>₹{PRICES.INTERNAL} Only</span>
                             </button>
 
-                            <button 
+                            <button
                                 onClick={() => selectCategory('EXTERNAL')}
                                 style={{
                                     padding: '2rem 1.5rem',
@@ -372,16 +371,16 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                 {/* STEP 1: Details */}
                 {step === 1 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                             <Field label="Full Name" icon="solar:user-bold">
                                 <Input placeholder="Enter your name" value={formData.name} maxLength={100} onChange={e => updateForm('name', e.target.value)} />
                             </Field>
                             <Field label="Phone No." icon="solar:phone-bold">
                                 <Input placeholder="10 Digits" type="tel" maxLength={10} value={formData.phone} onChange={e => updateForm('phone', e.target.value.replace(/\D/g, ''))} />
                             </Field>
-                         </div>
+                        </div>
 
-                         <Field label="College" icon="solar:buildings-bold">
+                        <Field label="College" icon="solar:buildings-bold">
                             {category === 'INTERNAL' ? (
                                 <div style={{
                                     padding: '1rem 1.25rem',
@@ -399,8 +398,8 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                     GEC SAMASTIPUR (Internal Pass)
                                 </div>
                             ) : (
-                                <select 
-                                    value={formData.college} 
+                                <select
+                                    value={formData.college}
                                     onChange={e => updateForm('college', e.target.value)}
                                     style={{
                                         width: '100%',
@@ -421,16 +420,16 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                     ))}
                                 </select>
                             )}
-                         </Field>
+                        </Field>
 
-                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                             <Field label="Email ID" icon="solar:letter-bold">
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                            <Field label="Email ID" icon="solar:letter-bold">
                                 <Input placeholder="university@email.com" type="email" maxLength={254} value={formData.email} onChange={e => updateForm('email', e.target.value)} />
-                             </Field>
+                            </Field>
 
-                             <Field label="T-Shirt Size" icon="solar:shirt-bold">
-                                <select 
-                                    value={formData.tShirtSize} 
+                            <Field label="T-Shirt Size" icon="solar:shirt-bold">
+                                <select
+                                    value={formData.tShirtSize}
                                     onChange={e => updateForm('tShirtSize', e.target.value)}
                                     style={{
                                         width: '100%',
@@ -450,17 +449,17 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                     <option value="M" style={{ background: '#111' }}>Medium (M)</option>
                                     <option value="L" style={{ background: '#111' }}>Large (L)</option>
                                 </select>
-                             </Field>
-                         </div>
+                            </Field>
+                        </div>
 
-                         <Field label="Password" icon="solar:lock-bold">
+                        <Field label="Password" icon="solar:lock-bold">
                             <Input placeholder="Min 6 characters" type="password" maxLength={128} value={formData.password} onChange={e => updateForm('password', e.target.value)} />
-                         </Field>
+                        </Field>
 
-                         <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                             <button onClick={() => setStep(0)} style={{ flex: 1, padding: '1rem', border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#888', borderRadius: '12px', fontWeight: 700, cursor: 'pointer' }}>BACK</button>
                             <button onClick={handleNext} style={{ flex: 2, padding: '1rem', border: 'none', background: 'linear-gradient(90deg, #ffb300, #ff8f00)', color: '#000', borderRadius: '12px', fontWeight: 900, cursor: 'pointer', boxShadow: '0 5px 15px rgba(255, 179, 0, 0.3)' }}>NEXT STEP</button>
-                         </div>
+                        </div>
                     </div>
                 )}
 
@@ -469,12 +468,12 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                         <div style={{ textAlign: 'center' }}>
                             <h4 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>VERIFY YOUR EMAIL</h4>
-                            <p style={{ fontSize: '0.875rem', color: '#888' }}>We've sent a 4-digit code to <br/><b style={{ color: '#ffb300' }}>{formData.email}</b></p>
+                            <p style={{ fontSize: '0.875rem', color: '#888' }}>We've sent a 4-digit code to <br /><b style={{ color: '#ffb300' }}>{formData.email}</b></p>
                         </div>
 
                         {!otpSent ? (
-                            <button 
-                                onClick={sendOTP} 
+                            <button
+                                onClick={sendOTP}
                                 disabled={loading}
                                 style={{
                                     padding: '1.25rem',
@@ -510,10 +509,10 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                                 const newOtp = [...otp];
                                                 newOtp[i] = val;
                                                 setOtp(newOtp);
-                                                if (val && i < 5) otpRefs.current[i+1].focus();
+                                                if (val && i < 5) otpRefs.current[i + 1].focus();
                                             }}
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i-1].focus();
+                                                if (e.key === 'Backspace' && !otp[i] && i > 0) otpRefs.current[i - 1].focus();
                                             }}
                                             style={{
                                                 width: '50px',
@@ -540,8 +539,8 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                     <p style={{ fontSize: '0.65rem', color: '#555', margin: 0 }}>* Includes All Events, Food, Merch, and Campus Access.</p>
                                 </div>
 
-                                <button 
-                                    onClick={handleSubmit} 
+                                <button
+                                    onClick={handleSubmit}
                                     disabled={loading}
                                     style={{
                                         padding: '1.25rem',
@@ -562,7 +561,7 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                     {loading ? <iconify-icon icon="line-md:loading-twotone-loop" /> : <iconify-icon icon="solar:shield-keyhole-bold" />}
                                     COMPLETE PAYMENT & REGISTER
                                 </button>
-                                
+
                                 <button onClick={() => setOtpSent(false)} style={{ background: 'none', border: 'none', color: '#555', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 700 }}>Didn't get the code? Resend Email</button>
                             </div>
                         )}

@@ -6,7 +6,7 @@ const rateLimitStore = {};
 
 function rateLimit({ windowMs = 60000, max = 5, message = 'Too many requests. Please try again later.' } = {}) {
     return (req, res, next) => {
-        const key = req.ip || req.connection.remoteAddress;
+        const key = `${req.ip || req.connection.remoteAddress}:${req.originalUrl || req.url}`;
         const now = Date.now();
 
         if (!rateLimitStore[key]) {

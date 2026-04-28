@@ -443,67 +443,138 @@ const FestHero = ({ onLoginClick, onRegisterClick, isLoggedIn, onLogout, onDashb
                     GEC Samastipur
                 </span>
             </div>
-            {/* Prize Pool Badge - Design 3 (Holographic HUD) */}
-            <div style={{
+            {/* Stats Bar — Prize Pool + Events + Rulebook */}
+            <div className="hero-stats-bar" style={{
                 position: 'relative',
                 zIndex: 10,
-                textAlign: 'center',
                 marginTop: '3.5rem',
                 display: 'flex',
                 justifyContent: 'center',
+                alignItems: 'stretch',
+                gap: '0',
+                flexWrap: 'wrap',
             }}>
-                <div style={{
-                    position: 'relative',
-                    padding: '16px 48px',
-                    background: 'rgba(30, 10, 0, 0.4)',
-                    backdropFilter: 'blur(12px)',
-                    WebkitBackdropFilter: 'blur(12px)',
-                    borderTop: '2px solid rgba(255, 179, 0, 0.6)',
-                    borderBottom: '2px solid rgba(255, 179, 0, 0.6)',
-                    boxShadow: '0 0 40px rgba(255, 100, 0, 0.2), inset 0 0 20px rgba(255, 150, 0, 0.1)',
-                }}>
-                    {/* HUD Corners */}
-                    <div style={{ position: 'absolute', top: '-2px', left: '-2px', width: '12px', height: '12px', borderTop: '2px solid #fff', borderLeft: '2px solid #fff', boxShadow: '-2px -2px 10px rgba(255,255,255,0.5)' }}></div>
-                    <div style={{ position: 'absolute', top: '-2px', right: '-2px', width: '12px', height: '12px', borderTop: '2px solid #fff', borderRight: '2px solid #fff', boxShadow: '2px -2px 10px rgba(255,255,255,0.5)' }}></div>
-                    <div style={{ position: 'absolute', bottom: '-2px', left: '-2px', width: '12px', height: '12px', borderBottom: '2px solid #fff', borderLeft: '2px solid #fff', boxShadow: '-2px 2px 10px rgba(255,255,255,0.5)' }}></div>
-                    <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '12px', height: '12px', borderBottom: '2px solid #fff', borderRight: '2px solid #fff', boxShadow: '2px 2px 10px rgba(255,255,255,0.5)' }}></div>
+                <style>{`
+                    .hero-stats-bar {
+                        max-width: 720px;
+                        width: 100%;
+                    }
+                    .hero-stat-item {
+                        position: relative;
+                        padding: 18px 32px;
+                        background: rgba(30, 10, 0, 0.4);
+                        backdrop-filter: blur(12px);
+                        -webkit-backdrop-filter: blur(12px);
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 4px;
+                        flex: 1;
+                        min-width: 140px;
+                        border: 1px solid rgba(255, 179, 0, 0.15);
+                        transition: all 0.3s ease;
+                    }
+                    .hero-stat-item:first-child {
+                        border-radius: 16px 0 0 16px;
+                        border-right: none;
+                    }
+                    .hero-stat-item:last-child {
+                        border-radius: 0 16px 16px 0;
+                        border-left: none;
+                    }
+                    .hero-stat-item:nth-child(2) {
+                        border-left: 1px solid rgba(255, 179, 0, 0.3);
+                        border-right: 1px solid rgba(255, 179, 0, 0.3);
+                        border-top: 2px solid rgba(255, 179, 0, 0.6);
+                        border-bottom: 2px solid rgba(255, 179, 0, 0.6);
+                        box-shadow: 0 0 40px rgba(255, 100, 0, 0.15), inset 0 0 20px rgba(255, 150, 0, 0.08);
+                    }
+                    .hero-stat-item:hover {
+                        background: rgba(40, 15, 0, 0.5);
+                        box-shadow: 0 0 30px rgba(255, 100, 0, 0.1);
+                    }
+                    .hero-stat-val {
+                        font-family: 'Outfit', 'Inter', sans-serif;
+                        font-weight: 900;
+                        font-size: clamp(1.1rem, 3vw, 1.5rem);
+                        letter-spacing: 2px;
+                        text-transform: uppercase;
+                        color: #ffffff;
+                        text-shadow: 0 0 10px rgba(255, 255, 255, 0.6), 0 0 20px #ff6600;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                    }
+                    .hero-stat-label {
+                        font-size: 0.7rem;
+                        color: #ffb300;
+                        letter-spacing: 0.25em;
+                        text-transform: uppercase;
+                        font-weight: 600;
+                        opacity: 0.85;
+                        text-shadow: 0 0 8px rgba(255, 179, 0, 0.4);
+                    }
+                    .hero-rulebook-btn {
+                        cursor: pointer;
+                        text-decoration: none;
+                    }
+                    .hero-rulebook-btn:hover .hero-stat-val {
+                        color: #ffb300 !important;
+                    }
+                    @media (max-width: 600px) {
+                        .hero-stats-bar {
+                            flex-direction: column;
+                            align-items: center;
+                            gap: 0;
+                            max-width: 280px;
+                        }
+                        .hero-stat-item {
+                            min-width: 100%;
+                            padding: 14px 24px;
+                        }
+                        .hero-stat-item:first-child {
+                            border-radius: 16px 16px 0 0;
+                            border-right: 1px solid rgba(255, 179, 0, 0.15);
+                            border-bottom: none;
+                        }
+                        .hero-stat-item:last-child {
+                            border-radius: 0 0 16px 16px;
+                            border-left: 1px solid rgba(255, 179, 0, 0.15);
+                            border-top: none;
+                        }
+                        .hero-stat-item:nth-child(2) {
+                            border-radius: 0;
+                            border: 1px solid rgba(255, 179, 0, 0.3);
+                            border-top: 2px solid rgba(255, 179, 0, 0.6);
+                            border-bottom: 2px solid rgba(255, 179, 0, 0.6);
+                        }
+                    }
+                `}</style>
 
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '6px'
-                    }}>
-                        <span style={{
-                            color: '#ffffff',
-                            fontFamily: "'Outfit', 'Inter', sans-serif",
-                            fontWeight: 900,
-                            fontSize: 'clamp(1.2rem, 4vw, 1.8rem)',
-                            letterSpacing: '4px',
-                            textTransform: 'uppercase',
-                            textShadow: '0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px #ff6600, 0 0 40px #ff0000',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '16px'
-                        }}>
-                            <span style={{ color: '#ffb300', textShadow: '0 0 15px #ffb300', fontSize: '1rem', animation: 'twinkle 2s infinite' }}>◈</span>
-                            ₹60K+ PRIZE POOL
-                            <span style={{ color: '#ffb300', textShadow: '0 0 15px #ffb300', fontSize: '1rem', animation: 'twinkle 2s infinite 1s' }}>◈</span>
-                        </span>
-                        
-                        <span style={{
-                            fontSize: '0.75rem',
-                            color: '#ffb300',
-                            letterSpacing: '0.3em',
-                            textTransform: 'uppercase',
-                            fontWeight: 600,
-                            opacity: 0.9,
-                            textShadow: '0 0 10px rgba(255, 179, 0, 0.5)'
-                        }}>
-                            Total Rewards Valuation
-                        </span>
-                    </div>
+                {/* 30+ Events */}
+                <div className="hero-stat-item">
+                    <span className="hero-stat-val">
+                        <span style={{ color: '#ffb300', textShadow: '0 0 12px #ffb300', fontSize: '0.9rem', animation: 'twinkle 2s infinite' }}>◈</span>
+                        30+
+                    </span>
+                    <span className="hero-stat-label">Events</span>
                 </div>
+
+                {/* ₹60K+ Prize Pool (center highlight) */}
+                <div className="hero-stat-item">
+                    <span className="hero-stat-val">
+                        ₹60K+
+                    </span>
+                    <span className="hero-stat-label">Prize Pool</span>
+                </div>
+
+                {/* Rulebook CTA */}
+                <a href="/rulebook" className="hero-stat-item hero-rulebook-btn" onClick={(e) => { e.preventDefault(); window.location.href = '/rulebook'; }}>
+                    <span className="hero-stat-val" style={{ fontSize: 'clamp(0.9rem, 2.5vw, 1.2rem)' }}>
+                        📖
+                    </span>
+                    <span className="hero-stat-label">Rulebook</span>
+                </a>
             </div>
 
         </header>

@@ -40,6 +40,7 @@ const CertificatesPage = lazy(() => import('./components/CertificatesPage'));
 const NotFoundPage = lazy(() => import('./components/NotFoundPage'));
 const PreviousTeamsPage = lazy(() => import('./components/PreviousTeamsPage'));
 const SchedulePage = lazy(() => import('./components/SchedulePage'));
+const RulebookPage = lazy(() => import('./components/RulebookPage'));
 
 // ─── Loading Fallback ───
 const PageLoader = () => (
@@ -293,6 +294,7 @@ function App() {
         <Route path="/certificates" element={<CertificatesPage />} />
         <Route path="/previous-teams" element={<PreviousTeamsPage />} />
         <Route path="/schedule" element={<SchedulePage />} />
+        <Route path="/rulebook" element={<RulebookPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       </Suspense>

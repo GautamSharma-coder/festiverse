@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-5a5d9309'], (function (workbox) { 'use strict';
+define(['./workbox-d47a0fae'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -82,11 +82,24 @@ define(['./workbox-5a5d9309'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "index.html",
-    "revision": "0.21stdjccsas"
+    "revision": "0.0kvb59p08tc"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
     allowlist: [/^\/$/]
   }));
+  workbox.registerRoute(/^https:\/\/.*\/api\/(events|sponsors|team|faculty|gallery)/, new workbox.StaleWhileRevalidate({
+    "cacheName": "api-cache",
+    plugins: [new workbox.ExpirationPlugin({
+      maxAgeSeconds: 300
+    })]
+  }), 'GET');
+  workbox.registerRoute(/\.(?:woff2|png|webp|jpg|svg)$/, new workbox.CacheFirst({
+    "cacheName": "asset-cache",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 60,
+      maxAgeSeconds: 2592000
+    })]
+  }), 'GET');
 
 }));
