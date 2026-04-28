@@ -445,7 +445,7 @@ async function sendConfirmationEmail(toEmail, name, festiverse_id) {
     <!-- CTA -->
     <tr>
       <td style="padding:28px 48px 40px;">
-        <a href="#"
+        <a href="https://www.udaangecsamastipur.in/"
           style="display:inline-block;padding:13px 36px;background:${T.ink};
             color:${T.white};font-size:11px;font-weight:500;border-radius:2px;
             font-family:'Outfit',Helvetica,Arial,sans-serif;
@@ -557,7 +557,7 @@ async function sendEventRegistrationEmail(toEmail, name, event) {
     <!-- CTA -->
     <tr>
       <td style="padding:28px 48px 40px;">
-        <a href="#"
+        <a href="https://www.udaangecsamastipur.in/"
           style="display:inline-block;padding:13px 36px;background:${T.ink};
             color:${T.white};font-size:11px;font-weight:500;border-radius:2px;
             font-family:'Outfit',Helvetica,Arial,sans-serif;
@@ -686,7 +686,7 @@ async function sendTeamInviteEmail(toEmail, inviteeName, invite) {
               </a>
             </td>
             <td>
-              <a href="#"
+              <a href="https://www.udaangecsamastipur.in/"
                 style="display:inline-block;padding:12px 30px;background:transparent;
                   color:${T.inkMid};font-size:11px;font-weight:400;border-radius:2px;
                   font-family:'Outfit',Helvetica,Arial,sans-serif;letter-spacing:3px;
@@ -839,7 +839,7 @@ async function sendResultEmail(toEmail, name, result) {
         </a>
         <p style="margin:20px 0 0;color:${T.inkMute};font-size:12px;font-weight:300;
           font-family:'Outfit',Helvetica,Arial,sans-serif;line-height:1.7;">
-          Your official certificate is ready. Click the button above to view and download it from your dashboard.
+          Your official certificate is ready. Click the button above to view and download it from the certificates portal using your Festiverse ID.
         </p>
       </td>
     </tr>`;

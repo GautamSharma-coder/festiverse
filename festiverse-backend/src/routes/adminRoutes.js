@@ -977,7 +977,7 @@ router.post('/results', verifyToken, verifyAdmin, async (req, res) => {
                     eventTitle: data.events.name,
                     position: position,
                     score: score || 'N/A',
-                    certificateUrl: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard`
+                    certificateUrl: `${process.env.FRONTEND_URL || 'https://www.udaangecsamastipur.in'}/certificates`
                 };
                 sendResultEmail(targetEmail, targetName, resultDetails)
                     .catch(e => console.error('RESULT EMAIL ERR:', e.message));

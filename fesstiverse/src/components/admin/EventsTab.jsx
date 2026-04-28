@@ -1,6 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const EventsTab = ({ events, newEvent, setNewEvent, eventImage, setEventImage, editingEvent, setEditingEvent, addEvent, updateEvent, deleteEvent }) => {
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredEvents = events.filter(ev => 
+        (ev.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (ev.location || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     return (
         <div className="ap-fade">
             {editingEvent ? (
@@ -54,12 +61,30 @@ const EventsTab = ({ events, newEvent, setNewEvent, eventImage, setEventImage, e
                 </div>
             )}
 
-            <div className="ap-sec-head"><div className="ap-sec-title">{events.length} Events</div></div>
+            <div className="ap-sec-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="ap-sec-title">{filteredEvents.length} Events</div>
+                <input 
+                    type="text" 
+                    placeholder="Search events..." 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)}
+                    style={{ 
+                        padding: '8px 12px', 
+                        borderRadius: '6px', 
+                        border: '1px solid rgba(255, 255, 255, 0.1)', 
+                        background: 'rgba(255, 255, 255, 0.05)', 
+                        color: '#fff',
+                        width: '250px',
+                        outline: 'none',
+                        fontFamily: 'inherit'
+                    }}
+                />
+            </div>
             <div className="ap-card" style={{ padding: 0, overflow: 'hidden' }}>
                 <table className="ap-table">
                     <thead><tr><th>Name</th><th>Location</th><th>Date</th><th>Team Size</th><th></th></tr></thead>
                     <tbody>
-                        {events.map(ev => (
+                        {filteredEvents.map(ev => (
                             <tr key={ev.id}>
                                 <td style={{ fontWeight: 600 }}>{ev.name}</td>
                                 <td style={{ color: 'var(--muted)' }}>{ev.location || '—'}</td>
@@ -73,7 +98,7 @@ const EventsTab = ({ events, newEvent, setNewEvent, eventImage, setEventImage, e
                                 </td>
                             </tr>
                         ))}
-                        {events.length === 0 && <tr><td colSpan={5}><div className="ap-empty"><div className="ap-empty-icon">◎</div><h4>No events</h4></div></td></tr>}
+                        {filteredEvents.length === 0 && <tr><td colSpan={5}><div className="ap-empty"><div className="ap-empty-icon">◎</div><h4>No events found</h4></div></td></tr>}
                     </tbody>
                 </table>
             </div>

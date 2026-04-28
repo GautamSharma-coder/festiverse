@@ -39,6 +39,17 @@ const Faculty = () => {
         <section id="faculty" style={{ padding: '6rem 0', background: 'rgba(24, 24, 27, 0.3)' }}>
             <style>{`
                 .faculty-flip-card:hover .faculty-flip-inner { transform: rotateY(180deg); }
+                 .members-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+                    gap: 1.5rem;
+                }
+                      @media (max-width: 640px) {
+                    .members-grid {
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 1rem;
+                    }
+                }
             `}</style>
             <div style={{ maxWidth: '80rem', margin: '0 auto', padding: '0 1.5rem' }}>
                 {/* Header */}
@@ -67,20 +78,15 @@ const Faculty = () => {
                 ) : facultyMembers.length === 0 ? (
                     <div style={{ textAlign: 'center', color: '#71717a', padding: '2rem' }}>No faculty members to display.</div>
                 ) : (
-                    /* Faculty Flex Container — Flip Cards */
-                    <div style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        justifyContent: 'center',
-                        gap: '1.5rem',
-                    }}>
+                    /* Faculty Grid Container — Flip Cards */
+                    <div className="members-grid">
                         {facultyMembers.map((m, index) => {
                             const style = fallbackStyles[index % fallbackStyles.length];
                             const avatarUrl = proxyImageUrl(m.image_url) || `https://api.dicebear.com/7.x/notionists/svg?seed=${m.id}`;
                             const isFallback = !m.image_url;
 
                             return (
-                                <div key={m.id} className="faculty-flip-card" style={{ width: '180px', flexShrink: 0, height: '16rem', perspective: '1000px', cursor: 'pointer' }}>
+                                <div key={m.id} className="faculty-flip-card" style={{ width: '100%', height: '16rem', perspective: '1000px', cursor: 'pointer' }}>
                                     <div className="faculty-flip-inner" style={{
                                         position: 'relative',
                                         width: '100%',

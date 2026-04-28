@@ -19,8 +19,8 @@ const GalleryCarousel = () => {
     useEffect(() => {
         const updateCardWidth = () => {
             const vw = window.innerWidth;
-            if (vw < 400) setCardWidth(140);
-            else if (vw < 600) setCardWidth(180);
+            if (vw < 400) setCardWidth(100);
+            else if (vw < 600) setCardWidth(120);
             else if (vw < 900) setCardWidth(220);
             else setCardWidth(260);
         };
@@ -44,7 +44,7 @@ const GalleryCarousel = () => {
     }, []);
 
     const numItems = Math.max(images.length, 1);
-    const angle = 360 / numItems;
+    const angle = 360 / numItems - 1;
 
     // Scale down card width further when there are many images
     const effectiveCardWidth = numItems > 10

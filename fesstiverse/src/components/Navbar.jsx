@@ -21,6 +21,7 @@ const TopFloatingNavbar = ({ isFestiverse, toggleUniverse }) => {
     { href: '/sponsors', label: 'Sponsors', isRoute: true, icon: 'solar:star-linear' },
     { href: '#gallery', label: 'Gallery', icon: 'solar:gallery-linear' },
     { href: '/leaderboard', label: 'Results', isRoute: true, icon: 'lucide:trophy' },
+    { href: '/certificates', label: 'Certificates', isRoute: true, icon: 'solar:diploma-linear' },
   ];
 
   const links = isFestiverse ? festLinks : udaanLinks;

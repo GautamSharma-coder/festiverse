@@ -108,7 +108,7 @@ router.post('/register', verifyToken, async (req, res) => {
                             return res.status(400).json({ success: false, message: `Festiverse ID "${fid}" not found. Please check and try again.` });
                         }
                     } else {
-                    resolved.push({
+                        resolved.push({
                             name: enforceMaxLength(member.name, 100),
                             phone: enforceMaxLength(member.phone || '', 15),
                             email: enforceMaxLength(member.email || '', 254),
@@ -177,12 +177,13 @@ router.post('/register', verifyToken, async (req, res) => {
                     title: reg.events.name,
                     category: reg.events.category || 'Event',
                     date: reg.events.date || 'TBA',
+                    venue: reg.events.location || 'TBA',
                     teamSize: reg.events.team_size === 1
                         ? 'Solo'
                         : `${reg.events.team_size} Members`,
                     registrationId: reg.custom_id || reg.id,
                 };
-                
+
                 // 1. Email to the main registrant (Team Leader if team event)
                 sendEventRegistrationEmail(reg.users.email, reg.users.name, eventDetails).catch(err => {
                     logger.error('EVENT REG EMAIL ERROR', { message: err.message });
@@ -197,7 +198,7 @@ router.post('/register', verifyToken, async (req, res) => {
                                 teamName: `${reg.users.name}'s Team`,
                                 eventTitle: reg.events.name,
                                 message: `You've been added to our team for ${reg.events.name}! Get ready for the Festiverse.`,
-                                acceptUrl: 'https://festiverse.in/dashboard', // Direct since they are already added
+                                acceptUrl: 'https://www.udaangecsamastipur.in/', // Direct since they are already added
                                 expiresIn: 'N/A'
                             }).catch(err => {
                                 logger.error('TEAM INVITE EMAIL ERROR', { message: err.message });

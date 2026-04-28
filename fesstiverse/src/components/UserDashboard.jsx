@@ -886,7 +886,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
               {/* Payment Information */}
               <div className="d-card" style={{ marginTop: '24px' }}>
                 <div className="d-section-label">Payment Information</div>
-                {user?.payment_status === 'paid' ? (
+                {user?.payment_status !== 'pending' ? (
                   <div style={{ padding: '16px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '10px' }}>
                     <div style={{ color: '#4ade80', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '1.2rem' }}>✓</span> Complete Festival Pass Active
