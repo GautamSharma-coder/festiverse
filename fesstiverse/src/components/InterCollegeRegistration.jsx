@@ -12,7 +12,7 @@ const InterCollegeRegistration = () => {
 
     const inclusions = [
         { icon: 'solar:bomb-bold', text: 'All Core Events' },
-        { icon: 'solar:pizza-slice-bold', text: 'Unlimited Food' },
+        { icon: 'mdi:pizza', text: 'Unlimited Food' },
         { icon: 'solar:bed-bold', text: 'Campus Stay Included' },
         { icon: 'solar:t-shirt-bold', text: 'Official Merch' },
         { icon: 'solar:box-bold', text: 'Premium Swag' },

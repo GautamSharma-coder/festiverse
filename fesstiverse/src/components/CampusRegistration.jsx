@@ -4,13 +4,13 @@ const CampusRegistration = () => {
     const navigate = useNavigate();
 
     const barcodeWidths = [
-        '3px', '6px', '2px', '8px', '4px', '1px', '7px', '5px', 
+        '3px', '6px', '2px', '8px', '4px', '1px', '7px', '5px',
         '2px', '9px', '3px', '6px', '4px', '7px', '2px'
     ];
 
     const inclusions = [
         { icon: 'solar:bomb-bold', text: 'All Core Events' },
-        { icon: 'solar:pizza-slice-bold', text: 'Unlimited Food' },
+        //{ icon: 'mdi:pizza', text: 'Unlimited Food' },
         { icon: 'solar:t-shirt-bold', text: 'Official Merch' },
         { icon: 'solar:box-bold', text: 'Swag Crates' },
         { icon: 'solar:verified-check-bold', text: 'Certificate' },
@@ -20,7 +20,7 @@ const CampusRegistration = () => {
     return (
         <section id="campus-registration" style={styles.section}>
             <div style={styles.gridOverlay}></div>
-            
+
             <div className="container" style={styles.container}>
                 <div className="reg-layout-campus" style={styles.layout}>
                     <div className="reg-content-campus" style={styles.content}>
@@ -30,10 +30,10 @@ const CampusRegistration = () => {
                             <span style={styles.accentText}>INTERNAL PASS</span>
                         </h2>
                         <p className="reg-subtext-campus" style={styles.subtext}>
-                            Exclusive access for the home squad. 
+                            Exclusive access for the home squad.
                             Show your college spirit and dominate the arena.
                         </p>
-                        
+
                         <div className="reg-inclusion-grid" style={styles.inclusionList}>
                             {inclusions.map((item, idx) => (
                                 <div key={idx} style={styles.inclusionItem}>
@@ -53,7 +53,7 @@ const CampusRegistration = () => {
                                 </div>
                                 <iconify-icon icon="solar:ticket-sale-bold" width="40"></iconify-icon>
                             </div>
-                            
+
                             <div style={styles.priceSection}>
                                 <span style={styles.currency}>₹</span>
                                 <span className="reg-price-text" style={styles.price}>349</span>
@@ -140,17 +140,17 @@ const styles = {
     },
     container: { maxWidth: '1200px', margin: '0 auto', padding: '0 2rem', position: 'relative', zIndex: 1 },
     layout: { display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '4rem', alignItems: 'center' },
-    
+
     content: { display: 'flex', flexDirection: 'column', gap: '1.5rem' },
     tag: {
-        background: '#ccff00', color: '#000', padding: '6px 16px', 
+        background: '#ccff00', color: '#000', padding: '6px 16px',
         fontSize: '0.8rem', fontWeight: 900, width: 'fit-content',
         letterSpacing: '2px', borderRadius: '2px'
     },
     heading: { fontSize: '4.5rem', fontWeight: 900, color: '#fff', lineHeight: '0.9', textTransform: 'uppercase' },
     accentText: { color: '#ccff00' },
     subtext: { color: '#888', fontSize: '1.2rem', maxWidth: '500px', lineHeight: '1.6' },
-    
+
     inclusionList: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem' },
     inclusionItem: { display: 'flex', alignItems: 'center', gap: '12px' },
     inclusionText: { color: '#fff', fontSize: '1rem', fontWeight: 700, textTransform: 'uppercase' },
@@ -161,13 +161,13 @@ const styles = {
         width: '100%', maxWidth: '400px', boxShadow: '12px 12px 0px #ccff00',
         display: 'flex', flexDirection: 'column', gap: '2rem'
     },
-    cardHeader: { 
+    cardHeader: {
         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         color: '#fff', borderBottom: '2px solid rgba(255,255,255,0.1)', paddingBottom: '1.5rem'
     },
     tierTag: { fontSize: '0.7rem', fontWeight: 800, color: '#ccff00', textTransform: 'uppercase', letterSpacing: '1px' },
     cardTitle: { fontSize: '1.75rem', fontWeight: 900, margin: '4px 0 0 0' },
-    
+
     priceSection: { display: 'flex', alignItems: 'baseline', gap: '8px', color: '#fff' },
     currency: { fontSize: '2rem', fontWeight: 900, color: '#ccff00' },
     price: { fontSize: '7rem', fontWeight: 900, lineHeight: '0.8', letterSpacing: '-4px' },

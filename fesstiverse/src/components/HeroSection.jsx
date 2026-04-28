@@ -1,6 +1,5 @@
 import React from 'react';
 import UdaanHeroImage from '../assets/UdaanHeroImage.webp';
-import UdaanTextImage from '../assets/udaan-text.png';
 
 const HeroSection = () => {
     return (
@@ -10,9 +9,6 @@ const HeroSection = () => {
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat'
         }}>
-            {/* Mild blur overlay for the background image */}
-            <div className="absolute inset-0 backdrop-blur-[2px]"></div>
-
             {/* Radial gradient background overlay */}
             <div className="absolute inset-0" style={{
                 background: 'radial-gradient(circle at center, rgba(127, 29, 29, 0.4), black, black)',
@@ -29,31 +25,25 @@ const HeroSection = () => {
 
             {/* Main content */}
             <div className="z-10 text-center space-y-6 max-w-5xl px-4">
-                <div className="inline-block rounded-full border border-red-500/30 bg-red-500/10 mb-6" style={{ padding: '4px 16px' }}>
-                    <span className="text-red-500 text-xs font-semibold uppercase tracking-[0.15em]" style={{ marginLeft: '0.15em' }}>
-                        Est. 2019 • GEC Samastipur
-                    </span>
-                </div>
-                <div className="flex justify-center mb-6">
-                    <img
-                        src={UdaanTextImage}
-                        alt="UDAAN"
-                        className="w-full max-w-[200px] md:max-w-[400px] object-contain drop-shadow-2xl"
-                    />
-                </div>
+                <span className="inline-block px-3 py-1 rounded-full border border-red-500/30 text-red-500 text-xs tracking-[0.2em] uppercase bg-red-500/5 backdrop-blur-sm mb-4">
+                    Est. 2019 • GEC Samastipur
+                </span>
+                <h1 className="text-6xl md:text-8xl font-serif italic font-bold tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-600 drop-shadow-2xl">
+                    UDAAN
+                </h1>
                 <p className="text-lg md:text-xl text-zinc-400 font-light max-w-1xl mx-auto leading-relaxed " style={{ padding: '10px' }}>
                     Where culture meets creativity. The official Arts & Cultural Club.
                 </p>
             </div>
 
             {/* Bottom marquee */}
-            <div className="absolute bottom-10 w-full overflow-hidden border-y border-white/5 py-4  backdrop-blur-md">
+            <div className="absolute bottom-10 w-full overflow-hidden border-y border-white/5 py-4 bg-black/40 backdrop-blur-md">
                 <div className="whitespace-nowrap flex animate-marquee">
-                    <span className="text-4xl md:text-5xl font-serif italic text-white mx-4 tracking-tighter">
-                        _UNFOLDING______DRAMA_______AND______ART_____FOR____NATION
+                    <span className="text-4xl md:text-5xl font-serif italic text-white/10 mx-4 tracking-tighter">
+                        UNFOLDING______DRAMA_______AND______ART_____FOR____NATION
                     </span>
-                    <span className="text-4xl md:text-5xl font-serif italic text-white mx-4 tracking-tighter">
-                        _UNFOLDING______DRAMA_______AND______ART_____FOR____NATION
+                    <span className="text-4xl md:text-5xl font-serif italic text-white/10 mx-4 tracking-tighter">
+                        UNFOLDING______DRAMA_______AND______ART_____FOR____NATION
                     </span>
                 </div>
             </div>
