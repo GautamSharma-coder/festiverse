@@ -47,6 +47,10 @@ const styles = `
     from { opacity: 0; transform: translateY(18px) scale(0.96); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
   }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(40px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 
   .society-row {
     display: grid;
@@ -76,6 +80,7 @@ const styles = `
       grid-template-columns: 1fr;
       direction: ltr !important;
       gap: 2rem;
+      --mobile-anim: slideUp;
     }
     .society-identity { align-items: center !important; text-align: center !important; }
   }
@@ -161,7 +166,8 @@ const societies = [
 ];
 
 /* ── useInView: fires once when element enters viewport ── */
-function useInView(threshold = 0.15) {
+function useInView(options = {}) {
+    const { threshold = 0.1, rootMargin = '-100px 0px' } = options;
     const ref = useRef(null);
     const [visible, setVisible] = useState(false);
     useEffect(() => {
@@ -169,10 +175,10 @@ function useInView(threshold = 0.15) {
         if (!el) return;
         const obs = new IntersectionObserver(([e]) => {
             if (e.isIntersecting) { setVisible(true); obs.disconnect(); }
-        }, { threshold });
+        }, { threshold, rootMargin });
         obs.observe(el);
         return () => obs.disconnect();
-    }, [threshold]);
+    }, [threshold, rootMargin]);
     return [ref, visible];
 }
 
@@ -282,7 +288,7 @@ const EventCard = ({ event, accentColor, index, bgImage, sectionVisible }) => {
 /* ── SocietyRow ── */
 const SocietyRow = ({ s, idx }) => {
     const isRight = s.align === 'right';
-    const [wrapRef, visible] = useInView(0.12);
+    const [wrapRef, visible] = useInView({ threshold: 0.1, rootMargin: '-100px 0px' });
 
     const identityAnim = isRight ? 'slideRight' : 'slideLeft';
     const eventsAnim = isRight ? 'slideLeft' : 'slideRight';
@@ -305,7 +311,7 @@ const SocietyRow = ({ s, idx }) => {
                     style={{
                         opacity: visible ? 1 : 0,
                         animation: visible
-                            ? `${identityAnim} 0.65s cubic-bezier(0.22,1,0.36,1) 0.05s both`
+                            ? `var(--mobile-anim, ${identityAnim}) 0.65s cubic-bezier(0.22,1,0.36,1) 0.05s both`
                             : 'none',
                     }}
                 >
@@ -345,7 +351,7 @@ const SocietyRow = ({ s, idx }) => {
                     style={{
                         opacity: visible ? 1 : 0,
                         animation: visible
-                            ? `${eventsAnim} 0.65s cubic-bezier(0.22,1,0.36,1) 0.15s both`
+                            ? `var(--mobile-anim, ${eventsAnim}) 0.65s cubic-bezier(0.22,1,0.36,1) 0.15s both`
                             : 'none',
                     }}
                 >
@@ -366,46 +372,59 @@ const SocietyRow = ({ s, idx }) => {
 };
 
 /* ── Main Section ── */
-const Societies = () => (
-    <section
-        id="society"
-        style={{
-            backgroundColor: '#0a0a0a',
-            padding: '6rem 0',
-            position: 'relative',
-            overflow: 'hidden',
-        }}
-    >
-        <style>{styles}</style>
+const Societies = () => {
+    const [headerRef, headerVisible] = useInView({ threshold: 0.1, rootMargin: '-50px 0px' });
 
-        <div style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: 'radial-gradient(rgba(255,255,255,0.015) 1px, transparent 1px)',
-            backgroundSize: '32px 32px',
-            pointerEvents: 'none',
-        }} />
+    return (
+        <section
+            id="society"
+            style={{
+                backgroundColor: '#0a0a0a',
+                padding: '6rem 0',
+                position: 'relative',
+                overflow: 'hidden',
+            }}
+        >
+            <style>{styles}</style>
 
-        <div style={{ maxWidth: '72rem', margin: '0 auto', padding: '0 1.5rem', position: 'relative' }}>
+            <div style={{
+                position: 'absolute', inset: 0,
+                backgroundImage: 'radial-gradient(rgba(255,255,255,0.015) 1px, transparent 1px)',
+                backgroundSize: '32px 32px',
+                pointerEvents: 'none',
+            }} />
 
-            <div style={{ textAlign: 'center', marginBottom: '5rem' }}>
-                <span style={{
-                    fontSize: '0.6875rem', letterSpacing: '0.2em',
-                    textTransform: 'uppercase', color: '#52525b',
-                    display: 'block', marginBottom: '0.75rem',
-                }}>UDAAN Arts Club</span>
-                <h2 style={{
-                    fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 500,
-                    letterSpacing: '-0.03em', color: '#e4e4e7', margin: 0,
-                }}>Our Societies</h2>
+            <div style={{ maxWidth: '72rem', margin: '0 auto', padding: '0 1.5rem', position: 'relative' }}>
+
+                <div
+                    ref={headerRef}
+                    style={{
+                        textAlign: 'center',
+                        marginBottom: '5rem',
+                        opacity: headerVisible ? 1 : 0,
+                        transform: headerVisible ? 'translateY(0)' : 'translateY(30px)',
+                        transition: 'opacity 0.8s cubic-bezier(0.22,1,0.36,1), transform 0.8s cubic-bezier(0.22,1,0.36,1)'
+                    }}
+                >
+                    <span style={{
+                        fontSize: '0.6875rem', letterSpacing: '0.2em',
+                        textTransform: 'uppercase', color: '#52525b',
+                        display: 'block', marginBottom: '0.75rem',
+                    }}>UDAAN Arts Club</span>
+                    <h2 style={{
+                        fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 500,
+                        letterSpacing: '-0.03em', color: '#e4e4e7', margin: 0,
+                    }}>Our Societies</h2>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5rem' }}>
+                    {societies.map((s, idx) => (
+                        <SocietyRow key={idx} s={s} idx={idx} />
+                    ))}
+                </div>
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5rem' }}>
-                {societies.map((s, idx) => (
-                    <SocietyRow key={idx} s={s} idx={idx} />
-                ))}
-            </div>
-        </div>
-    </section>
-);
+        </section>
+    );
+};
 
 export default Societies;
