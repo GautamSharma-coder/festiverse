@@ -61,7 +61,7 @@ async function sendResetOTP(email) {
  * @param {string} otp
  * @param {string} prefix - '' for registration, 'reset_' for password reset
  */
-function verifyOTP(email, otp, prefix = '') {
+function verifyOTP(email, otp, prefix = '', keep = false) {
     const key = `${prefix}${email.toLowerCase()}`;
     const stored = otpStore[key];
 
@@ -78,8 +78,10 @@ function verifyOTP(email, otp, prefix = '') {
         throw AppError.badRequest('Invalid or expired OTP.');
     }
 
-    // Clear used OTP
-    delete otpStore[key];
+    // Clear used OTP unless keeping it for a multi-step process
+    if (!keep) {
+        delete otpStore[key];
+    }
     return true;
 }
 
@@ -90,17 +92,23 @@ function verifyOTP(email, otp, prefix = '') {
  */
 async function register(data) {
     const { name, email, phone, college, password, otp, tShirtSize,
+        payment_method, transaction_id,
         razorpay_payment_id, razorpay_order_id, razorpay_signature } = data;
 
     // 1. Verify OTP
     verifyOTP(email, otp);
 
-    // 2. Verify Razorpay payment signature
-    verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+    // 2. Verify Payment
+    if (payment_method === 'upi') {
+        if (!transaction_id) throw AppError.badRequest('Transaction ID is required for UPI payments.');
+    } else {
+        verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+    }
 
     // 3. Create user (handles duplicate checks internally)
     const newUser = await userService.createUser({
         name, email, phone, college, password, tShirtSize,
+        payment_method, transaction_id,
         razorpay_order_id, razorpay_payment_id,
     });
 

@@ -64,7 +64,7 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
  */
 router.post('/register', registerLimiter, async (req, res) => {
     try {
-        let { name, college, email, phone, otp, password, razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+        let { name, college, email, phone, otp, password, razorpay_payment_id, razorpay_order_id, razorpay_signature, payment_method, transaction_id } = req.body;
 
         // Enforce max lengths to prevent oversized payloads
         name = enforceMaxLength(name, 100);
@@ -107,28 +107,37 @@ router.post('/register', registerLimiter, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
         }
 
-        // Verify Razorpay Payment Signature
-        if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
-            return res.status(400).json({ success: false, message: 'Payment verification details are missing.' });
-        }
+        let hasPaidStatus = true;
 
-        const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
-        if (!razorpaySecret) {
-            return res.status(500).json({ success: false, message: 'Payment verification is not configured.' });
-        }
-        const expectedSignature = crypto
-            .createHmac('sha256', razorpaySecret)
-            .update(razorpay_order_id + '|' + razorpay_payment_id)
-            .digest('hex');
+        if (payment_method === 'upi') {
+            if (!transaction_id || transaction_id.trim() === '') {
+                return res.status(400).json({ success: false, message: 'Transaction ID is required for UPI payments.' });
+            }
+            hasPaidStatus = false; // Pending manual verification
+        } else {
+            // Verify Razorpay Payment Signature
+            if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
+                return res.status(400).json({ success: false, message: 'Payment verification details are missing.' });
+            }
 
-        // Timing-safe signature comparison
-        const sigMatch = expectedSignature.length === razorpay_signature.length &&
-            crypto.timingSafeEqual(
-                Buffer.from(expectedSignature, 'utf-8'),
-                Buffer.from(razorpay_signature, 'utf-8')
-            );
-        if (!sigMatch) {
-            return res.status(400).json({ success: false, message: 'Invalid payment signature. Payment verification failed.' });
+            const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
+            if (!razorpaySecret) {
+                return res.status(500).json({ success: false, message: 'Payment verification is not configured.' });
+            }
+            const expectedSignature = crypto
+                .createHmac('sha256', razorpaySecret)
+                .update(razorpay_order_id + '|' + razorpay_payment_id)
+                .digest('hex');
+
+            // Timing-safe signature comparison
+            const sigMatch = expectedSignature.length === razorpay_signature.length &&
+                crypto.timingSafeEqual(
+                    Buffer.from(expectedSignature, 'utf-8'),
+                    Buffer.from(razorpay_signature, 'utf-8')
+                );
+            if (!sigMatch) {
+                return res.status(400).json({ success: false, message: 'Invalid payment signature. Payment verification failed.' });
+            }
         }
 
         delete otpStore[email.toLowerCase()]; // Clear used OTP
@@ -163,7 +172,9 @@ router.post('/register', registerLimiter, async (req, res) => {
                 .from('users')
                 .insert([{
                     name, college, email, phone, role: 'student',
-                    has_paid: true,
+                    has_paid: hasPaidStatus,
+                    payment_method: payment_method || 'razorpay',
+                    transaction_id: transaction_id || null,
                     razorpay_order_id,
                     razorpay_payment_id,
                     password_hash,
@@ -204,9 +215,11 @@ router.post('/register', registerLimiter, async (req, res) => {
         });
 
         // Send confirmation email (fire-and-forget — don't block response)
-        sendConfirmationEmail(newUser.email, newUser.name, newUser.festiverse_id).catch(err =>
-            logger.error('CONFIRMATION EMAIL ERROR', { email: newUser.email, message: err.message })
-        );
+        if (hasPaidStatus) {
+            sendConfirmationEmail(newUser.email, newUser.name, newUser.festiverse_id).catch(err =>
+                logger.error('CONFIRMATION EMAIL ERROR', { email: newUser.email, message: err.message })
+            );
+        }
     } catch (err) {
         logger.error('REGISTER ERROR', { message: err.message, stack: err.stack });
         res.status(500).json({ success: false, message: 'Registration failed. Please try again.' });

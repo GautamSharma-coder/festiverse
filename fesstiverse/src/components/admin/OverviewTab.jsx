@@ -1,6 +1,6 @@
 import React from 'react';
 
-const OverviewTab = ({ registrations, users, messages, analytics }) => {
+const OverviewTab = ({ registrations, users, messages, analytics, activeGateway, toggleGateway }) => {
     return (
         <div className="ap-fade">
             <div className="ap-stats">
@@ -11,6 +11,45 @@ const OverviewTab = ({ registrations, users, messages, analytics }) => {
                     {analytics.liveUsers || 0}
                     <span className="live-indicator" style={{ width: 8, height: 8, background: '#ef4444', borderRadius: '50%', boxShadow: '0 0 10px #ef4444' }}></span>
                 </div><div className="ap-stat-lbl">Live Users</div></div>
+            </div>
+
+            <div className="ap-card" style={{ marginBottom: 28 }}>
+                <div className="ap-card-title"><span>⚙</span> Payment Gateway Settings</div>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <button
+                        onClick={() => toggleGateway('razorpay')}
+                        style={{
+                            padding: '10px 20px',
+                            background: activeGateway === 'razorpay' ? 'rgba(249, 115, 22, 0.1)' : 'transparent',
+                            border: `1px solid ${activeGateway === 'razorpay' ? 'var(--accent)' : 'var(--border)'}`,
+                            color: activeGateway === 'razorpay' ? 'var(--accent)' : 'var(--muted)',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        Razorpay
+                    </button>
+                    <button
+                        onClick={() => toggleGateway('upi')}
+                        style={{
+                            padding: '10px 20px',
+                            background: activeGateway === 'upi' ? 'rgba(249, 115, 22, 0.1)' : 'transparent',
+                            border: `1px solid ${activeGateway === 'upi' ? 'var(--accent)' : 'var(--border)'}`,
+                            color: activeGateway === 'upi' ? 'var(--accent)' : 'var(--muted)',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        Manual UPI
+                    </button>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginLeft: '1rem' }}>
+                        {activeGateway === 'razorpay' ? 'Automated payments via Razorpay are currently active.' : 'Manual UPI transfers (QR Code) are currently active. You must manually verify pending payments.'}
+                    </div>
+                </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <div className="ap-card">

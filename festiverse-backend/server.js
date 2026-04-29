@@ -10,19 +10,8 @@
  * All middleware, routes, and config live in src/
  */
 
-// Fix ISP DNS hijacking — force IP resolution for native fetch
-const undici = require('undici');
-const agent = new undici.Agent({
-    connect: {
-        lookup: (hostname, options, callback) => {
-            if (hostname.includes('supabase.co')) {
-                return callback(null, [{ address: '104.18.38.10', family: 4 }]);
-            }
-            require('dns').lookup(hostname, options, callback);
-        }
-    }
-});
-undici.setGlobalDispatcher(agent);
+// Fix DNS resolution issues and IPv6 timeouts for native fetch
+require('dns').setDefaultResultOrder('ipv4first');
 
 // Validate environment before anything else
 const { validateEnv, config } = require('./src/config/env');

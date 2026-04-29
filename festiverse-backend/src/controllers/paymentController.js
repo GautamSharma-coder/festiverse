@@ -12,6 +12,14 @@ exports.createOrder = asyncHandler(async (req, res) => {
     res.json({ success: true, ...result });
 });
 
+exports.getStatus = asyncHandler(async (req, res) => {
+    const activeGateway = await paymentService.getStatus();
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.json({ success: true, activeGateway });
+});
+
 exports.webhook = asyncHandler(async (req, res) => {
     const signature = req.headers['x-razorpay-signature'];
     const body = JSON.stringify(req.body);

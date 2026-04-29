@@ -17,6 +17,26 @@ const razorpay = new Razorpay({
 });
 
 /**
+ * GET /api/payment/status
+ * Fetches the active payment gateway from settings
+ */
+router.get('/status', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('settings')
+            .select('value')
+            .eq('key', 'active_payment_gateway')
+            .single();
+        
+        const activeGateway = (error || !data) ? 'razorpay' : data.value;
+        res.json({ success: true, activeGateway });
+    } catch (err) {
+        logger.error('PAYMENT STATUS ERROR', { message: err.message });
+        res.json({ success: true, activeGateway: 'razorpay' }); // fallback
+    }
+});
+
+/**
  * POST /api/payment/create-order
  * Creates a Razorpay order ID to be used on the frontend checkout
  */

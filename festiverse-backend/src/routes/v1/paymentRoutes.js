@@ -10,6 +10,9 @@ const { rateLimit } = require('../../middlewares/rateLimit');
 
 const paymentLimiter = rateLimit({ windowMs: 60000, max: 5, message: 'Too many payment requests. Please wait a moment.' });
 
+// GET /status
+router.get('/status', paymentController.getStatus);
+
 // POST /create-order
 router.post('/create-order', paymentLimiter, createOrderValidation, validate, paymentController.createOrder);
 
