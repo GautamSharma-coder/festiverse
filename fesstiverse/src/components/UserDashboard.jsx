@@ -673,6 +673,9 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
   };
 
   const registerEvents = async () => {
+    if (!user?.has_paid) {
+      return setMsg({ text: 'Your payment is pending verification. You can register for events once your payment is verified by an admin.', type: 'err' });
+    }
     if (!selectedEvents.length) return setMsg({ text: 'Select at least one event to continue.', type: 'err' });
     for (const eid of selectedEvents) {
       const ev = allEvents.find(e => e.id === eid);
@@ -886,7 +889,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
               {/* Payment Information */}
               <div className="d-card" style={{ marginTop: '24px' }}>
                 <div className="d-section-label">Payment Information</div>
-                {user?.payment_status !== 'pending' ? (
+                {user?.has_paid ? (
                   <div style={{ padding: '16px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '10px' }}>
                     <div style={{ color: '#4ade80', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '1.2rem' }}>✓</span> Complete Festival Pass Active

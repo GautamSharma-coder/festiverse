@@ -17,12 +17,18 @@ const asyncHandler = require('../../utils/asyncHandler');
 const logger = require('../../config/logger');
 
 // Rate limiters
-const otpLimiter = rateLimit({ windowMs: 60000, max: 3, message: 'Too many OTP requests. Please wait 1 minute.' });
+const otpLimiter = rateLimit({ windowMs: 60000, max: 5, message: 'Too many OTP requests. Please wait 1 minute.' });
 const loginLimiter = rateLimit({ windowMs: 60000, max: 5, message: 'Too many login attempts. Please wait 1 minute.' });
-const registerLimiter = rateLimit({ windowMs: 60000, max: 3, message: 'Too many registration attempts. Please wait 1 minute.' });
+const registerLimiter = rateLimit({ windowMs: 60000, max: 10, message: 'Too many registration attempts. Please wait 1 minute.' });
 
 // ─── POST /send-otp ───
 router.post('/send-otp', otpLimiter, sendOtpValidation, validate, authController.sendOTP);
+
+// ─── POST /resend-otp ───
+router.post('/resend-otp', otpLimiter, sendOtpValidation, validate, authController.resendOTP);
+
+// ─── POST /verify-otp ───
+router.post('/verify-otp', otpLimiter, validate, authController.verifyOTP);
 
 // ─── POST /register ───
 router.post('/register', registerLimiter, registerValidation, validate, authController.register);

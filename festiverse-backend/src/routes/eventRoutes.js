@@ -80,6 +80,21 @@ router.get('/lookup-member/:festiverseId', verifyToken, async (req, res) => {
 router.post('/register', verifyToken, async (req, res) => {
     try {
         const userId = req.user.id;
+
+        // Check if user is verified (has_paid = true) before allowing event registration
+        const { data: userRecord, error: userErr } = await supabase
+            .from('users')
+            .select('has_paid')
+            .eq('id', userId)
+            .single();
+
+        if (userErr || !userRecord) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+        if (!userRecord.has_paid) {
+            return res.status(403).json({ success: false, message: 'Your payment is pending verification. You can register for events once your payment is verified by an admin.' });
+        }
+
         let regs = [];
 
         if (req.body.registrations) {

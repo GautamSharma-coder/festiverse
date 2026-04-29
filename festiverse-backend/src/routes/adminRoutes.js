@@ -5,7 +5,7 @@ const multer = require('multer');
 const path = require('path');
 const supabase = require('../config/supabaseClient');
 const { verifyToken, verifyAdmin } = require('../middlewares/authMiddleware');
-const { sendResultEmail } = require('../config/emailClient');
+const { sendResultEmail, sendConfirmationEmail } = require('../config/emailClient');
 const { rateLimit } = require('../middlewares/rateLimit');
 const { validateIdParam, enforceMaxLength } = require('../middlewares/sanitize');
 const logger = require('../config/logger');
@@ -166,7 +166,7 @@ router.get('/users', verifyToken, verifyAdmin, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('users')
-            .select('id, name, email, phone, college, role, has_paid, avatar_url, festiverse_id, created_at')
+            .select('id, name, email, phone, college, role, has_paid, payment_method, transaction_id, avatar_url, festiverse_id, created_at')
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -214,6 +214,87 @@ router.delete('/users/:id', verifyToken, verifyAdmin, validateIdParam, async (re
         res.json({ success: true, message: 'User deleted.' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Delete error.' });
+    }
+});
+
+// ───────────────────────────────────────────────────
+// PUT /api/admin/users/:id/verify-payment
+// ───────────────────────────────────────────────────
+router.put('/users/:id/verify-payment', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { data: user, error: fetchErr } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', req.params.id)
+            .single();
+
+        if (fetchErr || !user) {
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        if (user.has_paid) {
+            return res.status(400).json({ success: false, message: 'Payment already verified.' });
+        }
+
+        const { data: updatedUser, error: updateErr } = await supabase
+            .from('users')
+            .update({ has_paid: true })
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (updateErr) throw updateErr;
+
+        // Send confirmation email after payment is verified
+        sendConfirmationEmail(updatedUser.email, updatedUser.name, updatedUser.festiverse_id).catch(err =>
+            logger.error('CONFIRMATION EMAIL ERROR (ADMIN VERIFY)', { email: updatedUser.email, message: err.message })
+        );
+
+        res.json({ success: true, user: updatedUser, message: 'Payment verified and email sent.' });
+    } catch (err) {
+        logger.error('VERIFY PAYMENT ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Failed to verify payment.' });
+    }
+});
+
+// ───────────────────────────────────────────────────
+// GET /api/admin/settings/payment-gateway
+// ───────────────────────────────────────────────────
+router.get('/settings/payment-gateway', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('settings')
+            .select('value')
+            .eq('key', 'active_payment_gateway')
+            .single();
+
+        if (error && error.code !== 'PGRST116') throw error; // ignore if not found
+        res.json({ success: true, activeGateway: data ? data.value : 'razorpay' });
+    } catch (err) {
+        logger.error('FETCH SETTING ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Failed to fetch settings.' });
+    }
+});
+
+// ───────────────────────────────────────────────────
+// PUT /api/admin/settings/payment-gateway
+// ───────────────────────────────────────────────────
+router.put('/settings/payment-gateway', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { activeGateway } = req.body;
+        if (!['razorpay', 'upi'].includes(activeGateway)) {
+            return res.status(400).json({ success: false, message: 'Invalid payment gateway.' });
+        }
+
+        const { error } = await supabase
+            .from('settings')
+            .upsert({ key: 'active_payment_gateway', value: activeGateway }, { onConflict: 'key' });
+
+        if (error) throw error;
+        res.json({ success: true, activeGateway, message: 'Payment gateway updated.' });
+    } catch (err) {
+        logger.error('UPDATE SETTING ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Failed to update settings.' });
     }
 });
 

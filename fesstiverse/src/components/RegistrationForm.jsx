@@ -113,9 +113,30 @@ const RegistrationForm = ({ onRegister, showToast }) => {
 
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [otpSent, setOtpSent] = useState(false);
+    const [otpVerified, setOtpVerified] = useState(false);
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false); // Double-submit prevention
     const [status, setStatus] = useState({ msg: '', type: '' });
+    const [activeGateway, setActiveGateway] = useState('razorpay');
+    const [resendCooldown, setResendCooldown] = useState(0);
+    const [transactionId, setTransactionId] = useState('');
+
+    // Timer for resend OTP
+    useEffect(() => {
+        let timer;
+        if (resendCooldown > 0) {
+            timer = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+        }
+        return () => clearTimeout(timer);
+    }, [resendCooldown]);
+
+    useEffect(() => {
+        apiFetch('/api/payment/status', { cache: 'no-store' })
+            .then(res => {
+                if (res.activeGateway) setActiveGateway(res.activeGateway);
+            })
+            .catch(() => setActiveGateway('razorpay'));
+    }, []);
 
     const formRef = useRef(null);
     const otpRefs = useRef([]);
@@ -152,7 +173,45 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                 body: JSON.stringify({ email: formData.email })
             });
             setOtpSent(true);
+            setResendCooldown(60);
             setStatus({ msg: 'OTP sent! Please check your inbox.', type: 'success' });
+        } catch (err) {
+            setStatus({ msg: err.message, type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const resendOTP = async () => {
+        setLoading(true);
+        setStatus({ msg: 'Resending code...', type: '' });
+        try {
+            await apiFetch('/api/auth/resend-otp', {
+                method: 'POST',
+                body: JSON.stringify({ email: formData.email })
+            });
+            setResendCooldown(60);
+            setStatus({ msg: 'OTP resent! Please check your inbox.', type: 'success' });
+        } catch (err) {
+            setStatus({ msg: err.message, type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleVerifyOTP = async () => {
+        const otpStr = otp.join('');
+        if (otpStr.length < 6) return setStatus({ msg: 'Enter the 6-digit code.', type: 'error' });
+
+        setLoading(true);
+        setStatus({ msg: 'Verifying OTP...', type: '' });
+        try {
+            await apiFetch('/api/auth/verify-otp', {
+                method: 'POST',
+                body: JSON.stringify({ email: formData.email, otp: otpStr })
+            });
+            setOtpVerified(true);
+            setStatus({ msg: 'OTP Verified! Please complete payment.', type: 'success' });
         } catch (err) {
             setStatus({ msg: err.message, type: 'error' });
         } finally {
@@ -191,6 +250,37 @@ const RegistrationForm = ({ onRegister, showToast }) => {
 
         setLoading(true);
         setSubmitted(true);
+
+        if (activeGateway === 'upi') {
+            if (!transactionId || transactionId.trim().length < 6) {
+                setLoading(false);
+                setSubmitted(false);
+                return setStatus({ msg: 'Please enter a valid Transaction ID.', type: 'error' });
+            }
+            setStatus({ msg: 'Submitting registration...', type: '' });
+            try {
+                const regRes = await apiFetch('/api/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        ...formData,
+                        otp: otpStr,
+                        payment_method: 'upi',
+                        transaction_id: transactionId
+                    }),
+                });
+                if (regRes.user) {
+                    localStorage.setItem('festiverse_user', JSON.stringify(regRes.user));
+                    setStatus({ msg: 'Registration submitted! Awaiting payment verification.', type: 'success' });
+                    setTimeout(() => onRegister?.(regRes.user), 1500);
+                }
+            } catch (err) {
+                setStatus({ msg: err.message, type: 'error' });
+                setLoading(false);
+                setSubmitted(false);
+            }
+            return;
+        }
+
         setStatus({ msg: 'Initializing secure transaction...', type: '' });
 
         try {
@@ -468,7 +558,7 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                         <div style={{ textAlign: 'center' }}>
                             <h4 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>VERIFY YOUR EMAIL</h4>
-                            <p style={{ fontSize: '0.875rem', color: '#888' }}>We've sent a 4-digit code to <br /><b style={{ color: '#ffb300' }}>{formData.email}</b></p>
+                            <p style={{ fontSize: '0.875rem', color: '#888' }}>We've sent a 6-digit code to <br /><b style={{ color: '#ffb300' }}>{formData.email}</b></p>
                         </div>
 
                         {!otpSent ? (
@@ -531,38 +621,104 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                     ))}
                                 </div>
 
-                                <div style={{ background: 'rgba(255, 179, 0, 0.05)', border: '1px solid rgba(255, 179, 0, 0.1)', borderRadius: '16px', padding: '1.25rem' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#888', fontWeight: 700 }}>PAYMENT TOTAL</span>
-                                        <span style={{ fontSize: '1rem', fontWeight: 900, color: '#ffb300' }}>₹{PRICES[category]}</span>
-                                    </div>
-                                    <p style={{ fontSize: '0.65rem', color: '#555', margin: 0 }}>* Includes All Events, Food, Merch, and Campus Access.</p>
-                                </div>
+                                {!otpVerified ? (
+                                    <>
+                                        <button
+                                            onClick={handleVerifyOTP}
+                                            disabled={loading}
+                                            style={{
+                                                padding: '1.25rem',
+                                                borderRadius: '16px',
+                                                border: 'none',
+                                                background: 'linear-gradient(90deg, #ffb300, #ff8f00)',
+                                                color: '#000',
+                                                fontSize: '1rem',
+                                                fontWeight: 900,
+                                                cursor: 'pointer',
+                                                boxShadow: '0 10px 30px rgba(255, 179, 0, 0.2)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '12px'
+                                            }}
+                                        >
+                                            {loading ? <iconify-icon icon="line-md:loading-twotone-loop" /> : <iconify-icon icon="solar:shield-check-bold" />}
+                                            VERIFY OTP
+                                        </button>
+                                        <button
+                                            onClick={resendOTP}
+                                            disabled={loading || resendCooldown > 0}
+                                            style={{
+                                                background: 'none',
+                                                border: 'none',
+                                                color: resendCooldown > 0 ? '#555' : '#ffb300',
+                                                fontSize: '0.8rem',
+                                                cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer',
+                                                fontWeight: 700
+                                            }}
+                                        >
+                                            {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : "Didn't get the code? Resend OTP"}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div style={{ background: 'rgba(255, 179, 0, 0.05)', border: '1px solid rgba(255, 179, 0, 0.1)', borderRadius: '16px', padding: '1.25rem' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                                <span style={{ fontSize: '0.8rem', color: '#888', fontWeight: 700 }}>PAYMENT TOTAL</span>
+                                                <span style={{ fontSize: '1rem', fontWeight: 900, color: '#ffb300' }}>₹{PRICES[category]}</span>
+                                            </div>
+                                            <p style={{ fontSize: '0.65rem', color: '#555', margin: 0 }}>* Includes All Events, Food, Merch, and Campus Access.</p>
+                                        </div>
 
-                                <button
-                                    onClick={handleSubmit}
-                                    disabled={loading}
-                                    style={{
-                                        padding: '1.25rem',
-                                        borderRadius: '16px',
-                                        border: 'none',
-                                        background: 'linear-gradient(90deg, #ffb300, #ff8f00)',
-                                        color: '#000',
-                                        fontSize: '1rem',
-                                        fontWeight: 900,
-                                        cursor: 'pointer',
-                                        boxShadow: '0 10px 30px rgba(255, 179, 0, 0.2)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '12px'
-                                    }}
-                                >
-                                    {loading ? <iconify-icon icon="line-md:loading-twotone-loop" /> : <iconify-icon icon="solar:shield-keyhole-bold" />}
-                                    COMPLETE PAYMENT & REGISTER
-                                </button>
+                                        {activeGateway === 'upi' && (
+                                            <div style={{ background: 'rgba(255, 179, 0, 0.05)', border: '1px solid rgba(255, 179, 0, 0.1)', borderRadius: '16px', padding: '1.25rem', textAlign: 'center' }}>
+                                                <p style={{ color: '#fff', fontWeight: 800, marginBottom: '10px' }}>Pay via UPI</p>
+                                                <img
+                                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=9430807084@ybl&pn=Festiverse&am=${PRICES[category]}`)}`}
+                                                    alt="UPI QR Code"
+                                                    style={{ borderRadius: '8px', marginBottom: '10px', background: '#fff', padding: '8px' }}
+                                                />
+                                                <p style={{ fontSize: '0.8rem', color: '#888', marginBottom: '10px' }}>Scan the QR to pay ₹{PRICES[category]} via any UPI App</p>
+                                                <a 
+                                                    href={`upi://pay?pa=9430807084@ybl&pn=Festiverse&am=${PRICES[category]}`}
+                                                    style={{ 
+                                                        display: 'inline-flex', alignItems: 'center', gap: '8px',
+                                                        padding: '10px 20px', background: 'rgba(34, 197, 94, 0.15)', 
+                                                        color: '#4ade80', borderRadius: '8px', textDecoration: 'none', 
+                                                        fontWeight: 800, marginBottom: '20px', border: '1px solid rgba(34, 197, 94, 0.3)'
+                                                    }}
+                                                >
+                                                    <iconify-icon icon="solar:smartphone-update-bold" />
+                                                    OPEN PAYMENT APP
+                                                </a>
+                                                <Input placeholder="Enter 12-digit UTR / Transaction ID" value={transactionId} onChange={e => setTransactionId(e.target.value)} />
+                                            </div>
+                                        )}
 
-                                <button onClick={() => setOtpSent(false)} style={{ background: 'none', border: 'none', color: '#555', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 700 }}>Didn't get the code? Resend Email</button>
+                                        <button
+                                            onClick={handleSubmit}
+                                            disabled={loading}
+                                            style={{
+                                                padding: '1.25rem',
+                                                borderRadius: '16px',
+                                                border: 'none',
+                                                background: 'linear-gradient(90deg, #ffb300, #ff8f00)',
+                                                color: '#000',
+                                                fontSize: '1rem',
+                                                fontWeight: 900,
+                                                cursor: 'pointer',
+                                                boxShadow: '0 10px 30px rgba(255, 179, 0, 0.2)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '12px'
+                                            }}
+                                        >
+                                            {loading ? <iconify-icon icon="line-md:loading-twotone-loop" /> : <iconify-icon icon="solar:shield-keyhole-bold" />}
+                                            COMPLETE PAYMENT & REGISTER
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         )}
                         <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', color: '#555', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 700 }}>‹ Back to Details</button>

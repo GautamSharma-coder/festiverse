@@ -263,6 +263,7 @@ const AdminPanel = ({ onClose }) => {
     const [msg, setMsg] = useState({ text: '', type: '' });
     const [search, setSearch] = useState('');
     const [analytics, setAnalytics] = useState({ uniqueVisitors: 0, liveUsers: 0 });
+    const [activeGateway, setActiveGateway] = useState('razorpay');
     const [newNotice, setNewNotice] = useState({ title: '', description: '', color: '#3b82f6', link_url: '', link_text: '' });
 
     const [newEvent, setNewEvent] = useState({ name: '', location: '', date: '', description: '', rules: '', schedule: '', prizes: '' });
@@ -336,7 +337,7 @@ const AdminPanel = ({ onClose }) => {
 
     const fetchAll = async () => {
         try {
-            const [r, m, u, e, t, f, g, n, a] = await Promise.all([
+            const [r, m, u, e, t, f, g, n, a, gw] = await Promise.all([
                 adminFetch('/api/admin/registrations').catch(() => ({})),
                 adminFetch('/api/admin/messages').catch(() => ({})),
                 adminFetch('/api/admin/users').catch(() => ({})),
@@ -346,6 +347,7 @@ const AdminPanel = ({ onClose }) => {
                 fetch(`${API}/api/gallery`).then(r => r.json()).catch(() => ({})),
                 adminFetch('/api/admin/notices').catch(() => ({})),
                 adminFetch('/api/admin/analytics').catch(() => ({ uniqueVisitors: 0, liveUsers: 0 })),
+                adminFetch('/api/admin/settings/payment-gateway').catch(() => ({ activeGateway: 'razorpay' }))
             ]);
             setRegistrations(r.registrations || []);
             setMessages(m.messages || []);
@@ -356,6 +358,7 @@ const AdminPanel = ({ onClose }) => {
             setGallery(g.images || []);
             setNotices(n.notices || []);
             setAnalytics(a);
+            setActiveGateway(gw.activeGateway || 'razorpay');
         } catch (err) {
             console.error(err);
 
@@ -469,6 +472,15 @@ const AdminPanel = ({ onClose }) => {
             await adminFetch(`/api/admin/users/${editingUser.id}`, { method: 'PUT', body: JSON.stringify(editingUser) });
             setEditingUser(null);
             flash('User updated successfully');
+            fetchTabData();
+        } catch (err) { flash(err.message, 'err'); }
+    };
+
+    const verifyPayment = async (id) => {
+        if (!confirm('Are you sure you want to verify this payment? The user will receive a confirmation email.')) return;
+        try {
+            await adminFetch(`/api/admin/users/${id}/verify-payment`, { method: 'PUT' });
+            flash('Payment verified and email sent!');
             fetchTabData();
         } catch (err) { flash(err.message, 'err'); }
     };
@@ -631,6 +643,16 @@ const AdminPanel = ({ onClose }) => {
 
     const switchTab = (id) => { setActiveTab(id); setSidebarOpen(false); setSearch(''); setMsg({ text: '', type: '' }); };
 
+    const toggleGateway = async (gateway) => {
+        try {
+            await adminFetch('/api/admin/settings/payment-gateway', { method: 'PUT', body: JSON.stringify({ activeGateway: gateway }) });
+            setActiveGateway(gateway);
+            flash(`Payment gateway set to ${gateway}`);
+        } catch (err) {
+            flash(err.message, 'err');
+        }
+    };
+
 
     /* ── Login screen ── */
     if (!isAuthed) {
@@ -666,11 +688,11 @@ const AdminPanel = ({ onClose }) => {
     const renderTab = () => {
         switch (activeTab) {
             case 'overview':
-                return <OverviewTab registrations={registrations} users={users} events={events} messages={messages} analytics={analytics} />;
+                return <OverviewTab registrations={registrations} users={users} events={events} messages={messages} analytics={analytics} activeGateway={activeGateway} toggleGateway={toggleGateway} />;
             case 'registrations':
                 return <RegistrationsTab registrations={registrations} search={search} setSearch={setSearch} loading={loading} />;
             case 'users':
-                return <UsersTab users={users} search={search} setSearch={setSearch} editingUser={editingUser} setEditingUser={setEditingUser} updateUser={updateUser} deleteUser={deleteUser} />;
+                return <UsersTab users={users} search={search} setSearch={setSearch} editingUser={editingUser} setEditingUser={setEditingUser} updateUser={updateUser} deleteUser={deleteUser} verifyPayment={verifyPayment} />;
             case 'messages':
                 return <MessagesTab messages={messages} deleteMessage={deleteMessage} />;
             case 'events':

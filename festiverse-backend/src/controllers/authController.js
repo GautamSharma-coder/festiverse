@@ -11,6 +11,17 @@ exports.sendOTP = asyncHandler(async (req, res) => {
     res.json({ success: true, message: result.message });
 });
 
+exports.resendOTP = asyncHandler(async (req, res) => {
+    const result = await authService.sendOTP(req.body.email);
+    res.json({ success: true, message: 'OTP resent to your email!' });
+});
+
+exports.verifyOTP = asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
+    authService.verifyOTP(email, otp, '', true); // Keep the OTP valid for registration step
+    res.json({ success: true, message: 'OTP verified successfully.' });
+});
+
 exports.register = asyncHandler(async (req, res) => {
     const { user, token } = await authService.register(req.body);
     authService.setCookieToken(res, token);

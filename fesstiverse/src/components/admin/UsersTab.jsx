@@ -1,6 +1,6 @@
 import React from 'react';
 
-const UsersTab = ({ users, search, setSearch, editingUser, setEditingUser, updateUser, deleteUser }) => {
+const UsersTab = ({ users, search, setSearch, editingUser, setEditingUser, updateUser, deleteUser, verifyPayment }) => {
     return (
         <div className="ap-fade">
             {editingUser && (
@@ -35,10 +35,26 @@ const UsersTab = ({ users, search, setSearch, editingUser, setEditingUser, updat
                                 <td>{u.phone}</td>
                                 <td style={{ color: 'var(--muted)' }}>{u.email || '—'}</td>
                                 <td style={{ color: 'var(--muted)' }}>{u.college || '—'}</td>
-                                <td>{u.has_paid ? <span style={{ color: '#86efac', background: 'rgba(34,197,94,.1)', padding: '2px 6px', borderRadius: 4, fontSize: '.7rem' }}>Paid</span> : <span style={{ color: '#fca5a5', background: 'rgba(239,68,68,.1)', padding: '2px 6px', borderRadius: 4, fontSize: '.7rem' }}>Unpaid</span>}</td>
+                                <td>
+                                    {u.has_paid ? (
+                                        <span style={{ color: '#86efac', background: 'rgba(34,197,94,.1)', padding: '2px 6px', borderRadius: 4, fontSize: '.7rem' }}>Paid</span>
+                                    ) : (
+                                        <div>
+                                            <span style={{ color: '#fca5a5', background: 'rgba(239,68,68,.1)', padding: '2px 6px', borderRadius: 4, fontSize: '.7rem' }}>Unpaid</span>
+                                            {u.payment_method === 'upi' && u.transaction_id && (
+                                                <div style={{ marginTop: 4, fontSize: '.65rem', color: 'var(--accent)' }}>
+                                                    UTR: {u.transaction_id}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </td>
                                 <td style={{ fontSize: '.75rem', color: 'var(--muted)' }}>{new Date(u.created_at).toLocaleDateString()}</td>
                                 <td>
                                     <div className="ap-actions">
+                                        {u.payment_method === 'upi' && !u.has_paid && (
+                                            <button className="ap-edit" style={{ borderColor: 'rgba(34,197,94,.3)', color: '#86efac' }} onClick={() => verifyPayment(u.id)}>Verify</button>
+                                        )}
                                         <button className="ap-edit" onClick={() => { setEditingUser({ ...u, name: u.name || '', phone: u.phone || '', email: u.email || '', college: u.college || '' }); window.scrollTo(0, 0); }}>Edit</button>
                                         <button className="ap-del" onClick={() => deleteUser(u.id)}>Delete</button>
                                     </div>

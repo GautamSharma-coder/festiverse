@@ -69,4 +69,19 @@ async function processWebhook(event, payload) {
     return { status: 'ok' };
 }
 
-module.exports = { createOrder, verifyWebhookSignature, processWebhook };
+async function getStatus() {
+    try {
+        const { data, error } = await supabase
+            .from('settings')
+            .select('value')
+            .eq('key', 'active_payment_gateway')
+            .single();
+        
+        return (error || !data) ? 'razorpay' : data.value;
+    } catch (err) {
+        logger.error('PAYMENT STATUS ERROR', { message: err.message });
+        return 'razorpay';
+    }
+}
+
+module.exports = { createOrder, verifyWebhookSignature, processWebhook, getStatus };
