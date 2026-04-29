@@ -13,6 +13,7 @@ const { sendOTPEmail, sendConfirmationEmail } = require('../config/emailClient')
 const userService = require('./userService');
 const AppError = require('../utils/AppError');
 const logger = require('../config/logger');
+const supabase = require('../config/supabaseClient');
 
 // In-memory OTP store keyed by email (use Redis in production for multi-instance)
 const otpStore = {};
@@ -98,11 +99,22 @@ async function register(data) {
     // 2. Verify Razorpay payment signature
     verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
 
+    // SECURITY: Fetch the original college from the pending registration record.
+    // This ensures we use the college that was validated during payment order creation.
+    const { data: pending } = await supabase
+        .from('pending_registrations')
+        .select('user_data')
+        .eq('order_id', razorpay_order_id)
+        .single();
+
+    const validatedCollege = (pending && pending.user_data && pending.user_data.college) ? pending.user_data.college : college;
+
     // 3. Create user (handles duplicate checks internally)
     const newUser = await userService.createUser({
-        name, email, phone, college, password, tShirtSize,
+        name, email, phone, college: validatedCollege, password, tShirtSize,
         razorpay_order_id, razorpay_payment_id,
     });
+
 
     // 4. Generate JWT
     const token = generateToken(newUser);
@@ -161,11 +173,11 @@ async function resetPassword(email, otp, newPassword) {
     // Update in database
     await userService.updateUser(null, { password_hash });
     // We need to find by email first
-    const supabase = require('../config/supabaseClient');
     const { error } = await supabase
         .from('users')
         .update({ password_hash })
         .eq('email', email);
+
 
     if (error) throw error;
 

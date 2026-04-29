@@ -20,6 +20,16 @@ async function createOrder(category, userData) {
     if (!razorpay) throw AppError.serviceUnavailable('Payment service is not configured.');
     if (!['INTERNAL', 'EXTERNAL'].includes(category)) throw AppError.badRequest('Invalid registration category.');
 
+    // SECURITY: If category is INTERNAL, enforce the correct college name
+    if (category === 'INTERNAL') {
+        const internalCollege = 'Government Engineering College (GEC), Samastipur';
+        if (!userData || userData.college !== internalCollege) {
+            logger.warn('⚠️ Payment spoofing attempt: INTERNAL category with external college', { userData });
+            throw AppError.badRequest('The Internal category is restricted to GEC Samastipur students.');
+        }
+    }
+
+
     const fee = category === 'INTERNAL' ? config.fees.internal : config.fees.external;
     const order = await razorpay.orders.create({ amount: fee * 100, currency: 'INR', receipt: `receipt_order_${Date.now()}` });
     if (!order) throw AppError.internal('Failed to create payment order.');

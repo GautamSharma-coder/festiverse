@@ -57,7 +57,8 @@ router.put('/profile', verifyToken, avatarUpload.single('avatar'), asyncHandler(
     const updates = {};
     if (name !== undefined) updates.name = name;
     if (email !== undefined) updates.email = email;
-    if (college !== undefined) updates.college = college;
+    // college is locked and cannot be updated after registration
+
 
     if (req.file) {
         const { data: oldUser } = await supabase.from('users').select('avatar_url').eq('id', req.user.id).single();

@@ -80,7 +80,21 @@ router.get('/lookup-member/:festiverseId', verifyToken, async (req, res) => {
 router.post('/register', verifyToken, async (req, res) => {
     try {
         const userId = req.user.id;
+
+        // SECURITY: Verify the user has completed payment before allowing event registration
+        const { data: user, error: userErr } = await supabase
+            .from('users')
+            .select('has_paid')
+            .eq('id', userId)
+            .single();
+
+        if (userErr || !user?.has_paid) {
+            logger.warn('⚠️ Unauthorized registration attempt: Unpaid user', { userId });
+            return res.status(403).json({ success: false, message: 'Please complete your registration payment to join events.' });
+        }
+
         let regs = [];
+
 
         if (req.body.registrations) {
             // New format: registrations with optional team members

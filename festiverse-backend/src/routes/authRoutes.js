@@ -417,11 +417,10 @@ const avatarUpload = multer({
 
 router.put('/profile', verifyToken, avatarUpload.single('avatar'), async (req, res) => {
     try {
-        const { name, email, college } = req.body;
+        const { name, email } = req.body;
         const updates = {};
         if (name !== undefined) updates.name = name;
         if (email !== undefined) updates.email = email;
-        if (college !== undefined) updates.college = college;
 
         // Handle avatar upload
         if (req.file) {

@@ -587,17 +587,17 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
   useEffect(() => { if (festiverseId) fetchMyEvents(); }, [festiverseId]);
 
   const fetchProfile = async () => { try { const d = await apiFetch('/api/auth/profile'); if (d.user) { setProfile({ name: d.user.name || '', email: d.user.email || '', phone: d.user.phone || '', college: d.user.college || '' }); if (d.user.avatar_url) setAvatarUrl(d.user.avatar_url); if (d.user.festiverse_id) setFestiverseId(d.user.festiverse_id); } } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } };
-  const fetchMyEvents = async () => { 
-    try { 
-      const d = await apiFetch('/api/events/my-events'); 
-      setMyEvents(d.registrations || []); 
-      
+  const fetchMyEvents = async () => {
+    try {
+      const d = await apiFetch('/api/events/my-events');
+      setMyEvents(d.registrations || []);
+
       // Also fetch results/achievements if we have a festiverse ID
       if (festiverseId) {
         const res = await apiFetch(`/api/certificates/check/${festiverseId}`);
         if (res.success) setResults(res.certificates || []);
       }
-    } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } 
+    } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); }
   };
   const fetchAllEvents = async () => { try { const d = await apiFetch('/api/events'); setAllEvents(d.events || []); } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } };
 
@@ -610,7 +610,6 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
         const formData = new FormData();
         formData.append('name', profile.name);
         formData.append('email', profile.email);
-        formData.append('college', profile.college);
         formData.append('avatar', avatarFile);
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
         const res = await fetch(`${API_URL}/api/auth/profile`, {
@@ -623,7 +622,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
       } else {
         data = await apiFetch('/api/auth/profile', {
           method: 'PUT',
-          body: JSON.stringify({ name: profile.name, email: profile.email, college: profile.college }),
+          body: JSON.stringify({ name: profile.name, email: profile.email }),
         });
       }
       setMsg({ text: 'Profile saved successfully.', type: 'ok' });
@@ -714,7 +713,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
       const d = await apiFetch(`/api/events/qr/${regId}`);
       setQrImage(d.qrCode || '');
     } catch (e) {
-      setQrImage('');
+      setQrImage(''); \
       console.log(e);
     } finally { setQrLoading(false); }
   };
@@ -937,12 +936,12 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                         <div className="d-my-ev-dot" />
                         <div className="d-my-ev-info">
                           <div className="d-my-ev-name">
-                            {reg.events?.name || 'Event'} 
+                            {reg.events?.name || 'Event'}
                             {reg.custom_id && <span style={{ fontSize: '0.65rem', padding: '1px 5px', background: 'var(--border)', borderRadius: 4, marginLeft: 6, color: 'var(--muted)', fontWeight: 'normal', letterSpacing: '0.05em' }}>{reg.custom_id}</span>}
                             {rank && (
-                              <span style={{ 
-                                marginLeft: 8, padding: '2px 8px', borderRadius: '12px', 
-                                background: `${rankColor}20`, color: rankColor, fontSize: '0.65rem', 
+                              <span style={{
+                                marginLeft: 8, padding: '2px 8px', borderRadius: '12px',
+                                background: `${rankColor}20`, color: rankColor, fontSize: '0.65rem',
                                 fontWeight: 800, border: `1px solid ${rankColor}40`, textTransform: 'uppercase'
                               }}>
                                 🏆 {rank} Place
