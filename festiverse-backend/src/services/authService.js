@@ -100,12 +100,16 @@ async function register(data) {
     verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
 
     // SECURITY: Fetch the original college from the pending registration record.
-    // This ensures we use the college that was validated during payment order creation.
+    // Also check if the payment has already been used (status: paid).
     const { data: pending } = await supabase
         .from('pending_registrations')
-        .select('user_data')
+        .select('user_data, status')
         .eq('order_id', razorpay_order_id)
         .single();
+
+    if (pending && pending.status === 'paid') {
+        throw AppError.badRequest('This payment has already been used for registration.');
+    }
 
     const validatedCollege = (pending && pending.user_data && pending.user_data.college) ? pending.user_data.college : college;
 
@@ -114,6 +118,13 @@ async function register(data) {
         name, email, phone, college: validatedCollege, password, tShirtSize,
         razorpay_order_id, razorpay_payment_id,
     });
+
+    // Mark the payment as "consumed" immediately to prevent reuse
+    await supabase
+        .from('pending_registrations')
+        .update({ status: 'paid' })
+        .eq('order_id', razorpay_order_id);
+
 
 
     // 4. Generate JWT

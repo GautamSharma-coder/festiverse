@@ -66,14 +66,19 @@ async function findById(id) {
 }
 
 /**
- * Check if a user already exists by email OR phone.
+ * Check if a user already exists by email OR phone OR razorpay_order_id.
  * Returns the existing user or null.
  */
-async function findExisting(email, phone) {
+async function findExisting(email, phone, razorpayOrderId = null) {
+    let query = `email.eq.${email.toLowerCase()},phone.eq.${phone}`;
+    if (razorpayOrderId) {
+        query += `,razorpay_order_id.eq.${razorpayOrderId}`;
+    }
+
     const { data, error } = await supabase
         .from('users')
-        .select('id, email, phone')
-        .or(`email.eq.${email.toLowerCase()},phone.eq.${phone}`)
+        .select('id, email, phone, razorpay_order_id')
+        .or(query)
         .limit(1)
         .maybeSingle();
 
@@ -81,20 +86,27 @@ async function findExisting(email, phone) {
     return data || null;
 }
 
+
 /**
  * Create a new user with a unique Festiverse ID.
  * Retries up to 5 times if Festiverse ID conflicts.
  * Used by BOTH auth registration and payment webhook.
  */
 async function createUser({ name, email, phone, college, password, tShirtSize, razorpay_order_id, razorpay_payment_id }) {
-    // Check for existing user
-    const existing = await findExisting(email, phone);
+    // Check for existing user (including the payment ID)
+    const existing = await findExisting(email, phone, razorpay_order_id);
     if (existing) {
-        const isEmailMatch = existing.email.toLowerCase() === email.toLowerCase();
-        throw AppError.conflict(
-            isEmailMatch ? 'Email address already registered.' : 'Phone number already registered.'
-        );
+        if (existing.email.toLowerCase() === email.toLowerCase()) {
+            throw AppError.conflict('Email address already registered.');
+        }
+        if (existing.phone === phone) {
+            throw AppError.conflict('Phone number already registered.');
+        }
+        if (existing.razorpay_order_id === razorpay_order_id) {
+            throw AppError.conflict('This payment has already been used for registration.');
+        }
     }
+
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
