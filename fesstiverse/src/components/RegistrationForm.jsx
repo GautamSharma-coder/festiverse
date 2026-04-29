@@ -122,8 +122,8 @@ const RegistrationForm = ({ onRegister, showToast }) => {
 
     // Category Prices
     const PRICES = {
-        INTERNAL: 349,
-        EXTERNAL: 699
+        INTERNAL: import.meta.env.VITE_INTERNAL_PRICE || 349,
+        EXTERNAL: import.meta.env.VITE_EXTERNAL_PRICE || 699
     };
 
     const updateForm = (field, val) => {
