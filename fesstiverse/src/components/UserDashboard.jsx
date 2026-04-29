@@ -861,7 +861,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                     { label: 'Full Name', key: 'name', type: 'text', disabled: false },
                     { label: 'Phone', key: 'phone', type: 'tel', disabled: true },
                     { label: 'Email', key: 'email', type: 'email', disabled: false },
-                    { label: 'College', key: 'college', type: 'text', disabled: false },
+                    { label: 'College', key: 'college', type: 'text', disabled: true },
                   ].map(f => (
                     <div key={f.key} className="d-field">
                       <label>{f.label}{f.disabled && <span style={{ color: 'var(--muted2)', fontSize: '0.6rem', marginLeft: 5 }}>locked</span>}</label>
