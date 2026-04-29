@@ -713,7 +713,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
       const d = await apiFetch(`/api/events/qr/${regId}`);
       setQrImage(d.qrCode || '');
     } catch (e) {
-      setQrImage(''); \
+      setQrImage('');
       console.log(e);
     } finally { setQrLoading(false); }
   };
