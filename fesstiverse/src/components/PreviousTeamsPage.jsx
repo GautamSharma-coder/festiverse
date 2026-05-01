@@ -1,6 +1,120 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ScrollReveal } from './ScrollReveal';
+
+
+import img2k21_1 from '../assets/preMemb/2k21/img (1).webp';
+import img2k21_2 from '../assets/preMemb/2k21/img (2).webp';
+import img2k21_3 from '../assets/preMemb/2k21/img (3).webp';
+import img2k21_4 from '../assets/preMemb/2k21/img (4).webp';
+import img2k21_5 from '../assets/preMemb/2k21/img (5).webp';
+
+import img2k20_1 from '../assets/preMemb/2k20/img1 (1).webp';
+import img2k20_2 from '../assets/preMemb/2k20/img1 (2).webp';
+import img2k20_3 from '../assets/preMemb/2k20/img1 (3).webp';
+import img2k20_4 from '../assets/preMemb/2k20/img1 (4).webp';
+import img2k20_5 from '../assets/preMemb/2k20/img1 (5).webp';
+import img2k20_6 from '../assets/preMemb/2k20/img1 (6).webp';
+import img2k20_7 from '../assets/preMemb/2k20/img1 (7).webp';
+import img2k20_8 from '../assets/preMemb/2k20/img1 (8).webp';
+import img2k20_9 from '../assets/preMemb/2k20/img1 (9).webp';
+import img2k20_10 from '../assets/preMemb/2k20/img1 (10).webp';
+import img2k20_11 from '../assets/preMemb/2k20/img1 (11).webp';
+import img2k20_12 from '../assets/preMemb/2k20/img1 (12).webp';
+import img2k20_13 from '../assets/preMemb/2k20/img1 (13).webp';
+import img2k20_14 from '../assets/preMemb/2k20/img1 (14).webp';
+import img2k20_15 from '../assets/preMemb/2k20/img1 (15).webp';
+import img2k20_16 from '../assets/preMemb/2k20/img1 (16).webp';
+import img2k20_17 from '../assets/preMemb/2k20/img1 (17).webp';
+import img2k20_18 from '../assets/preMemb/2k20/img1 (18).webp';
+import img2k20_19 from '../assets/preMemb/2k20/img1 (19).webp';
+import img2k20_20 from '../assets/preMemb/2k20/img1 (20).webp';
+
+import img2k19_1 from '../assets/preMemb/2k19/img (1).webp';
+import img2k19_2 from '../assets/preMemb/2k19/img (2).webp';
+import img2k19_3 from '../assets/preMemb/2k19/img (3).webp';
+import img2k19_4 from '../assets/preMemb/2k19/img (4).webp';
+import img2k19_5 from '../assets/preMemb/2k19/img (5).webp';
+import img2k19_6 from '../assets/preMemb/2k19/img (6).webp';
+import img2k19_7 from '../assets/preMemb/2k19/img (7).webp';
+import img2k19_8 from '../assets/preMemb/2k19/img (8).webp';
+import img2k19_9 from '../assets/preMemb/2k19/img (9).webp';
+import img2k19_10 from '../assets/preMemb/2k19/img (10).webp';
+import img2k19_11 from '../assets/preMemb/2k19/img (11).webp';
+import img2k19_12 from '../assets/preMemb/2k19/img (12).webp';
+import img2k19_13 from '../assets/preMemb/2k19/img (13).webp';
+import img2k19_14 from '../assets/preMemb/2k19/img (14).webp';
+import img2k19_15 from '../assets/preMemb/2k19/img (15).webp';
+import img2k19_16 from '../assets/preMemb/2k19/img (16).webp';
+import img2k19_17 from '../assets/preMemb/2k19/img (17).webp';
+import img2k19_18 from '../assets/preMemb/2k19/img (18).webp';
+import img2k19_19 from '../assets/preMemb/2k19/img (19).webp';
+
+const POSITIONS = [
+  [2, 2, 130], [22, 42, 110], [38, 3, 120], [55, 48, 130],
+  [60, 8, 100], [72, 30, 115], [15, 68, 105], [82, 60, 100],
+  [5, 30, 110], [45, 25, 95], [10, 50, 120], [30, 75, 105],
+  [65, 75, 110], [85, 10, 115], [18, 15, 100], [50, 5, 125],
+  [75, 50, 105], [40, 60, 110], [12, 85, 100], [58, 85, 115],
+  [88, 35, 110], [28, 55, 105], [2, 70, 115], [92, 80, 100],
+];
+
+const teamsData = {
+  '2K21': [
+    { id: 1, name: 'Aman Kumar', role: 'Senior Coord.', category: 'Fine Arts', image: img2k21_1 },
+    { id: 2, name: 'Sneha Kumari', role: 'Senior Coord.', category: 'Literature', image: img2k21_2 },
+    { id: 3, name: 'Rahul Raj', role: 'Coordinator', category: 'Music', image: img2k21_3 },
+    { id: 4, name: 'Priya Singh', role: 'Coordinator', category: 'Dance', image: img2k21_4 },
+    { id: 5, name: 'Vikas Gupta', role: 'Sub Coordinator', category: 'Acting', image: img2k21_5 },
+    { id: 6, name: 'Anjali Sharma', role: 'Sub Coordinator', category: 'Social Awareness', image: img2k21_1 },
+  ],
+  '2K20': [
+    { id: 7, name: 'Sumit Verma', role: 'Senior Coord.', category: 'Fine Arts', image: img2k20_1 },
+    { id: 8, name: 'Kavita Kumari', role: 'Senior Coord.', category: 'Literature', image: img2k20_2 },
+    { id: 9, name: 'Rajesh Mishra', role: 'Coordinator', category: 'Music', image: img2k20_3 },
+    { id: 10, name: 'Nehal Singh', role: 'Coordinator', category: 'Acting', image: img2k20_4 },
+    { id: 11, name: 'Aditi Roy', role: 'Coordinator', category: 'Dance', image: img2k20_5 },
+    { id: 12, name: 'Manish Jha', role: 'Coordinator', category: 'Literature', image: img2k20_6 },
+    { id: 13, name: 'Pooja Singh', role: 'Sub Coord.', category: 'Music', image: img2k20_7 },
+    { id: 14, name: 'Kunal Roy', role: 'Sub Coord.', category: 'Social', image: img2k20_8 },
+    { id: 15, name: 'Sweta Pandey', role: 'Coordinator', category: 'Fine Arts', image: img2k20_9 },
+    { id: 16, name: 'Vikram Singh', role: 'Coordinator', category: 'Tech', image: img2k20_10 },
+    { id: 17, name: 'Neha Kumari', role: 'Sub Coord.', category: 'Drama', image: img2k20_11 },
+    { id: 18, name: 'Rohan Gupta', role: 'Sub Coord.', category: 'Sports', image: img2k20_12 },
+    { id: 19, name: 'Sonal Singh', role: 'Coordinator', category: 'Decoration', image: img2k20_13 },
+    { id: 20, name: 'Deepak Kumar', role: 'Coordinator', category: 'Media', image: img2k20_14 },
+    { id: 21, name: 'Anshika Raj', role: 'Sub Coord.', category: 'Hospitality', image: img2k20_15 },
+    { id: 22, name: 'Saurabh Jha', role: 'Sub Coord.', category: 'Security', image: img2k20_16 },
+    { id: 23, name: 'Komal Singh', role: 'Coordinator', category: 'Anchoring', image: img2k20_17 },
+    { id: 24, name: 'Abhishek Roy', role: 'Coordinator', category: 'Photography', image: img2k20_18 },
+    { id: 25, name: 'Shreya Roy', role: 'Sub Coord.', category: 'Web', image: img2k20_19 },
+    { id: 26, name: 'Aryan Singh', role: 'Sub Coord.', category: 'Logistics', image: img2k20_20 },
+  ],
+  '2K19': [
+    { id: 27, name: 'Deepak Pathak', role: 'Senior Coord.', category: 'Overall Incharge', image: img2k19_1 },
+    { id: 28, name: 'Ritu Raj', role: 'Senior Coord.', category: 'Fine Arts', image: img2k19_2 },
+    { id: 29, name: 'Aditya Narayan', role: 'Coordinator', category: 'Tech Lead', image: img2k19_3 },
+    { id: 30, name: 'Sanjeev Kumar', role: 'Coordinator', category: 'Decoration', image: img2k19_4 },
+    { id: 31, name: 'Anjali Gupta', role: 'Sub Coord.', category: 'Fine Arts', image: img2k19_5 },
+    { id: 32, name: 'Rohan Verma', role: 'Sub Coord.', category: 'Music', image: img2k19_6 },
+    { id: 33, name: 'Suman Roy', role: 'Coordinator', category: 'Dance', image: img2k19_7 },
+    { id: 34, name: 'Amit Singh', role: 'Coordinator', category: 'Acting', image: img2k19_8 },
+    { id: 35, name: 'Pooja Jha', role: 'Sub Coord.', category: 'Literature', image: img2k19_9 },
+    { id: 36, name: 'Vikas Roy', role: 'Sub Coord.', category: 'Social', image: img2k19_10 },
+    { id: 37, name: 'Kavita Mishra', role: 'Coordinator', category: 'Music', image: img2k19_11 },
+    { id: 38, name: 'Sumit Raj', role: 'Coordinator', category: 'Tech', image: img2k19_12 },
+    { id: 39, name: 'Neha Gupta', role: 'Sub Coord.', category: 'Drama', image: img2k19_13 },
+    { id: 40, name: 'Rahul Pandey', role: 'Sub Coord.', category: 'Sports', image: img2k19_14 },
+    { id: 41, name: 'Sonal Jha', role: 'Coordinator', category: 'Decoration', image: img2k19_15 },
+    { id: 42, name: 'Deepak Roy', role: 'Coordinator', category: 'Media', image: img2k19_16 },
+    { id: 43, name: 'Anshika Gupta', role: 'Sub Coord.', category: 'Hospitality', image: img2k19_17 },
+    { id: 44, name: 'Saurabh Verma', role: 'Sub Coord.', category: 'Security', image: img2k19_18 },
+    { id: 45, name: 'Komal Jha', role: 'Coordinator', category: 'Anchoring', image: img2k19_19 },
+  ]
+};
+
+
+
+// import { ScrollReveal } from './ScrollReveal'; // Uncomment if used
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap');
@@ -80,23 +194,35 @@ const styles = `
     height: 680px;
   }
 
-  /* Portrait cards scattered */
-  .pt-portrait {
+  /* Portrait Wrapper to handle absolute positioning without clipping tooltip */
+  .pt-portrait-wrapper {
     position: absolute;
+    z-index: 1;
+  }
+  
+  .pt-portrait-wrapper:hover {
+    z-index: 10;
+  }
+
+  /* Portrait Image */
+  .pt-portrait {
+    width: 100%;
+    height: 100%;
     border-radius: 50%;
     overflow: hidden;
     background: #1a1a1a;
     border: 2px solid rgba(255,255,255,0.07);
     cursor: pointer;
-    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), border-color 0.3s;
+    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), border-color 0.3s, filter 0.3s;
     filter: grayscale(100%);
   }
-  .pt-portrait:hover {
-    transform: scale(1.06) !important;
+  
+  .pt-portrait-wrapper:hover .pt-portrait {
+    transform: scale(1.06);
     border-color: #c0392b;
     filter: grayscale(0%);
-    z-index: 10;
   }
+  
   .pt-portrait img {
     width: 100%;
     height: 100%;
@@ -107,7 +233,7 @@ const styles = `
   /* Tooltip on hover */
   .pt-portrait-tooltip {
     position: absolute;
-    bottom: calc(100% + 10px);
+    bottom: calc(100% + 15px);
     left: 50%;
     transform: translateX(-50%);
     background: #111;
@@ -117,10 +243,16 @@ const styles = `
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s;
+    transition: opacity 0.2s, bottom 0.2s;
     z-index: 20;
+    text-align: center;
   }
-  .pt-portrait:hover .pt-portrait-tooltip { opacity: 1; }
+  
+  .pt-portrait-wrapper:hover .pt-portrait-tooltip { 
+    opacity: 1; 
+    bottom: calc(100% + 10px);
+  }
+  
   .pt-portrait-tooltip h4 {
     font-size: 0.82rem;
     font-weight: 700;
@@ -226,66 +358,109 @@ const styles = `
     line-height: 1;
   }
 
-  /* Bottom member list strip */
-  .pt-strip {
-    display: none;
-  }
-
-  /* Mobile */
+  /* -------------------------------------------
+     MOBILE ENHANCEMENTS
+  ---------------------------------------------*/
   @media (max-width: 768px) {
+    .pt-topbar {
+      padding: 1rem 1.5rem;
+    }
+    
     .pt-main {
-      grid-template-columns: 1fr;
-      padding-top: 4rem;
+      display: flex;
+      flex-direction: column;
+      padding-top: 5rem;
     }
+    
+    /* Bring Text and Tabs to the Top */
     .pt-right {
+      order: 1;
       padding: 2rem 1.5rem 1rem;
+      text-align: center;
+      align-items: center;
     }
+    
     .pt-heading {
       font-size: clamp(3.5rem, 14vw, 5.5rem);
+      margin-bottom: 1.5rem;
     }
+    
+    .pt-desc {
+      border-left: none;
+      border-top: 2px solid rgba(192,57,43,0.4);
+      padding-left: 0;
+      padding-top: 1.5rem;
+      margin: 0 auto 2.5rem;
+    }
+    
+    .pt-tabs {
+      justify-content: center;
+    }
+    
+    /* Portraits below text */
     .pt-left {
-      padding: 1rem 1rem 2rem;
+      order: 2;
+      padding: 1rem 1rem 3rem;
     }
+    
+    /* Convert Scattered Layout to a clean Mobile Grid */
     .pt-scatter {
-      height: 420px;
+      height: auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+      gap: 1.5rem 1rem;
+      justify-content: center;
+      width: 100%;
     }
+    
+    /* Strip absolute positioning & resize for grid */
+    .pt-portrait-wrapper {
+      position: relative !important;
+      top: auto !important;
+      left: auto !important;
+      width: 100% !important;
+      height: auto !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .pt-portrait {
+      width: 80px !important;
+      height: 80px !important;
+      filter: grayscale(0%); /* Always colorful on mobile since hover is disabled */
+      margin-bottom: 0.5rem;
+    }
+    
+    /* Make tooltips static labels under images on mobile */
+    .pt-portrait-tooltip {
+      position: static;
+      transform: none;
+      opacity: 1;
+      background: transparent;
+      border: none;
+      padding: 0;
+    }
+    
+    .pt-portrait-tooltip h4 {
+      font-size: 0.75rem;
+      white-space: normal;
+      line-height: 1.2;
+    }
+    
+    .pt-portrait-tooltip p {
+      font-size: 0.65rem;
+    }
+
     .pt-count { display: none; }
   }
 `;
 
-/* Scatter positions for up to 8 members [top%, left%, size px] */
-const POSITIONS = [
-  [2, 2, 130],
-  [22, 42, 110],
-  [38, 3, 120],
-  [55, 48, 130],
-  [60, 8, 100],
-  [72, 30, 115],
-  [15, 68, 105],
-  [82, 60, 100],
-];
-
-const teamsData = {
-  '2K21': [
-    { id: 1, name: 'Aman Kumar', role: 'Senior Coord.', category: 'Fine Arts', image: 'https://api.dicebear.com/7.x/notionists/svg?seed=Aman' },
-    { id: 2, name: 'Sneha Kumari', role: 'Senior Coord.', category: 'Literature', image: 'https://api.dicebear.com/7.x/notionists/svg?seed=Sneha' },
-    { id: 3, name: 'Rahul Raj', role: 'Coordinator', category: 'Music', image: 'https://api.dicebear.com/7.x/notionists/svg?seed=Rahul' },
-    { id: 4, name: 'Priya Singh', role: 'Coordinator', category: 'Dance', image: 'https://api.dicebear.com/7.x/notionists/svg?seed=Priya' },
-    { id: 5, name: 'Vikas Gupta', role: 'Sub Coordinator', category: 'Acting', image: 'https://api.dicebear.com/7.x/notionists/svg?seed=Vikas' },
-    { id: 6, name: 'Anjali Sharma', role: 'Sub Coordinator', category: 'Social Awareness', image: 'https://api.dicebear.com/7.x/notionists/svg?seed=Anjali' },
-  ],
-  '2K20': [
-    { id: 7, name: 'Sumit Verma', role: 'Senior Coord.', category: 'Fine Arts', image: 'https://api.dicebear.com/7.x/notionists/svg?seed=Sumit' },
-    { id: 8, name: 'Kavita Kumari', role: 'Senior Coord.', category: 'Literature', image: 'https://api.dicebear.com/7.x/notionists/svg?seed=Kavita' },
-    { id: 9, name: 'Rajesh Mishra', role: 'Coordinator', category: 'Music', image: 'https://api.dicebear.com/7.x/notionists/svg?seed=Rajesh' },
-    { id: 10, name: 'Nehal Singh', role: 'Coordinator', category: 'Acting', image: 'https://api.dicebear.com/7.x/notionists/svg?seed=Nehal' },
-  ],
-  '2K19': [
-    { id: 11, name: 'Deepak Pathak', role: 'Senior Coord.', category: 'Overall Incharge', image: 'https://api.dicebear.com/7.x/notionists/svg?seed=Deepak' },
-    { id: 12, name: 'Ritu Raj', role: 'Senior Coord.', category: 'Fine Arts', image: 'https://api.dicebear.com/7.x/notionists/svg?seed=Ritu' },
-    { id: 13, name: 'Aditya Narayan', role: 'Coordinator', category: 'Tech Lead', image: 'https://api.dicebear.com/7.x/notionists/svg?seed=Aditya' },
-  ]
-};
+// [KEEP YOUR EXISTING IMPORTS AND DATA HERE]
+// import img2k21_1 from '../assets/preMemb/2k21/img (1).png';
+// ... etc ...
+// const POSITIONS = [...];
+// const teamsData = {...};
 
 const WaveDecoration = () => (
   <svg
@@ -294,7 +469,6 @@ const WaveDecoration = () => (
     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.55 }}
     preserveAspectRatio="xMidYMid slice"
   >
-    {/* Multiple offset wave strands */}
     {[0, 6, 12, 18, 24, 30, 36, 42, 48].map((offset, i) => (
       <path
         key={i}
@@ -354,7 +528,7 @@ const PreviousTeamsPage = () => {
             <WaveDecoration />
           </div>
 
-          {/* Left — scattered portraits */}
+          {/* Left — scattered portraits (Desktop) / Grid (Mobile) */}
           <div className="pt-left">
             <div className="pt-scatter">
               {members.map((member, idx) => {
@@ -362,7 +536,7 @@ const PreviousTeamsPage = () => {
                 return (
                   <div
                     key={member.id}
-                    className="pt-portrait"
+                    className="pt-portrait-wrapper"
                     style={{
                       top: `${top}%`,
                       left: `${left}%`,
@@ -370,10 +544,12 @@ const PreviousTeamsPage = () => {
                       height: size,
                     }}
                   >
-                    <img src={member.image} alt={member.name} />
+                    <div className="pt-portrait">
+                      <img src={member.image} alt={member.name} />
+                    </div>
                     <div className="pt-portrait-tooltip">
-                      <h4>{member.name}</h4>
-                      <p>{member.category}</p>
+                      {/* <h4>{member.name}</h4> */}
+                      {/* <p>{member.category}</p> */}
                     </div>
                   </div>
                 );
@@ -408,7 +584,7 @@ const PreviousTeamsPage = () => {
               ))}
             </div>
 
-            {/* Member count dot */}
+            {/* Member count dot (Hidden on mobile) */}
             <div className="pt-count">
               <strong>{members.length}</strong>
               members
