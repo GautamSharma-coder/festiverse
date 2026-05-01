@@ -16,6 +16,10 @@ const logger = require('../config/logger');
 const supabase = require('../config/supabaseClient');
 const { isGmailOnly } = require('../middlewares/sanitize');
 
+// SECURITY: Standardized bcrypt rounds — 12 for passwords (OWASP recommended minimum)
+const BCRYPT_ROUNDS = 12;
+const MAX_OTP_ATTEMPTS = 5;
+
 /**
  * SECURITY: Validate email is @gmail.com at the service layer (defense in depth).
  */
@@ -106,7 +110,7 @@ async function verifyOTP(email, otp, prefix = '', clearOnSuccess = true) {
 
     const { data: stored, error } = await supabase
         .from('otps')
-        .select('otp, expires_at')
+        .select('otp, expires_at, attempts')
         .eq('email', key)
         .single();
 
@@ -115,9 +119,27 @@ async function verifyOTP(email, otp, prefix = '', clearOnSuccess = true) {
         throw AppError.badRequest('Invalid or expired OTP.');
     }
 
+    // SECURITY: Check if OTP has exceeded max attempts
+    const currentAttempts = stored.attempts || 0;
+    if (currentAttempts >= MAX_OTP_ATTEMPTS) {
+        await supabase.from('otps').delete().eq('email', key);
+        throw AppError.badRequest('Too many failed attempts. Please request a new OTP.');
+    }
+
     const otpMatch = await bcrypt.compare(otp, stored.otp);
 
     if (!otpMatch) {
+        // SECURITY: Increment attempt counter on failed verification
+        await supabase
+            .from('otps')
+            .update({ attempts: currentAttempts + 1 })
+            .eq('email', key);
+
+        const remaining = MAX_OTP_ATTEMPTS - (currentAttempts + 1);
+        if (remaining <= 0) {
+            await supabase.from('otps').delete().eq('email', key);
+            throw AppError.badRequest('Too many failed attempts. Please request a new OTP.');
+        }
         throw AppError.badRequest('Invalid or expired OTP.');
     }
 
@@ -246,8 +268,7 @@ async function resetPassword(email, otp, newPassword) {
     await verifyOTP(email, otp, 'reset_');
 
     // Hash new password
-    const salt = await bcrypt.genSalt(12);
-    const password_hash = await bcrypt.hash(newPassword, salt);
+    const password_hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
 
     // Update in database
     const { error } = await supabase

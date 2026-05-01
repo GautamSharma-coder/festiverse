@@ -1,5 +1,6 @@
 const express = require('express');
 const { rateLimit } = require('../middlewares/rateLimit');
+const logger = require('../config/logger');
 const router = express.Router();
 
 // Rate limit proxy requests (prevent abuse)
@@ -44,7 +45,9 @@ router.get('/image', proxyLimiter, async (req, res) => {
     // Prevent access to internal IPs (additional SSRF protection)
     const hostname = parsedUrl.hostname;
     if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('10.') ||
-        hostname.startsWith('192.168.') || hostname.startsWith('172.') || hostname === '0.0.0.0') {
+        hostname.startsWith('192.168.') || hostname === '0.0.0.0' ||
+        // SECURITY: Only 172.16.0.0/12 (172.16.x.x - 172.31.x.x) is private, not all 172.x.x.x
+        /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname)) {
         return res.status(403).json({ success: false, message: 'Access to internal addresses is not allowed.' });
     }
 
@@ -74,7 +77,7 @@ router.get('/image', proxyLimiter, async (req, res) => {
 
         res.send(Buffer.from(buffer));
     } catch (err) {
-        console.error('IMAGE PROXY ERROR:', err.message);
+        logger.error('IMAGE PROXY ERROR', { message: err.message });
         res.status(502).json({ success: false, message: 'Proxy fetch failed.' });
     }
 });

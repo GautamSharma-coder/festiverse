@@ -5,6 +5,7 @@ const router = express.Router();
 const supabase = require('../config/supabaseClient');
 const { rateLimit } = require('../middlewares/rateLimit');
 const { isValidEmail, isValidPhone, enforceMaxLength } = require('../middlewares/sanitize');
+const logger = require('../config/logger');
 
 const hiringLimiter = rateLimit({ windowMs: 300000, max: 3, message: 'Too many applications submitted. Please wait a few minutes.' });
 
@@ -65,7 +66,7 @@ router.post('/submit', hiringLimiter, upload.single('file'), async (req, res) =>
             });
 
         if (storageError) {
-            console.error('Storage Upload Error:', storageError);
+            logger.error('HIRING STORAGE UPLOAD ERROR', { message: storageError.message });
             return res.status(500).json({ success: false, message: 'Failed to upload resume document.' });
         }
 
@@ -95,14 +96,14 @@ router.post('/submit', hiringLimiter, upload.single('file'), async (req, res) =>
             .single();
 
         if (error) {
-            console.error('DB Insert Error:', error);
+            logger.error('HIRING DB INSERT ERROR', { message: error.message });
             // Optional: could attempt to delete the uploaded file if DB insert fails
             return res.status(500).json({ success: false, message: 'Failed to record application.' });
         }
 
         res.status(201).json({ success: true, message: 'Application submitted successfully!', data });
     } catch (err) {
-        console.error('HIRING SUBMIT ERROR:', err);
+        logger.error('HIRING SUBMIT ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'An unexpected error occurred.' });
     }
 });

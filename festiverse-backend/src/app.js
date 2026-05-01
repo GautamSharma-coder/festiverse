@@ -20,6 +20,7 @@ const requestLogger = require('./middlewares/requestLogger');
 const requestId = require('./middlewares/requestId');
 const { sanitizeInputs } = require('./middlewares/sanitize');
 const { rateLimit } = require('./middlewares/rateLimit');
+const csrfGuard = require('./middlewares/csrfGuard');
 const { notFoundHandler, errorHandler } = require('./middlewares/errorHandler');
 
 // Routes
@@ -57,10 +58,10 @@ function createApp() {
             if (req.path === '/api/v1/payment/webhook' || req.path === '/api/payment/webhook') {
                 return next();
             }
-            
+
             const origin = req.headers.origin;
             const referer = req.headers.referer;
-            
+
             // Allow if origin matches our allowed origins, or if it's a same-origin referer
             const isValidOrigin = origin && config.allowedOrigins.includes(origin);
             const isValidReferer = referer && config.allowedOrigins.some(allowed => referer.startsWith(allowed));
@@ -72,6 +73,9 @@ function createApp() {
         }
         next();
     });
+
+    // SECURITY: Defense-in-depth — require X-Requested-With header on mutating requests
+    app.use(csrfGuard);
 
     // ─── Global Rate Limiter ───
     app.use(rateLimit({ windowMs: 60000, max: 100, message: 'Too many requests from this IP. Please slow down.' }));
@@ -96,14 +100,18 @@ function createApp() {
     app.set('liveUsersMap', liveUsers);
 
     // Heartbeat endpoint (before route registrar since it's a special case)
+    const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const SAFE_ID_PATTERN = /^[a-zA-Z0-9_-]{8,64}$/;
+
     app.post('/api/v1/analytics/heartbeat', (req, res) => {
         const clientId = req.body.clientId;
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
         const userAgent = req.headers['user-agent'] || '';
-        
-        // Use client-generated UUID for 100% accurate tracking, fallback to IP+UA hash
-        const hash = clientId || crypto.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex').slice(0, 16);
-        
+
+        // SECURITY: Validate clientId format to prevent analytics inflation
+        const validClientId = clientId && (UUID_PATTERN.test(clientId) || SAFE_ID_PATTERN.test(clientId));
+        const hash = validClientId ? clientId : crypto.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex').slice(0, 16);
+
         liveUsers.set(hash, Date.now());
         res.json({ success: true, liveCount: liveUsers.size });
     });
@@ -112,9 +120,10 @@ function createApp() {
         const clientId = req.body.clientId;
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
         const userAgent = req.headers['user-agent'] || '';
-        
-        const hash = clientId || crypto.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex').slice(0, 16);
-        
+
+        const validClientId = clientId && (UUID_PATTERN.test(clientId) || SAFE_ID_PATTERN.test(clientId));
+        const hash = validClientId ? clientId : crypto.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex').slice(0, 16);
+
         liveUsers.set(hash, Date.now());
         res.json({ success: true, liveCount: liveUsers.size });
     });

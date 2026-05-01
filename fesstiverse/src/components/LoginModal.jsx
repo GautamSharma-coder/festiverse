@@ -171,7 +171,7 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
 
     const handleResetPassword = async () => {
         if (!otp || !newPassword) return setError('Please enter OTP and new password.');
-        if (newPassword.length < 6) return setError('Password must be at least 6 characters.');
+        if (newPassword.length < 10) return setError('Password must be at least 10 characters.');
         setLoading(true); setError(''); setSuccessMsg('');
         try {
             const data = await apiFetch('/api/auth/reset-password', { method: 'POST', body: JSON.stringify({ email, otp, newPassword }) });
@@ -357,7 +357,7 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
 
                         {view === 'reset' && (<>
                             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                                {[0, 1, 2, 3].map(i => (
+                                {[0, 1, 2, 3, 4, 5].map(i => (
                                     <input
                                         key={i}
                                         className="otp-digit"
@@ -369,9 +369,9 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
                                             const val = e.target.value.replace(/\D/g, '');
                                             const arr = otp.split('');
                                             arr[i] = val;
-                                            const next = arr.join('').slice(0, 4);
+                                            const next = arr.join('').slice(0, 6);
                                             setOtp(next);
-                                            if (val && i < 3) {
+                                            if (val && i < 5) {
                                                 const sibling = e.target.parentElement.children[i + 1];
                                                 if (sibling) sibling.focus();
                                             }
@@ -399,7 +399,7 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
 
                             <InputField
                                 type="password"
-                                placeholder="New password (min. 6 characters)"
+                                placeholder="New password (min. 10 characters)"
                                 value={newPassword}
                                 onChange={e => setNewPassword(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && handleResetPassword()}

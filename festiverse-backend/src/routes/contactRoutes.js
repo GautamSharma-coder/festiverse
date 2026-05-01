@@ -3,6 +3,7 @@ const supabase = require('../config/supabaseClient');
 const { sendContactConfirmationEmail } = require('../config/emailClient');
 const { rateLimit } = require('../middlewares/rateLimit');
 const { isValidEmail, enforceMaxLength } = require('../middlewares/sanitize');
+const logger = require('../config/logger');
 
 const router = express.Router();
 const contactLimiter = rateLimit({ windowMs: 300000, max: 5, message: 'Too many messages. Please wait a few minutes.' });
@@ -38,12 +39,12 @@ router.post('/', contactLimiter, async (req, res) => {
         
         // Send confirmation email asynchronously
         sendContactConfirmationEmail(email, name).catch(err => {
-            console.error('CONTACT EMAIL ERROR:', err.message);
+            logger.error('CONTACT EMAIL ERROR', { message: err.message });
         });
 
         res.status(201).json({ success: true, message: 'Message received!' });
     } catch (err) {
-        console.error('CONTACT ERROR:', err);
+        logger.error('CONTACT ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to send message.' });
     }
 });

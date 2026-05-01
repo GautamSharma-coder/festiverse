@@ -8,6 +8,7 @@ const logger = require('../config/logger');
 
 // Fallback in-memory store
 const rateLimitStore = {};
+const MAX_STORE_KEYS = 100000; // SECURITY: Prevent OOM from DDoS with many unique IPs
 
 // Optional Upstash initialization
 let redisRatelimit = null;
@@ -60,6 +61,12 @@ function rateLimit({ windowMs = 60000, max = 5, message = 'Too many requests. Pl
 
         // 2. Fallback to In-Memory
         const now = Date.now();
+
+        // SECURITY: Reject new keys if store is at capacity to prevent OOM
+        if (!rateLimitStore[key] && Object.keys(rateLimitStore).length >= MAX_STORE_KEYS) {
+            return res.status(429).json({ success: false, message: 'Server under heavy load. Please try again later.' });
+        }
+
         if (!rateLimitStore[key]) {
             rateLimitStore[key] = [];
         }

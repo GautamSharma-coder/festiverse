@@ -233,18 +233,11 @@ const NAV_ITEMS = [
     { id: 'sponsors', icon: '★', label: 'Sponsors' },
 ];
 
-const isTokenValid = (token) => {
-    if (!token) return false;
-    try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        return payload.exp * 1000 > Date.now();
-    } catch { return false; }
-};
+// SECURITY: Admin auth now uses httpOnly cookies — no client-side token access needed
 
 const AdminPanel = ({ onClose }) => {
-    const savedToken = localStorage.getItem('festiverse_admin_token') || '';
-    const [adminToken, setAdminToken] = useState(savedToken);
-    const [isAuthed, setIsAuthed] = useState(isTokenValid(savedToken));
+    const [isAuthed, setIsAuthed] = useState(false);
+    const [authChecked, setAuthChecked] = useState(false);
     const [password, setPassword] = useState('');
     const [loginError, setLoginError] = useState('');
     const [activeTab, setActiveTab] = useState('overview');
@@ -294,17 +287,40 @@ const AdminPanel = ({ onClose }) => {
 
     const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
+    // SECURITY: Check auth status on mount via httpOnly cookie (not localStorage)
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                const res = await fetch(`${API}/api/admin/analytics`, {
+                    credentials: 'include',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                setIsAuthed(res.ok);
+            } catch {
+                setIsAuthed(false);
+            } finally {
+                setAuthChecked(true);
+            }
+        };
+        checkAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const autoLogout = () => {
-        localStorage.removeItem('festiverse_admin_token');
-        setAdminToken(''); setIsAuthed(false);
+        // SECURITY: Clear httpOnly cookie via server logout endpoint
+        fetch(`${API}/api/admin/logout`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        }).catch(() => {});
+        setIsAuthed(false);
     };
 
     const adminFetch = async (endpoint, options = {}) => {
-        if (!isTokenValid(adminToken)) { autoLogout(); throw new Error('Session expired. Please log in again.'); }
-        const headers = { ...(options.headers || {}) };
+        const headers = { ...(options.headers || {}), 'X-Requested-With': 'XMLHttpRequest' };
         if (!(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
-        headers['Authorization'] = `Bearer ${adminToken}`;
-        const res = await fetch(`${API}${endpoint}`, { ...options, headers });
+        // SECURITY: Use httpOnly cookies instead of Authorization header
+        const res = await fetch(`${API}${endpoint}`, { ...options, headers, credentials: 'include' });
         if (res.status === 401) { autoLogout(); throw new Error('Session expired. Please log in again.'); }
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || 'Error');
@@ -316,13 +332,13 @@ const AdminPanel = ({ onClose }) => {
         try {
             const res = await fetch(`${API}/api/admin/login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 body: JSON.stringify({ password }),
+                credentials: 'include', // SECURITY: Receive httpOnly cookie
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Invalid password');
-            localStorage.setItem('festiverse_admin_token', data.token);
-            setAdminToken(data.token);
+            // SECURITY: Token is now set as httpOnly cookie by the server, no localStorage needed
             setIsAuthed(true);
         } catch (err) {
             setLoginError(err.message);
@@ -331,7 +347,9 @@ const AdminPanel = ({ onClose }) => {
 
     const handleLogout = () => autoLogout();
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { if (isAuthed) fetchAll(); }, [isAuthed]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { if (isAuthed) fetchTabData(); }, [activeTab, isAuthed]);
 
     const fetchAll = async () => {
@@ -651,6 +669,21 @@ const AdminPanel = ({ onClose }) => {
 
     const switchTab = (id) => { setActiveTab(id); setSidebarOpen(false); setSearch(''); setMsg({ text: '', type: '' }); };
 
+
+    /* ── Loading state while checking auth cookie ── */
+    if (!authChecked) {
+        return (
+            <>
+                <style>{CSS}</style>
+                <div className="ap-login-wrap">
+                    <div className="ap-login-card ap-fade">
+                        <h2>Admin <span>Panel</span></h2>
+                        <p>Verifying session...</p>
+                    </div>
+                </div>
+            </>
+        );
+    }
 
     /* ── Login screen ── */
     if (!isAuthed) {

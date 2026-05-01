@@ -130,7 +130,8 @@ async function createUser({ name, email, phone, college, password, tShirtSize, r
     let password_hash = password;
     const isAlreadyHashed = /^\$2[aby]\$\d{2}\$/.test(password);
     if (!isAlreadyHashed) {
-        const salt = await bcrypt.genSalt(10);
+        // SECURITY: Use 12 rounds (OWASP recommended minimum for passwords)
+        const salt = await bcrypt.genSalt(12);
         password_hash = await bcrypt.hash(password, salt);
     }
 

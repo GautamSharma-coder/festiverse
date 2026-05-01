@@ -35,7 +35,7 @@ const HeroSection = () => {
                 <span className="inline-block px-3 py-1 rounded-full border border-red-500/30 text-red-500 text-xs tracking-[0.2em] uppercase bg-red-500/5 backdrop-blur-sm mb-4">
                     Est. 2019
                 </span>
-                <h1 className="text-6xl md:text-8xl font-serif italic font-bold tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-600 drop-shadow-2xl">
+                <h1 className="text-6xl md:text-8xl font-serif italic font-bold tracking-tighter leading-none text-transparent bg-clip-text bg-linear-to-b from-white via-zinc-200 to-zinc-600 drop-shadow-2xl">
                     UDAAN
                 </h1>
                 <p className="text-lg md:text-xl text-zinc-400 font-light max-w-1xl mx-auto leading-relaxed " style={{ padding: '10px' }}>

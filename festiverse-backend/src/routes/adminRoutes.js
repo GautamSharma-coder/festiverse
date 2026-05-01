@@ -44,18 +44,13 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
     }
 
     try {
-        // Support both hashed and plain-text admin passwords for migration
-        let isValid = false;
-        if (ADMIN_PASSWORD.startsWith('$2b$') || ADMIN_PASSWORD.startsWith('$2a$')) {
-            // Admin password is bcrypt-hashed in env
-            isValid = await bcrypt.compare(password, ADMIN_PASSWORD);
-        } else {
-            // Fallback: plain-text comparison (log warning to migrate)
-            isValid = password === ADMIN_PASSWORD;
-            if (isValid) {
-                logger.warn('Admin password is stored as plain-text. Please hash it with bcrypt and update ADMIN_PASSWORD env var.');
-            }
+        // SECURITY: Only bcrypt-hashed admin passwords are supported
+        if (!(ADMIN_PASSWORD.startsWith('$2b$') || ADMIN_PASSWORD.startsWith('$2a$'))) {
+            logger.error('ADMIN_PASSWORD env var is not a bcrypt hash. Admin login is disabled until this is fixed.');
+            return res.status(503).json({ success: false, message: 'Admin login is temporarily unavailable.' });
         }
+
+        const isValid = await bcrypt.compare(password, ADMIN_PASSWORD);
 
         if (isValid) {
             const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '4h' });
@@ -67,7 +62,8 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
                 path: '/',
                 maxAge: 4 * 60 * 60 * 1000 // 4 hours
             });
-            res.json({ success: true, message: 'Admin login successful', token });
+            // SECURITY: Do NOT return token in response body — it's set as httpOnly cookie only
+            res.json({ success: true, message: 'Admin login successful' });
         } else {
             logger.warn('Admin login failed: wrong password', { ip: clientIp });
             res.status(401).json({ success: false, message: 'Invalid admin password.' });
@@ -84,7 +80,7 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
 router.get('/registrations', verifyToken, verifyAdmin, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 50;
+        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const from = (page - 1) * limit;
         const to = from + limit - 1;
 
@@ -112,7 +108,7 @@ router.get('/registrations', verifyToken, verifyAdmin, async (req, res) => {
 router.get('/messages', verifyToken, verifyAdmin, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 50;
+        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const from = (page - 1) * limit;
         const to = from + limit - 1;
 
@@ -192,7 +188,7 @@ router.get('/analytics', verifyToken, verifyAdmin, async (req, res) => {
 router.get('/users', verifyToken, verifyAdmin, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 50;
+        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const from = (page - 1) * limit;
         const to = from + limit - 1;
 
@@ -220,11 +216,34 @@ router.get('/users', verifyToken, verifyAdmin, async (req, res) => {
 router.put('/users/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         const { name, phone, email, college } = req.body;
-        if (!name) return res.status(400).json({ success: false, message: 'Name is required.' });
+        if (!name || typeof name !== 'string' || name.trim().length < 2) {
+            return res.status(400).json({ success: false, message: 'A valid name is required (min 2 chars).' });
+        }
+        if (name.length > 100) {
+            return res.status(400).json({ success: false, message: 'Name is too long (max 100 chars).' });
+        }
+
+        // SECURITY: Validate email format if provided
+        if (email) {
+            const { isGmailOnly } = require('../middlewares/sanitize');
+            if (!isGmailOnly(email)) {
+                return res.status(400).json({ success: false, message: 'Only Gmail addresses (@gmail.com) are accepted.' });
+            }
+        }
+
+        // SECURITY: Validate phone format if provided
+        if (phone && !/^[6-9]\d{9}$/.test(phone)) {
+            return res.status(400).json({ success: false, message: 'A valid 10-digit Indian phone number is required.' });
+        }
+
+        const updates = { name: enforceMaxLength(name.trim(), 100) };
+        if (phone) updates.phone = phone;
+        if (email) updates.email = enforceMaxLength(email.toLowerCase(), 254);
+        if (college) updates.college = enforceMaxLength(college, 200);
 
         const { data: updatedUser, error } = await supabase
             .from('users')
-            .update({ name, phone: phone || '', email: email || '', college: college || '' })
+            .update(updates)
             .eq('id', req.params.id)
             .select()
             .single();
@@ -400,6 +419,13 @@ router.post('/team', verifyToken, verifyAdmin, upload.single('image'), async (re
 
         if (!name || !role) {
             return res.status(400).json({ success: false, message: 'Name and role are required.' });
+        }
+
+        // SECURITY: Validate social_link to prevent javascript: URL injection
+        if (social_link && typeof social_link === 'string' && social_link.trim() !== '') {
+            if (!social_link.startsWith('https://')) {
+                return res.status(400).json({ success: false, message: 'Social link must be a valid HTTPS URL.' });
+            }
         }
 
         let imageUrl = null;
@@ -692,6 +718,13 @@ router.put('/team/:id', verifyToken, verifyAdmin, validateIdParam, upload.single
             return res.status(400).json({ success: false, message: 'Name and role are required.' });
         }
 
+        // SECURITY: Validate social_link to prevent javascript: URL injection
+        if (social_link && typeof social_link === 'string' && social_link.trim() !== '') {
+            if (!social_link.startsWith('https://')) {
+                return res.status(400).json({ success: false, message: 'Social link must be a valid HTTPS URL.' });
+            }
+        }
+
         const updates = { name, role, bio: bio || '', social_link: social_link || '', society: society || '', category: category || 'Coordinator' };
 
         // Upload new image if provided
@@ -904,7 +937,7 @@ router.post('/events/bulk-toggle-publish', verifyToken, verifyAdmin, async (req,
 router.get('/notices', verifyToken, verifyAdmin, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 50;
+        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const from = (page - 1) * limit;
         const to = from + limit - 1;
 

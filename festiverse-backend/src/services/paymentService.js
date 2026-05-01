@@ -69,8 +69,8 @@ async function createOrder(category, userData) {
 
     // Save user data for webhook processing
     if (userData) {
-        // SECURITY: Hash the password BEFORE storing it in the pending table
-        const salt = await bcrypt.genSalt(10);
+        // SECURITY: Hash the password BEFORE storing it in the pending table (12 rounds)
+        const salt = await bcrypt.genSalt(12);
         const password_hash = await bcrypt.hash(userData.password, salt);
         
         // Remove plain-text password from the object

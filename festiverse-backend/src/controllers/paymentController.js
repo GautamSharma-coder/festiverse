@@ -14,7 +14,9 @@ exports.createOrder = asyncHandler(async (req, res) => {
 
 exports.webhook = asyncHandler(async (req, res) => {
     const signature = req.headers['x-razorpay-signature'];
-    const body = JSON.stringify(req.body);
+    // SECURITY: Use raw request body for signature verification.
+    // JSON.stringify(req.body) can reorder keys and break HMAC validation.
+    const body = req.rawBody ? req.rawBody.toString('utf-8') : JSON.stringify(req.body);
 
     try {
         paymentService.verifyWebhookSignature(body, signature);

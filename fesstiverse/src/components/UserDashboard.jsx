@@ -587,7 +587,9 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
   const [otpSending, setOtpSending] = useState(false);
   const isEmailChanged = profile.email !== user?.email;
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchProfile(); fetchAllEvents(); }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (festiverseId) fetchMyEvents(); }, [festiverseId]);
 
   const fetchProfile = async () => { try { const d = await apiFetch('/api/auth/profile'); if (d.user) { setProfile({ name: d.user.name || '', email: d.user.email || '', phone: d.user.phone || '', college: d.user.college || '' }); if (d.user.avatar_url) setAvatarUrl(d.user.avatar_url); if (d.user.festiverse_id) setFestiverseId(d.user.festiverse_id); } } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } };
