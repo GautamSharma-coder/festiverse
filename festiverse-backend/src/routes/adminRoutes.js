@@ -60,7 +60,14 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
         if (isValid) {
             const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '4h' });
             logger.info('Admin login successful', { ip: clientIp });
-            res.json({ success: true, token });
+            res.cookie('festiverse_admin_token', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                path: '/',
+                maxAge: 4 * 60 * 60 * 1000 // 4 hours
+            });
+            res.json({ success: true, message: 'Admin login successful', token });
         } else {
             logger.warn('Admin login failed: wrong password', { ip: clientIp });
             res.status(401).json({ success: false, message: 'Invalid admin password.' });
@@ -76,13 +83,23 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
 // ───────────────────────────────────────────────────
 router.get('/registrations', verifyToken, verifyAdmin, async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        const { data, error, count } = await supabase
             .from('event_registrations')
-            .select('*, users(*), events(*)')
-            .order('created_at', { ascending: false });
+            .select('*, users(*), events(*)', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(from, to);
 
         if (error) throw error;
-        res.json({ success: true, registrations: data });
+        res.json({
+            success: true,
+            registrations: data,
+            pagination: { page, limit, total: count }
+        });
     } catch (err) {
         logger.error('ADMIN REGISTRATIONS ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Fetch error.' });
@@ -94,13 +111,23 @@ router.get('/registrations', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 router.get('/messages', verifyToken, verifyAdmin, async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        const { data, error, count } = await supabase
             .from('messages')
-            .select('*')
-            .order('created_at', { ascending: false });
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(from, to);
 
         if (error) throw error;
-        res.json({ success: true, messages: data });
+        res.json({
+            success: true,
+            messages: data,
+            pagination: { page, limit, total: count }
+        });
     } catch (err) {
         logger.error('ADMIN MESSAGES ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Fetch error.' });
@@ -164,13 +191,23 @@ router.get('/analytics', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 router.get('/users', verifyToken, verifyAdmin, async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        const { data, error, count } = await supabase
             .from('users')
-            .select('id, name, email, phone, college, role, has_paid, avatar_url, festiverse_id, created_at')
-            .order('created_at', { ascending: false });
+            .select('id, name, email, phone, college, role, has_paid, avatar_url, festiverse_id, created_at', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(from, to);
 
         if (error) throw error;
-        res.json({ success: true, users: data });
+        res.json({
+            success: true,
+            users: data,
+            pagination: { page, limit, total: count }
+        });
     } catch (err) {
         logger.error('ADMIN USERS ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Fetch error.' });
@@ -180,7 +217,7 @@ router.get('/users', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 // PUT /api/admin/users/:id
 // ───────────────────────────────────────────────────
-router.put('/users/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.put('/users/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         const { name, phone, email, college } = req.body;
         if (!name) return res.status(400).json({ success: false, message: 'Name is required.' });
@@ -266,7 +303,7 @@ router.post('/gallery', verifyToken, verifyAdmin, upload.single('image'), async 
 // ───────────────────────────────────────────────────
 // PUT /api/admin/gallery/:id
 // ───────────────────────────────────────────────────
-router.put('/gallery/:id', verifyToken, verifyAdmin, upload.single('image'), async (req, res) => {
+router.put('/gallery/:id', verifyToken, verifyAdmin, validateIdParam, upload.single('image'), async (req, res) => {
     try {
         const { title, category } = req.body;
         const updates = { title, category };
@@ -496,7 +533,7 @@ router.post('/faculty', verifyToken, verifyAdmin, upload.single('image'), async 
 // ───────────────────────────────────────────────────
 // PUT /api/admin/faculty/:id
 // ───────────────────────────────────────────────────
-router.put('/faculty/:id', verifyToken, verifyAdmin, upload.single('image'), async (req, res) => {
+router.put('/faculty/:id', verifyToken, verifyAdmin, validateIdParam, upload.single('image'), async (req, res) => {
     try {
         const { name, role, department } = req.body;
 
@@ -647,7 +684,7 @@ router.post('/events', verifyToken, verifyAdmin, upload.single('image'), async (
 // ───────────────────────────────────────────────────
 // PUT /api/admin/team/:id
 // ───────────────────────────────────────────────────
-router.put('/team/:id', verifyToken, verifyAdmin, upload.single('image'), async (req, res) => {
+router.put('/team/:id', verifyToken, verifyAdmin, validateIdParam, upload.single('image'), async (req, res) => {
     try {
         const { name, role, bio, social_link, society, category } = req.body;
 
@@ -723,7 +760,7 @@ router.delete('/events/:id', verifyToken, verifyAdmin, validateIdParam, async (r
 // ───────────────────────────────────────────────────
 // PUT /api/admin/events/:id
 // ───────────────────────────────────────────────────
-router.put('/events/:id', verifyToken, verifyAdmin, upload.single('image'), async (req, res) => {
+router.put('/events/:id', verifyToken, verifyAdmin, validateIdParam, upload.single('image'), async (req, res) => {
     try {
         logger.debug('PUT EVENT', { body: req.body, hasFile: !!req.file });
         const { name, location, date, description, rules, schedule, category, prizes } = req.body;
@@ -791,16 +828,97 @@ router.put('/events/:id', verifyToken, verifyAdmin, upload.single('image'), asyn
 });
 
 // ───────────────────────────────────────────────────
+// POST /api/admin/events/:id/toggle-publish
+// Toggle results_published flag for an event
+// ───────────────────────────────────────────────────
+router.post('/events/:id/toggle-publish', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
+    try {
+        // Get current state
+        const { data: event, error: fetchErr } = await supabase
+            .from('events')
+            .select('id, name, results_published')
+            .eq('id', req.params.id)
+            .single();
+
+        if (fetchErr || !event) {
+            return res.status(404).json({ success: false, message: 'Event not found.' });
+        }
+
+        const newState = !event.results_published;
+
+        const { data: updated, error: updateErr } = await supabase
+            .from('events')
+            .update({ results_published: newState })
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (updateErr) throw updateErr;
+
+        logger.info(`Event "${event.name}" results ${newState ? 'PUBLISHED' : 'UNPUBLISHED'}`, { eventId: req.params.id });
+        res.json({
+            success: true,
+            message: `Results ${newState ? 'published' : 'unpublished'} for ${event.name}.`,
+            event: updated,
+        });
+    } catch (err) {
+        logger.error('TOGGLE PUBLISH ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Failed to toggle publish status.' });
+    }
+});
+
+// ───────────────────────────────────────────────────
+// POST /api/admin/events/bulk-toggle-publish
+// Set results_published flag for ALL events at once
+// ───────────────────────────────────────────────────
+router.post('/events/bulk-toggle-publish', verifyToken, verifyAdmin, async (req, res) => {
+    try {
+        const { publish } = req.body; // boolean
+        if (publish === undefined) {
+            return res.status(400).json({ success: false, message: 'Publish status (boolean) is required.' });
+        }
+
+        const { data, error } = await supabase
+            .from('events')
+            .update({ results_published: publish })
+            .neq('id', '00000000-0000-0000-0000-000000000000') // Matches all rows if not using a filter
+            .select();
+
+        if (error) throw error;
+
+        logger.info(`Bulk results ${publish ? 'PUBLISHED' : 'UNPUBLISHED'} for all events`, { count: data.length });
+        res.json({
+            success: true,
+            message: `Successfully ${publish ? 'published' : 'unpublished'} all events.`,
+            count: data.length
+        });
+    } catch (err) {
+        logger.error('BULK TOGGLE PUBLISH ERROR', { message: err.message });
+        res.status(500).json({ success: false, message: 'Failed to bulk update publish status.' });
+    }
+});
+
+// ───────────────────────────────────────────────────
 // GET /api/admin/notices  — List all notices (admin, includes inactive)
 // ───────────────────────────────────────────────────
 router.get('/notices', verifyToken, verifyAdmin, async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        const { data, error, count } = await supabase
             .from('notices')
-            .select('*')
-            .order('created_at', { ascending: false });
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(from, to);
         if (error) throw error;
-        res.json({ success: true, notices: data });
+        res.json({
+            success: true,
+            notices: data,
+            pagination: { page, limit, total: count }
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Fetch error.' });
     }
@@ -830,7 +948,7 @@ router.post('/notices', verifyToken, verifyAdmin, async (req, res) => {
 // ───────────────────────────────────────────────────
 // PUT /api/admin/notices/:id
 // ───────────────────────────────────────────────────
-router.put('/notices/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.put('/notices/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         const { title, description, color, link_url, link_text } = req.body;
         if (!title) return res.status(400).json({ success: false, message: 'Title is required.' });
@@ -993,7 +1111,7 @@ router.post('/results', verifyToken, verifyAdmin, async (req, res) => {
     }
 });
 
-router.put('/results/:id', verifyToken, verifyAdmin, async (req, res) => {
+router.put('/results/:id', verifyToken, verifyAdmin, validateIdParam, async (req, res) => {
     try {
         const { event_id, position, participant_name, participant_college, participant_email, score } = req.body;
         const updates = {};
@@ -1034,12 +1152,22 @@ router.delete('/results/:id', verifyToken, verifyAdmin, validateIdParam, async (
 
 router.get('/sponsors', verifyToken, verifyAdmin, async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        const { data, error, count } = await supabase
             .from('sponsors')
-            .select('*')
-            .order('sort_order', { ascending: true });
+            .select('*', { count: 'exact' })
+            .order('sort_order', { ascending: true })
+            .range(from, to);
         if (error) throw error;
-        res.json({ success: true, sponsors: data });
+        res.json({
+            success: true,
+            sponsors: data,
+            pagination: { page, limit, total: count }
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Fetch error.' });
     }
@@ -1074,7 +1202,7 @@ router.post('/sponsors', verifyToken, verifyAdmin, upload.single('logo'), async 
     }
 });
 
-router.put('/sponsors/:id', verifyToken, verifyAdmin, upload.single('logo'), async (req, res) => {
+router.put('/sponsors/:id', verifyToken, verifyAdmin, validateIdParam, upload.single('logo'), async (req, res) => {
     try {
         const { name, tier, website, is_active, sort_order } = req.body;
         if (!name) return res.status(400).json({ success: false, message: 'Sponsor name is required.' });
@@ -1134,12 +1262,22 @@ router.delete('/sponsors/:id', verifyToken, verifyAdmin, validateIdParam, async 
 
 router.get('/hiring', verifyToken, verifyAdmin, async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        const { data, error, count } = await supabase
             .from('hiring_applications')
-            .select('*')
-            .order('created_at', { ascending: false });
+            .select('*', { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(from, to);
         if (error) throw error;
-        res.json({ success: true, applications: data });
+        res.json({
+            success: true,
+            applications: data,
+            pagination: { page, limit, total: count }
+        });
     } catch (err) {
         logger.error('ADMIN HIRING ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Fetch error.' });
@@ -1157,6 +1295,17 @@ router.delete('/hiring/:id', verifyToken, verifyAdmin, validateIdParam, async (r
     } catch (err) {
         res.status(500).json({ success: false, message: 'Delete error.' });
     }
+});
+
+// ─── POST /api/admin/logout ───
+router.post('/logout', (req, res) => {
+    res.clearCookie('festiverse_admin_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/'
+    });
+    res.json({ success: true, message: 'Admin logged out.' });
 });
 
 module.exports = router;

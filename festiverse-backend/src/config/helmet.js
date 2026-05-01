@@ -9,7 +9,7 @@ const helmetOptions = {
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com", "https://code.iconify.design", "https://api.iconify.design"],
+            scriptSrc: ["'self'", "https://checkout.razorpay.com", "https://code.iconify.design", "https://api.iconify.design"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             imgSrc: ["'self'", "data:", "blob:", "https://*.supabase.co", "https://grainy-gradients.vercel.app"],

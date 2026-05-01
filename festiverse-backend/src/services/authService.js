@@ -14,9 +14,16 @@ const userService = require('./userService');
 const AppError = require('../utils/AppError');
 const logger = require('../config/logger');
 const supabase = require('../config/supabaseClient');
+const { isGmailOnly } = require('../middlewares/sanitize');
 
-// In-memory OTP store keyed by email (use Redis in production for multi-instance)
-const otpStore = {};
+/**
+ * SECURITY: Validate email is @gmail.com at the service layer (defense in depth).
+ */
+function assertGmail(email) {
+    if (!email || !isGmailOnly(email)) {
+        throw AppError.badRequest('Only Gmail addresses (@gmail.com) are accepted.');
+    }
+}
 
 // ─── OTP Management ───
 
@@ -24,15 +31,32 @@ const otpStore = {};
  * Generate and send a 6-digit OTP to the given email.
  */
 async function sendOTP(email) {
+    assertGmail(email);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore[email.toLowerCase()] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 };
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+    // Hash OTP before storing
+    const otpHash = await bcrypt.hash(otp, 10);
+    const key = email.toLowerCase();
+
+    // Store to DB: Delete any existing OTP for this email and insert new one.
+    // This avoids "ON CONFLICT" errors if the UNIQUE constraint is missing.
+    await supabase.from('otps').delete().eq('email', key);
+    const { error: dbError } = await supabase
+        .from('otps')
+        .insert([{ email: key, otp: otpHash, expires_at: expiresAt }]);
+
+    if (dbError) {
+        logger.error('DB OTP STORE ERROR', { email, error: dbError });
+        throw AppError.internal('Failed to process OTP. Please try again.');
+    }
 
     try {
         await sendOTPEmail(email, otp);
         logger.info(`📧 OTP sent to ${email}`);
         return { message: 'OTP sent to your email!' };
     } catch (err) {
-        delete otpStore[email.toLowerCase()];
+        await supabase.from('otps').delete().eq('email', key);
         logger.error('EMAIL SEND ERROR', { email, errorMessage: err.message });
         throw AppError.internal('Failed to send OTP email. Please try again.');
     }
@@ -42,45 +66,65 @@ async function sendOTP(email) {
  * Send a password reset OTP.
  */
 async function sendResetOTP(email) {
+    assertGmail(email);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore[`reset_${email.toLowerCase()}`] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 };
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+    const otpHash = await bcrypt.hash(otp, 10);
+    const key = `reset_${email.toLowerCase()}`;
+
+    await supabase.from('otps').delete().eq('email', key);
+    const { error: dbError } = await supabase
+        .from('otps')
+        .insert([{ email: key, otp: otpHash, expires_at: expiresAt }]);
+
+    if (dbError) {
+        logger.error('DB OTP STORE ERROR', { email, error: dbError });
+        throw AppError.internal('Failed to process OTP. Please try again.');
+    }
 
     try {
         await sendOTPEmail(email, otp);
         logger.info(`📧 Reset Password OTP sent to ${email}`);
         return { message: 'If an account exists with this email, an OTP has been sent.' };
     } catch (err) {
-        delete otpStore[`reset_${email.toLowerCase()}`];
+        await supabase.from('otps').delete().eq('email', key);
         logger.error('FORGOT PASSWORD EMAIL SEND ERROR', { email, errorMessage: err.message });
         throw AppError.internal('Failed to send OTP email. Please try again.');
     }
 }
 
 /**
- * Verify an OTP using timing-safe comparison.
+ * Verify an OTP.
  * @param {string} email
  * @param {string} otp
  * @param {string} prefix - '' for registration, 'reset_' for password reset
+ * @param {boolean} clearOnSuccess - Whether to delete the OTP after successful verification
  */
-function verifyOTP(email, otp, prefix = '') {
+async function verifyOTP(email, otp, prefix = '', clearOnSuccess = true) {
     const key = `${prefix}${email.toLowerCase()}`;
-    const stored = otpStore[key];
 
-    if (!stored || Date.now() > stored.expiresAt) {
+    const { data: stored, error } = await supabase
+        .from('otps')
+        .select('otp, expires_at')
+        .eq('email', key)
+        .single();
+
+    if (error || !stored || new Date() > new Date(stored.expires_at)) {
+        if (stored) await supabase.from('otps').delete().eq('email', key); // Cleanup expired
         throw AppError.badRequest('Invalid or expired OTP.');
     }
 
-    const otpMatch = crypto.timingSafeEqual(
-        Buffer.from(stored.otp, 'utf-8'),
-        Buffer.from(otp, 'utf-8')
-    );
+    const otpMatch = await bcrypt.compare(otp, stored.otp);
 
     if (!otpMatch) {
         throw AppError.badRequest('Invalid or expired OTP.');
     }
 
-    // Clear used OTP
-    delete otpStore[key];
+    // Clear used OTP only if requested
+    if (clearOnSuccess) {
+        await supabase.from('otps').delete().eq('email', key);
+    }
     return true;
 }
 
@@ -93,8 +137,26 @@ async function register(data) {
     const { name, email, phone, college, password, otp, tShirtSize,
         razorpay_payment_id, razorpay_order_id, razorpay_signature } = data;
 
+    // SECURITY: Service-layer field validation (defense in depth)
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+        throw AppError.badRequest('A valid name is required (minimum 2 characters).');
+    }
+    assertGmail(email);
+    if (!phone || !/^[6-9]\d{9}$/.test(phone)) {
+        throw AppError.badRequest('A valid 10-digit Indian phone number is required.');
+    }
+    if (!password || password.length < 10 || password.length > 128) {
+        throw AppError.badRequest('Password must be 10-128 characters.');
+    }
+    if (!college || typeof college !== 'string' || college.trim().length === 0) {
+        throw AppError.badRequest('College name is required.');
+    }
+    if (!['S', 'M', 'L', 'XL', 'XXL', 'XXXL'].includes(tShirtSize)) {
+        throw AppError.badRequest('Invalid T-Shirt size. Must be S, M, or L.');
+    }
+
     // 1. Verify OTP
-    verifyOTP(email, otp);
+    await verifyOTP(email, otp);
 
     // 2. Verify Razorpay payment signature
     verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
@@ -174,20 +236,24 @@ async function login(phone, password) {
  * Reset password using OTP.
  */
 async function resetPassword(email, otp, newPassword) {
+    // SECURITY: Validate email and password at the service layer
+    assertGmail(email);
+    if (!newPassword || newPassword.length < 10 || newPassword.length > 128) {
+        throw AppError.badRequest('Password must be 10-128 characters.');
+    }
+
     // Verify reset OTP
-    verifyOTP(email, otp, 'reset_');
+    await verifyOTP(email, otp, 'reset_');
 
     // Hash new password
     const salt = await bcrypt.genSalt(12);
     const password_hash = await bcrypt.hash(newPassword, salt);
 
     // Update in database
-    await userService.updateUser(null, { password_hash });
-    // We need to find by email first
     const { error } = await supabase
         .from('users')
         .update({ password_hash })
-        .eq('email', email);
+        .eq('email', email.toLowerCase());
 
 
     if (error) throw error;

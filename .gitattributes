@@ -1,0 +1,19 @@
+# Enforce LF line endings for all text files
+# This prevents CRLF vs LF warnings on Windows systems
+* text=auto eol=lf
+
+# Explicitly handle common web file types
+*.js text eol=lf
+*.jsx text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+# Deny line ending conversion for binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

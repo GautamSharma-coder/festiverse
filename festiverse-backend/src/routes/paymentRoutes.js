@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const { sendConfirmationEmail } = require('../config/emailClient');
 const logger = require('../config/logger');
 const { rateLimit } = require('../middlewares/rateLimit');
+const { isGmailOnly } = require('../middlewares/sanitize');
 const router = express.Router();
 
 const paymentLimiter = rateLimit({ windowMs: 60000, max: 5, message: 'Too many payment requests. Please wait a moment.' });
@@ -33,8 +34,36 @@ router.post('/create-order', paymentLimiter, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid registration category.' });
         }
 
+        // SECURITY: Validate all userData fields before processing payment
+        if (!userData || typeof userData !== 'object') {
+            return res.status(400).json({ success: false, message: 'User data is required.' });
+        }
+        if (!userData.name || typeof userData.name !== 'string' || userData.name.trim().length < 2) {
+            return res.status(400).json({ success: false, message: 'A valid name is required (minimum 2 characters).' });
+        }
+        if (!userData.email || !isGmailOnly(userData.email)) {
+            return res.status(400).json({ success: false, message: 'Only Gmail addresses (@gmail.com) are accepted.' });
+        }
+        if (!userData.phone || !/^[6-9]\d{9}$/.test(userData.phone)) {
+            return res.status(400).json({ success: false, message: 'A valid 10-digit Indian phone number is required.' });
+        }
+        if (!userData.password || userData.password.length < 10 || userData.password.length > 128) {
+            return res.status(400).json({ success: false, message: 'Password must be 10-128 characters.' });
+        }
+        if (!userData.college || typeof userData.college !== 'string' || userData.college.trim().length === 0) {
+            return res.status(400).json({ success: false, message: 'College name is required.' });
+        }
+        if (!['S', 'M', 'L', 'XL', 'XXL', 'XXXL'].includes(userData.tShirtSize)) {
+            return res.status(400).json({ success: false, message: 'Invalid T-Shirt Size.' });
+        }
+
         let fee;
         if (category === 'INTERNAL') {
+            // SECURITY: Enforce college name for internal category
+            const hostCollege = process.env.HOST_COLLEGE_NAME || 'Government Engineering College (GEC), Samastipur';
+            if (!userData || userData.college !== hostCollege) {
+                return res.status(400).json({ success: false, message: `The Internal category is restricted to ${hostCollege} students.` });
+            }
             fee = parseInt(process.env.REGISTRATION_FEE_INTERNAL || '349', 10);
         } else {
             fee = parseInt(process.env.REGISTRATION_FEE_EXTERNAL || '699', 10);
@@ -54,11 +83,18 @@ router.post('/create-order', paymentLimiter, async (req, res) => {
 
         // Save user data for webhook processing (Using DB instead of files)
         if (userData) {
+            // SECURITY: Hash the password BEFORE storing it in the pending table
+            const salt = await bcrypt.genSalt(10);
+            const password_hash = await bcrypt.hash(userData.password, salt);
+            
+            // Remove plain-text password from the object
+            const { password, ...safeUserData } = userData;
+
             const { error: pendingError } = await supabase
                 .from('pending_registrations')
                 .insert([{
                     order_id: order.id,
-                    user_data: { ...userData, category }
+                    user_data: { ...safeUserData, password_hash, category }
                 }]);
 
             if (pendingError) {
@@ -88,24 +124,31 @@ router.post('/create-order', paymentLimiter, async (req, res) => {
 router.post('/webhook', async (req, res) => {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     const signature = req.headers['x-razorpay-signature'];
-    const body = JSON.stringify(req.body);
+    const body = req.rawBody ? req.rawBody.toString('utf-8') : JSON.stringify(req.body);
 
     try {
-        // 1. Verify Signature (timing-safe)
-        if (secret) {
-            const expectedSignature = crypto
-                .createHmac('sha256', secret)
-                .update(body)
-                .digest('hex');
+        if (!secret) {
+            logger.error('⚠️ WEBHOOK: RAZORPAY_WEBHOOK_SECRET is not configured');
+            return res.status(500).json({ status: 'server error' });
+        }
+        if (!signature) {
+             logger.warn('⚠️ WEBHOOK: Missing signature');
+             return res.status(400).json({ status: 'missing signature' });
+        }
 
-            // Prevent timing attacks
-            const sigBuffer = Buffer.from(signature || '', 'utf-8');
-            const expectedBuffer = Buffer.from(expectedSignature, 'utf-8');
-            if (sigBuffer.length !== expectedBuffer.length ||
-                !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
-                logger.warn('⚠️ WEBHOOK: Invalid signature');
-                return res.status(400).json({ status: 'invalid signature' });
-            }
+        // 1. Verify Signature (timing-safe)
+        const expectedSignature = crypto
+            .createHmac('sha256', secret)
+            .update(body)
+            .digest('hex');
+
+        // Prevent timing attacks
+        const sigBuffer = Buffer.from(signature, 'utf-8');
+        const expectedBuffer = Buffer.from(expectedSignature, 'utf-8');
+        if (sigBuffer.length !== expectedBuffer.length ||
+            !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
+            logger.warn('⚠️ WEBHOOK: Invalid signature');
+            return res.status(400).json({ status: 'invalid signature' });
         }
 
         const event = req.body.event;
@@ -135,6 +178,12 @@ router.post('/webhook', async (req, res) => {
 
                 const userData = pending.user_data;
 
+                // SECURITY: Validate email from stored pending data
+                if (!userData.email || !isGmailOnly(userData.email)) {
+                    logger.warn('⚠️ WEBHOOK: Non-gmail email in pending data, skipping', { email: userData.email, orderId });
+                    return res.json({ status: 'rejected' });
+                }
+
                 // 2. Complete Registration
                 // Check if user already exists (Verify both Email and Phone)
                 const { data: existingUser } = await supabase
@@ -145,27 +194,19 @@ router.post('/webhook', async (req, res) => {
                     .maybeSingle();
 
                 if (!existingUser) {
-                    const salt = await bcrypt.genSalt(10);
-                    const password_hash = await bcrypt.hash(userData.password, salt);
+                    // Use userService.createUser to ensure consistency (Festiverse ID, T-shirt size, etc.)
+                    const userService = require('../services/userService');
+                    const newUser = await userService.createUser({
+                        name: userData.name,
+                        email: userData.email,
+                        phone: userData.phone,
+                        college: userData.college,
+                        password: userData.password_hash, // Already hashed
+                        tShirtSize: userData.tShirtSize,
+                        razorpay_order_id: orderId,
+                        razorpay_payment_id: payload.id
+                    });
 
-                    // a. Create User
-                    const { data: newUser, error: userError } = await supabase
-                        .from('users')
-                        .insert([{
-                            name: userData.name,
-                            email: userData.email,
-                            phone: userData.phone,
-                            college: userData.college,
-                            password_hash,
-                            role: 'student',
-                            has_paid: true
-                        }])
-                        .select()
-                        .single();
-
-                    if (userError) throw userError;
-
-                    // b. Update/Send ID (Implicit in sendConfirmationEmail)
                     sendConfirmationEmail(newUser.email, newUser.name, newUser.festiverse_id).catch(e => {
                         logger.error('WEBHOOK EMAIL ERROR', { message: e.message });
                     });

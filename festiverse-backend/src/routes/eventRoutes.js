@@ -2,6 +2,7 @@ const express = require('express');
 const QRCode = require('qrcode');
 const supabase = require('../config/supabaseClient');
 const { verifyToken } = require('../middlewares/authMiddleware');
+const { validateIdParam } = require('../middlewares/sanitize');
 const { sendEventRegistrationEmail, sendTeamInviteEmail } = require('../config/emailClient');
 const { enforceMaxLength } = require('../middlewares/sanitize');
 const logger = require('../config/logger');
@@ -251,7 +252,7 @@ router.get('/my-events', verifyToken, async (req, res) => {
  * GET /api/events/qr/:registrationId
  * Generate a QR code PNG (base64) for a specific event registration.
  */
-router.get('/qr/:registrationId', verifyToken, async (req, res) => {
+router.get('/qr/:registrationId', verifyToken, validateIdParam, async (req, res) => {
     try {
         const { data: reg, error } = await supabase
             .from('event_registrations')
@@ -291,7 +292,7 @@ router.get('/qr/:registrationId', verifyToken, async (req, res) => {
  * GET /api/events/:id
  * Fetch a single event by ID with full details.
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', validateIdParam, async (req, res) => {
     try {
         const { data, error } = await supabase
             .from('events')

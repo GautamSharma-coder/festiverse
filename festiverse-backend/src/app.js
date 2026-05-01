@@ -41,8 +41,37 @@ function createApp() {
 
     // ─── Body Parsing ───
     app.use(cookieParser());
-    app.use(express.json({ limit: '10mb' }));
-    app.use(express.urlencoded({ limit: '10mb', extended: true }));
+    // Store raw body for webhook verification
+    const rawBodyBuffer = (req, res, buf, encoding) => {
+        if (buf && buf.length) {
+            req.rawBody = buf;
+        }
+    };
+    app.use(express.json({ limit: '10mb', verify: rawBodyBuffer }));
+    app.use(express.urlencoded({ limit: '10mb', extended: true, verify: rawBodyBuffer }));
+
+    // ─── CSRF Protection ───
+    app.use((req, res, next) => {
+        if (config.isProduction && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+            // Exclude webhook route from CSRF check since it comes from Razorpay
+            if (req.path === '/api/v1/payment/webhook' || req.path === '/api/payment/webhook') {
+                return next();
+            }
+            
+            const origin = req.headers.origin;
+            const referer = req.headers.referer;
+            
+            // Allow if origin matches our allowed origins, or if it's a same-origin referer
+            const isValidOrigin = origin && config.allowedOrigins.includes(origin);
+            const isValidReferer = referer && config.allowedOrigins.some(allowed => referer.startsWith(allowed));
+
+            if (!isValidOrigin && !isValidReferer) {
+                logger.warn('CSRF validation failed', { origin, referer, path: req.path });
+                return res.status(403).json({ success: false, message: 'Invalid request origin.' });
+            }
+        }
+        next();
+    });
 
     // ─── Global Rate Limiter ───
     app.use(rateLimit({ windowMs: 60000, max: 100, message: 'Too many requests from this IP. Please slow down.' }));
@@ -74,7 +103,6 @@ function createApp() {
         
         // Use client-generated UUID for 100% accurate tracking, fallback to IP+UA hash
         const hash = clientId || crypto.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex').slice(0, 16);
-        console.log('[DEBUG Heartbeat v1] clientId:', clientId, 'hash:', hash, 'liveCount before:', liveUsers.size);
         
         liveUsers.set(hash, Date.now());
         res.json({ success: true, liveCount: liveUsers.size });
@@ -86,7 +114,6 @@ function createApp() {
         const userAgent = req.headers['user-agent'] || '';
         
         const hash = clientId || crypto.createHash('sha256').update(`${ip}-${userAgent}`).digest('hex').slice(0, 16);
-        console.log('[DEBUG Heartbeat fallback] clientId:', clientId, 'hash:', hash, 'liveCount before:', liveUsers.size);
         
         liveUsers.set(hash, Date.now());
         res.json({ success: true, liveCount: liveUsers.size });

@@ -16,7 +16,7 @@ const agent = new undici.Agent({
     connect: {
         lookup: (hostname, options, callback) => {
             if (hostname.includes('supabase.co')) {
-                return callback(null, [{ address: '104.18.38.10', family: 4 }]);
+                return callback(null, [{ address: process.env.SUPABASE_FIXED_IP || '104.18.38.10', family: 4 }]);
             }
             require('dns').lookup(hostname, options, callback);
         }

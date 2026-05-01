@@ -9,6 +9,7 @@ const supabase = require('../config/supabaseClient');
 const bcrypt = require('bcrypt');
 const AppError = require('../utils/AppError');
 const logger = require('../config/logger');
+const { isGmailOnly } = require('../middlewares/sanitize');
 
 /**
  * Generate a unique Festiverse ID.
@@ -93,6 +94,23 @@ async function findExisting(email, phone, razorpayOrderId = null) {
  * Used by BOTH auth registration and payment webhook.
  */
 async function createUser({ name, email, phone, college, password, tShirtSize, razorpay_order_id, razorpay_payment_id }) {
+    // SECURITY: Final defense-in-depth validation before DB insert
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+        throw AppError.badRequest('A valid name is required.');
+    }
+    if (!email || !isGmailOnly(email)) {
+        throw AppError.badRequest('Only Gmail addresses (@gmail.com) are accepted.');
+    }
+    if (!phone || !/^[6-9]\d{9}$/.test(phone)) {
+        throw AppError.badRequest('A valid 10-digit Indian phone number is required.');
+    }
+    if (!college || typeof college !== 'string' || college.trim().length === 0) {
+        throw AppError.badRequest('College name is required.');
+    }
+    if (!password || typeof password !== 'string') {
+        throw AppError.badRequest('Password is required.');
+    }
+
     // Check for existing user (including the payment ID)
     const existing = await findExisting(email, phone, razorpay_order_id);
     if (existing) {
@@ -108,9 +126,13 @@ async function createUser({ name, email, phone, college, password, tShirtSize, r
     }
 
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
+    // Hash password (if not already hashed)
+    let password_hash = password;
+    const isAlreadyHashed = /^\$2[aby]\$\d{2}\$/.test(password);
+    if (!isAlreadyHashed) {
+        const salt = await bcrypt.genSalt(10);
+        password_hash = await bcrypt.hash(password, salt);
+    }
 
     // Generate unique Festiverse ID with retry logic
     let festiverse_id;

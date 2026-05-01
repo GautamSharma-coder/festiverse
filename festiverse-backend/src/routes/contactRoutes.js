@@ -20,7 +20,7 @@ router.post('/', contactLimiter, async (req, res) => {
         }
 
         if (!isValidEmail(email)) {
-            return res.status(400).json({ success: false, message: 'A valid email address is required.' });
+            return res.status(400).json({ success: false, message: 'Only Gmail addresses (@gmail.com) are accepted.' });
         }
 
         // Enforce field length limits

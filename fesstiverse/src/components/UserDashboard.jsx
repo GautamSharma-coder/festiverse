@@ -582,6 +582,10 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
   const [qrImage, setQrImage] = useState('');
   const [qrLoading, setQrLoading] = useState(false);
   const [idCopied, setIdCopied] = useState(false);
+  const [emailOtp, setEmailOtp] = useState('');
+  const [showEmailOtp, setShowEmailOtp] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
+  const isEmailChanged = profile.email !== user?.email;
 
   useEffect(() => { fetchProfile(); fetchAllEvents(); }, []);
   useEffect(() => { if (festiverseId) fetchMyEvents(); }, [festiverseId]);
@@ -599,10 +603,41 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
       }
     } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); }
   };
-  const fetchAllEvents = async () => { try { const d = await apiFetch('/api/events'); setAllEvents(d.events || []); } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); } };
+  const fetchAllEvents = async () => { try { const d = await apiFetch('/api/events'); setAllEvents(d.events || []);    } catch (e) { if (e.message.includes('token') || e.message.includes('Unauthorized') || e.message.includes('Admin access')) onLogout(); }
+  };
+
+  const sendEmailOtp = async () => {
+    if (!profile.email.endsWith('@gmail.com') || profile.email.includes('+')) {
+      setMsg({ text: 'Valid @gmail.com address required.', type: 'err' }); return;
+    }
+    setOtpSending(true);
+    try {
+      await apiFetch('/api/v1/auth/send-otp', {
+        method: 'POST',
+        body: JSON.stringify({ email: profile.email })
+      });
+      setShowEmailOtp(true);
+      setMsg({ text: 'Verification code sent to your new email.', type: 'ok' });
+    } catch (e) { setMsg({ text: e.message, type: 'err' }); }
+    finally { setOtpSending(false); }
+  };
 
   const saveProfile = async () => {
     setSaving(true); setMsg({ text: '', type: '' });
+
+    // Client-side validation matching backend rules
+    if (profile.name.trim().length < 2) { setMsg({ text: 'Name must be at least 2 characters.', type: 'err' }); setSaving(false); return; }
+    if (!/^[a-zA-Z\s.'-]+$/.test(profile.name.trim())) { setMsg({ text: 'Name contains invalid characters.', type: 'err' }); setSaving(false); return; }
+    if (profile.name.length > 100) { setMsg({ text: 'Name is too long (max 100 chars).', type: 'err' }); setSaving(false); return; }
+    if (profile.email && (!profile.email.toLowerCase().endsWith('@gmail.com') || profile.email.includes('+'))) {
+      setMsg({ text: 'Only standard Gmail addresses (@gmail.com) are accepted.', type: 'err' }); setSaving(false); return;
+    }
+
+    if (isEmailChanged && !emailOtp) {
+      setMsg({ text: 'Please verify your new email with OTP.', type: 'err' });
+      setSaving(false); return;
+    }
+
     try {
       let data;
       if (avatarFile) {
@@ -622,10 +657,11 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
       } else {
         data = await apiFetch('/api/auth/profile', {
           method: 'PUT',
-          body: JSON.stringify({ name: profile.name, email: profile.email }),
+          body: JSON.stringify({ name: profile.name, email: profile.email, otp: emailOtp }),
         });
       }
       setMsg({ text: 'Profile saved successfully.', type: 'ok' });
+      setShowEmailOtp(false); setEmailOtp('');
       if (data.user?.avatar_url) { setAvatarUrl(data.user.avatar_url); setAvatarFile(null); setAvatarPreview(''); }
       if (onProfileUpdate && data.user) onProfileUpdate(data.user);
     } catch (e) { setMsg({ text: e.message, type: 'err' }); }
@@ -859,8 +895,6 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                   {[
                     { label: 'Full Name', key: 'name', type: 'text', disabled: false },
                     { label: 'Phone', key: 'phone', type: 'tel', disabled: true },
-                    { label: 'Email', key: 'email', type: 'email', disabled: false },
-                    { label: 'College', key: 'college', type: 'text', disabled: true },
                   ].map(f => (
                     <div key={f.key} className="d-field">
                       <label>{f.label}{f.disabled && <span style={{ color: 'var(--muted2)', fontSize: '0.6rem', marginLeft: 5 }}>locked</span>}</label>
@@ -873,6 +907,63 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                       />
                     </div>
                   ))}
+                  
+                  <div className="d-field">
+                    <label>Email Address</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        style={{ flex: 1 }}
+                        type="email"
+                        value={profile.email}
+                        onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                        placeholder="university@email.com"
+                      />
+                      {isEmailChanged && !showEmailOtp && (
+                        <button
+                          onClick={sendEmailOtp}
+                          disabled={otpSending}
+                          style={{
+                            padding: '0 12px', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.3)',
+                            borderRadius: '8px', color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer'
+                          }}
+                        >
+                          {otpSending ? '...' : 'Verify'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {isEmailChanged && showEmailOtp && (
+                    <div className="d-field d-fade" style={{ background: 'rgba(249,115,22,0.05)', padding: '12px', borderRadius: '10px', border: '1px solid rgba(249,115,22,0.15)', gridColumn: '1 / -1' }}>
+                      <label style={{ color: 'var(--accent)' }}>Enter 6-Digit OTP</label>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                        <input
+                          style={{ textAlign: 'center', letterSpacing: '0.3em', fontWeight: 700 }}
+                          maxLength={6}
+                          placeholder="000000"
+                          value={emailOtp}
+                          onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ''))}
+                        />
+                        <button
+                          onClick={sendEmailOtp}
+                          style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: '0.7rem', cursor: 'pointer' }}
+                        >
+                          Resend
+                        </button>
+                      </div>
+                      <p style={{ fontSize: '0.65rem', color: 'var(--muted)', marginTop: '6px' }}>Check your new email inbox for the verification code.</p>
+                    </div>
+                  )}
+
+                  <div className="d-field">
+                    <label>College <span style={{ color: 'var(--muted2)', fontSize: '0.6rem', marginLeft: 5 }}>locked</span></label>
+                    <input
+                      type="text"
+                      value={profile.college}
+                      disabled={true}
+                      placeholder="—"
+                    />
+                  </div>
                 </div>
                 <div className="d-divider" />
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -885,7 +976,7 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
               {/* Payment Information */}
               <div className="d-card" style={{ marginTop: '24px' }}>
                 <div className="d-section-label">Payment Information</div>
-                {user?.payment_status !== 'pending' ? (
+                {user?.has_paid ? (
                   <div style={{ padding: '16px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: '10px' }}>
                     <div style={{ color: '#4ade80', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '1.2rem' }}>✓</span> Complete Festival Pass Active
@@ -952,16 +1043,26 @@ const UserDashboard = ({ user, onProfileUpdate, onClose, onLogout }) => {
                             {[reg.events?.location, reg.events?.date && new Date(reg.events.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })].filter(Boolean).join('  ·  ')}
                           </div>
                         </div>
-                        <button
-                          className="d-btn-ghost"
-                          style={{ padding: '6px 12px', fontSize: '0.75rem', color: 'var(--accent)', borderColor: 'rgba(249,115,22,0.3)' }}
-                          onClick={() => {
-                            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-                            window.open(`${API_URL}/api/certificates/download/${festiverseId}?event_id=${reg.event_id}`, '_blank');
-                          }}
-                        >
-                          🎓 Cert
-                        </button>
+                        {results.find(c => c.event_id === reg.event_id) ? (
+                          <button
+                            className="d-btn-ghost"
+                            style={{ padding: '6px 12px', fontSize: '0.75rem', color: '#4ade80', borderColor: 'rgba(34,197,94,0.3)' }}
+                            onClick={() => {
+                              const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+                              window.open(`${API_URL}/api/certificates/download/${festiverseId}?event_id=${reg.event_id}`, '_blank');
+                            }}
+                          >
+                            🎓 Download
+                          </button>
+                        ) : (
+                          <span style={{
+                            padding: '4px 10px', fontSize: '0.68rem', color: 'var(--muted)',
+                            border: '1px solid var(--border)', borderRadius: 8,
+                            opacity: 0.6, cursor: 'default',
+                          }}>
+                            ⏳ Certificate Pending
+                          </span>
+                        )}
                         <button
                           className="d-btn-ghost"
                           style={{ padding: '6px 12px', fontSize: '0.75rem' }}

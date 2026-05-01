@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET; // Required — validated at startup
  */
 const verifyToken = (req, res, next) => {
     // Check for token in httpOnly cookie first (preferred)
-    let token = req.cookies?.festiverse_token;
+    let token = req.cookies?.festiverse_token || req.cookies?.festiverse_admin_token;
 
     // Fall back to Authorization header for backward compatibility
     if (!token) {

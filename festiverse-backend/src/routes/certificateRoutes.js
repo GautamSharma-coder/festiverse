@@ -12,6 +12,11 @@ const router = express.Router();
 router.get('/check/:festId', async (req, res) => {
     try {
         const { festId } = req.params;
+        
+        // SECURITY: Validate Festiverse ID format
+        if (!festId || !/^F26[A-Z]{2}\d{4}$/.test(festId.toUpperCase())) {
+            return res.status(400).json({ success: false, message: 'Invalid Festiverse ID format.' });
+        }
 
         // 1. Fetch User
         const { data: user, error: userErr } = await supabase
@@ -26,14 +31,15 @@ router.get('/check/:festId', async (req, res) => {
 
         const availableCerts = [];
 
-        // 2. Fetch Results (Achievements)
+        // 2. Fetch Results (Achievements) — only for published events
         const { data: results } = await supabase
             .from('results')
-            .select('event_id, position, events(name, date)')
+            .select('event_id, position, events(name, date, results_published)')
             .eq('user_id', user.id);
 
         if (results) {
             results.forEach(r => {
+                if (!r.events?.results_published) return; // Skip unpublished
                 availableCerts.push({
                     event_id: r.event_id,
                     event_name: r.events.name,
@@ -44,15 +50,15 @@ router.get('/check/:festId', async (req, res) => {
             });
         }
 
-        // 3. Fetch Registrations (Participation)
+        // 3. Fetch Registrations (Participation) — only for published events
         const { data: regs } = await supabase
             .from('event_registrations')
-            .select('event_id, events(name, date)')
+            .select('event_id, events(name, date, results_published)')
             .eq('user_id', user.id);
 
         if (regs) {
             regs.forEach(reg => {
-                // Only add if not already in as achievement (or show both? usually achievement covers participation)
+                if (!reg.events?.results_published) return; // Skip unpublished
                 const exists = availableCerts.find(c => c.event_id === reg.event_id);
                 if (!exists) {
                     availableCerts.push({
@@ -82,6 +88,11 @@ router.get('/download/:festId', async (req, res) => {
         const { festId } = req.params;
         const { event_id } = req.query;
 
+        // SECURITY: Validate Festiverse ID format
+        if (!festId || !/^F26[A-Z]{2}\d{4}$/.test(festId.toUpperCase())) {
+            return res.status(400).json({ success: false, message: 'Invalid Festiverse ID format.' });
+        }
+
         // 1. Fetch User
         const { data: user, error: userErr } = await supabase
             .from('users')
@@ -93,12 +104,25 @@ router.get('/download/:festId', async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found.' });
         }
 
+        // SECURITY: Check if results are published for this event
+        if (event_id) {
+            const { data: targetEvent } = await supabase
+                .from('events')
+                .select('results_published')
+                .eq('id', event_id)
+                .single();
+
+            if (!targetEvent?.results_published) {
+                return res.status(403).json({ success: false, message: 'Results for this event have not been published yet.' });
+            }
+        }
+
         let certData = null;
 
         // 2. Check for Results (Achievement)
         let resultQuery = supabase
             .from('results')
-            .select('*, events(name, date)')
+            .select('*, events(name, date, results_published)')
             .eq('user_id', user.id);
         
         if (event_id) resultQuery = resultQuery.eq('event_id', event_id);
@@ -106,19 +130,23 @@ router.get('/download/:festId', async (req, res) => {
         const { data: results } = await resultQuery;
 
         if (results && results.length > 0) {
-            const res = results[0];
-            certData = {
-                name: user.name,
-                eventName: res.events.name,
-                date: res.events.date,
-                rank: res.position === 1 ? '1st' : res.position === 2 ? '2nd' : res.position === 3 ? '3rd' : null,
-                type: 'Achievement'
-            };
-        } else {
+            const r = results.find(r => r.events?.results_published) || null;
+            if (r) {
+                certData = {
+                    name: user.name,
+                    eventName: r.events.name,
+                    date: r.events.date,
+                    rank: r.position === 1 ? '1st' : r.position === 2 ? '2nd' : r.position === 3 ? '3rd' : null,
+                    type: 'Achievement'
+                };
+            }
+        }
+        
+        if (!certData) {
             // 3. Check for participation
             let regQuery = supabase
                 .from('event_registrations')
-                .select('*, events(name, date)')
+                .select('*, events(name, date, results_published)')
                 .eq('user_id', user.id);
             
             if (event_id) regQuery = regQuery.eq('event_id', event_id);
@@ -126,13 +154,15 @@ router.get('/download/:festId', async (req, res) => {
             const { data: regs } = await regQuery;
             
             if (regs && regs.length > 0) {
-                const reg = regs[0];
-                certData = {
-                    name: user.name,
-                    eventName: reg.events.name,
-                    date: reg.events.date,
-                    type: 'Participation'
-                };
+                const reg = regs.find(r => r.events?.results_published) || null;
+                if (reg) {
+                    certData = {
+                        name: user.name,
+                        eventName: reg.events.name,
+                        date: reg.events.date,
+                        type: 'Participation'
+                    };
+                }
             }
         }
 

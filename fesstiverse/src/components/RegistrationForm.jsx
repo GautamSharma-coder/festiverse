@@ -113,6 +113,7 @@ const RegistrationForm = ({ onRegister, showToast }) => {
 
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [otpSent, setOtpSent] = useState(false);
+    const [isVerified, setIsVerified] = useState(false);
     const [loading, setLoading] = useState(false);
     const [submitted, setSubmitted] = useState(false); // Double-submit prevention
     const [status, setStatus] = useState({ msg: '', type: '' });
@@ -160,6 +161,26 @@ const RegistrationForm = ({ onRegister, showToast }) => {
         }
     };
 
+    const verifyOTP = async () => {
+        const otpStr = otp.join('');
+        if (otpStr.length < 6) return setStatus({ msg: 'Enter the 6-digit code.', type: 'error' });
+
+        setLoading(true);
+        setStatus({ msg: 'Verifying code...', type: '' });
+        try {
+            await apiFetch('/api/auth/verify-otp', {
+                method: 'POST',
+                body: JSON.stringify({ email: formData.email, otp: otpStr })
+            });
+            setIsVerified(true);
+            setStatus({ msg: 'Email verified successfully!', type: 'success' });
+        } catch (err) {
+            setStatus({ msg: err.message, type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleNext = () => {
         if (step === 1) {
             const { name, email, phone, college, password, tShirtSize } = formData;
@@ -170,13 +191,15 @@ const RegistrationForm = ({ onRegister, showToast }) => {
             if (!/^[a-zA-Z\s.'-]+$/.test(name.trim())) {
                 return setStatus({ msg: 'Name contains invalid characters.', type: 'error' });
             }
+            if (name.trim().length < 2) return setStatus({ msg: 'Name must be at least 2 characters.', type: 'error' });
             if (name.length > 100) return setStatus({ msg: 'Name is too long (max 100 chars).', type: 'error' });
-            if (phone.length < 10) return setStatus({ msg: 'Valid phone number required.', type: 'error' });
-            if (password.length < 6) return setStatus({ msg: 'Password must be 6+ chars.', type: 'error' });
+            if (!/^[6-9]\d{9}$/.test(phone)) return setStatus({ msg: 'Valid 10-digit Indian phone number required.', type: 'error' });
+            if (password.length < 10) return setStatus({ msg: 'Password must be at least 10 chars.', type: 'error' });
             if (password.length > 128) return setStatus({ msg: 'Password is too long.', type: 'error' });
-            // Basic email format check
-            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                return setStatus({ msg: 'Please enter a valid email address.', type: 'error' });
+
+            // Strict email format check matching backend
+            if (!email.toLowerCase().endsWith('@gmail.com') || email.includes('+')) {
+                return setStatus({ msg: 'Only standard Gmail addresses (@gmail.com) without aliases are accepted.', type: 'error' });
             }
             setStep(2);
             setStatus({ msg: '', type: '' });
@@ -448,12 +471,15 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                     <option value="S" style={{ background: '#111' }}>Small (S)</option>
                                     <option value="M" style={{ background: '#111' }}>Medium (M)</option>
                                     <option value="L" style={{ background: '#111' }}>Large (L)</option>
+                                    <option value="XL" style={{ background: '#111' }}>X-Large (XL)</option>
+                                    <option value="XXL" style={{ background: '#111' }}>XX-Large (XXL)</option>
+                                    <option value="XXXL" style={{ background: '#111' }}>XXX-Large (XXXL)</option>
                                 </select>
                             </Field>
                         </div>
 
                         <Field label="Password" icon="solar:lock-bold">
-                            <Input placeholder="Min 6 characters" type="password" maxLength={128} value={formData.password} onChange={e => updateForm('password', e.target.value)} />
+                            <Input placeholder="Min 10 characters" type="password" maxLength={128} value={formData.password} onChange={e => updateForm('password', e.target.value)} />
                         </Field>
 
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
@@ -468,7 +494,7 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                         <div style={{ textAlign: 'center' }}>
                             <h4 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>VERIFY YOUR EMAIL</h4>
-                            <p style={{ fontSize: '0.875rem', color: '#888' }}>We've sent a 4-digit code to <br /><b style={{ color: '#ffb300' }}>{formData.email}</b></p>
+                            <p style={{ fontSize: '0.875rem', color: '#888' }}>We've sent a 6-digit code to <br /><b style={{ color: '#ffb300' }}>{formData.email}</b></p>
                         </div>
 
                         {!otpSent ? (
@@ -531,6 +557,25 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                     ))}
                                 </div>
 
+                                {isVerified && (
+                                    <div style={{
+                                        padding: '0.75rem',
+                                        borderRadius: '12px',
+                                        background: 'rgba(0, 255, 127, 0.1)',
+                                        border: '1px solid #00ffa4',
+                                        color: '#00ffa4',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 700,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px'
+                                    }}>
+                                        <iconify-icon icon="solar:verified-check-bold" />
+                                        EMAIL VERIFIED
+                                    </div>
+                                )}
+
                                 <div style={{ background: 'rgba(255, 179, 0, 0.05)', border: '1px solid rgba(255, 179, 0, 0.1)', borderRadius: '16px', padding: '1.25rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                                         <span style={{ fontSize: '0.8rem', color: '#888', fontWeight: 700 }}>PAYMENT TOTAL</span>
@@ -540,26 +585,27 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                 </div>
 
                                 <button
-                                    onClick={handleSubmit}
+                                    onClick={isVerified ? handleSubmit : verifyOTP}
                                     disabled={loading}
                                     style={{
                                         padding: '1.25rem',
                                         borderRadius: '16px',
-                                        border: 'none',
-                                        background: 'linear-gradient(90deg, #ffb300, #ff8f00)',
-                                        color: '#000',
+                                        background: isVerified ? 'linear-gradient(90deg, #ffb300, #ff8f00)' : 'rgba(255, 179, 0, 0.1)',
+                                        border: isVerified ? 'none' : '1px solid #ffb300',
+                                        color: isVerified ? '#000' : '#ffb300',
                                         fontSize: '1rem',
                                         fontWeight: 900,
                                         cursor: 'pointer',
-                                        boxShadow: '0 10px 30px rgba(255, 179, 0, 0.2)',
+                                        boxShadow: isVerified ? '0 10px 30px rgba(255, 179, 0, 0.2)' : 'none',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        gap: '12px'
+                                        gap: '12px',
+                                        transition: 'all 0.3s ease'
                                     }}
                                 >
-                                    {loading ? <iconify-icon icon="line-md:loading-twotone-loop" /> : <iconify-icon icon="solar:shield-keyhole-bold" />}
-                                    COMPLETE PAYMENT & REGISTER
+                                    {loading ? <iconify-icon icon="line-md:loading-twotone-loop" /> : isVerified ? <iconify-icon icon="solar:shield-keyhole-bold" /> : <iconify-icon icon="solar:check-read-bold" />}
+                                    {isVerified ? 'COMPLETE PAYMENT & REGISTER' : 'VERIFY CODE'}
                                 </button>
 
                                 <button onClick={() => setOtpSent(false)} style={{ background: 'none', border: 'none', color: '#555', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 700 }}>Didn't get the code? Resend Email</button>

@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const supabase = require('../config/supabaseClient');
 const { sendOTPEmail, sendConfirmationEmail } = require('../config/emailClient');
 const { rateLimit } = require('../middlewares/rateLimit');
-const { isValidEmail, isValidPhone, enforceMaxLength } = require('../middlewares/sanitize');
+const { isValidEmail, isValidPhone, enforceMaxLength, isGmailOnly } = require('../middlewares/sanitize');
 const logger = require('../config/logger');
 
 const router = express.Router();
@@ -16,8 +16,8 @@ const otpLimiter = rateLimit({ windowMs: 60000, max: 3, message: 'Too many OTP r
 const loginLimiter = rateLimit({ windowMs: 60000, max: 5, message: 'Too many login attempts. Please wait 1 minute.' });
 const registerLimiter = rateLimit({ windowMs: 60000, max: 3, message: 'Too many registration attempts. Please wait 1 minute.' });
 
-// In-memory OTP store keyed by email (use Redis in production for multi-instance)
-const otpStore = {};
+const authService = require('../services/authService');
+const userService = require('../services/userService');
 
 /**
  * Generate a unique Festiverse ID.
@@ -38,23 +38,16 @@ function generateFestiverseId(fullName) {
  * Body: { email } or { email, phone }
  */
 router.post('/send-otp', otpLimiter, async (req, res) => {
-    const { email } = req.body;
-    if (!email || !isValidEmail(email)) {
-        return res.status(400).json({ success: false, message: 'A valid email address is required.' });
-    }
-
-    // Generate a 6-digit OTP (harder to brute-force than 4-digit)
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    otpStore[email.toLowerCase()] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 }; // 5 min expiry
-
     try {
-        await sendOTPEmail(email, otp);
-        logger.info(`📧 OTP sent to ${email}`);
+        const { email } = req.body;
+        if (!email || !isValidEmail(email)) {
+            return res.status(400).json({ success: false, message: 'Only Gmail addresses (@gmail.com) are accepted.' });
+        }
+        await authService.sendOTP(email);
         res.json({ success: true, message: 'OTP sent to your email!' });
     } catch (err) {
-        logger.error('EMAIL SEND ERROR', { email, errorMessage: err.message, code: err.code, command: err.command });
-        delete otpStore[email.toLowerCase()];
-        res.status(500).json({ success: false, message: 'Failed to send OTP email. Please try again.' });
+        logger.error('SEND OTP ERROR', { message: err.message });
+        res.status(err.statusCode || 500).json({ success: false, message: err.message });
     }
 });
 
@@ -64,152 +57,25 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
  */
 router.post('/register', registerLimiter, async (req, res) => {
     try {
-        let { name, college, email, phone, otp, password, razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+        const result = await authService.register(req.body);
 
-        // Enforce max lengths to prevent oversized payloads
-        name = enforceMaxLength(name, 100);
-        college = enforceMaxLength(college, 200);
-        email = enforceMaxLength(email, 254);
-
-        // Input validation
-        if (!name || !name.trim()) {
-            return res.status(400).json({ success: false, message: 'Name is required.' });
-        }
-        if (!/^[a-zA-Z\s.'-]+$/.test(name.trim())) {
-            return res.status(400).json({ success: false, message: 'Name contains invalid characters.' });
-        }
-        if (!email || !isValidEmail(email)) {
-            return res.status(400).json({ success: false, message: 'A valid email is required.' });
-        }
-        if (!phone || !isValidPhone(phone)) {
-            return res.status(400).json({ success: false, message: 'A valid 10-digit phone number is required.' });
-        }
-        if (!password || password.length < 6) {
-            return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
-        }
-        if (password.length > 128) {
-            return res.status(400).json({ success: false, message: 'Password is too long.' });
-        }
-        if (!otp || !/^\d{6}$/.test(otp)) {
-            return res.status(400).json({ success: false, message: 'A valid 6-digit OTP is required.' });
-        }
-
-        // Timing-safe OTP comparison
-        const stored = otpStore[email.toLowerCase()];
-        if (!stored || Date.now() > stored.expiresAt) {
-            return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
-        }
-        const otpMatch = crypto.timingSafeEqual(
-            Buffer.from(stored.otp, 'utf-8'),
-            Buffer.from(otp, 'utf-8')
-        );
-        if (!otpMatch) {
-            return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
-        }
-
-        // Verify Razorpay Payment Signature
-        if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
-            return res.status(400).json({ success: false, message: 'Payment verification details are missing.' });
-        }
-
-        const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
-        if (!razorpaySecret) {
-            return res.status(500).json({ success: false, message: 'Payment verification is not configured.' });
-        }
-        const expectedSignature = crypto
-            .createHmac('sha256', razorpaySecret)
-            .update(razorpay_order_id + '|' + razorpay_payment_id)
-            .digest('hex');
-
-        // Timing-safe signature comparison
-        const sigMatch = expectedSignature.length === razorpay_signature.length &&
-            crypto.timingSafeEqual(
-                Buffer.from(expectedSignature, 'utf-8'),
-                Buffer.from(razorpay_signature, 'utf-8')
-            );
-        if (!sigMatch) {
-            return res.status(400).json({ success: false, message: 'Invalid payment signature. Payment verification failed.' });
-        }
-
-        delete otpStore[email.toLowerCase()]; // Clear used OTP
-
-        // Check if user already exists (Check both Email and Phone)
-        const { data: existing } = await supabase
-            .from('users')
-            .select('id, email, phone')
-            .or(`email.eq.${email.toLowerCase()},phone.eq.${phone}`)
-            .limit(1)
-            .maybeSingle();
-
-        if (existing) {
-            const isEmailMatch = existing.email.toLowerCase() === email.toLowerCase();
-            return res.status(400).json({ 
-                success: false, 
-                message: isEmailMatch ? 'Email address already registered.' : 'Phone number already registered.' 
-            });
-        }
-
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const password_hash = await bcrypt.hash(password, salt);
-
-        // Generate unique Festiverse ID with retry logic
-        let festiverse_id;
-        let newUser;
-        let insertError;
-        for (let attempt = 0; attempt < 5; attempt++) {
-            festiverse_id = generateFestiverseId(name);
-            const { data, error: err } = await supabase
-                .from('users')
-                .insert([{
-                    name, college, email, phone, role: 'student',
-                    has_paid: true,
-                    razorpay_order_id,
-                    razorpay_payment_id,
-                    password_hash,
-                    festiverse_id
-                }])
-                .select()
-                .single();
-            if (!err) { newUser = data; insertError = null; break; }
-            // If error is a unique constraint violation on festiverse_id, retry
-            if (err.code === '23505' && err.message?.includes('festiverse_id')) {
-                insertError = err;
-                continue;
-            }
-            throw err; // Other errors — throw immediately
-        }
-        if (insertError) throw new Error('Could not generate a unique Festiverse ID. Please try again.');
-
-        // Generate JWT
-        const token = jwt.sign(
-            { id: newUser.id, phone: newUser.phone, role: 'student' },
-            JWT_SECRET,
-            { expiresIn: '24h' }
-        );
-
-        // Set JWT as httpOnly cookie
-        res.cookie('festiverse_token', token, {
+        // Set JWT as httpOnly cookie (matching legacy behavior)
+        res.cookie('festiverse_token', result.token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
             path: '/',
-            maxAge: 24 * 60 * 60 * 1000, // 24 hours
+            maxAge: 24 * 60 * 60 * 1000,
         });
 
         res.status(201).json({
             success: true,
             message: 'Registration successful!',
-            user: { id: newUser.id, name: newUser.name, email: newUser.email, phone: newUser.phone, festiverse_id: newUser.festiverse_id },
+            user: result.user
         });
-
-        // Send confirmation email (fire-and-forget — don't block response)
-        sendConfirmationEmail(newUser.email, newUser.name, newUser.festiverse_id).catch(err =>
-            logger.error('CONFIRMATION EMAIL ERROR', { email: newUser.email, message: err.message })
-        );
     } catch (err) {
-        logger.error('REGISTER ERROR', { message: err.message, stack: err.stack });
-        res.status(500).json({ success: false, message: 'Registration failed. Please try again.' });
+        logger.error('REGISTER ERROR', { message: err.message });
+        res.status(err.statusCode || 500).json({ success: false, message: err.message });
     }
 });
 
@@ -220,8 +86,11 @@ router.post('/register', registerLimiter, async (req, res) => {
 router.post('/login', loginLimiter, async (req, res) => {
     try {
         const { phone, password } = req.body;
-        if (!phone || !password) {
-            return res.status(400).json({ success: false, message: 'Phone number and password are required.' });
+        if (!phone || !/^[6-9]\d{9}$/.test(phone)) {
+            return res.status(400).json({ success: false, message: 'A valid 10-digit Indian phone number is required.' });
+        }
+        if (!password || typeof password !== 'string' || password.length > 128) {
+            return res.status(400).json({ success: false, message: 'A valid password is required.' });
         }
 
         const { data: user, error } = await supabase
@@ -276,35 +145,16 @@ router.post('/login', loginLimiter, async (req, res) => {
  * Sends an OTP to the user's email if they forgot their password.
  */
 router.post('/forgot-password-otp', otpLimiter, async (req, res) => {
-    const { email } = req.body;
-    if (!email || !isValidEmail(email)) {
-        return res.status(400).json({ success: false, message: 'A valid email address is required.' });
-    }
-
     try {
-        // Check if user exists
-        const { data: existingUser, error } = await supabase
-            .from('users')
-            .select('id')
-            .eq('email', email)
-            .single();
-
-        if (error || !existingUser) {
-            // Security: do not reveal whether the email is registered
-            return res.json({ success: true, message: 'If an account exists with this email, an OTP has been sent.' });
+        const { email } = req.body;
+        if (!email || !isValidEmail(email)) {
+            return res.status(400).json({ success: false, message: 'Only Gmail addresses (@gmail.com) are accepted.' });
         }
-
-        // Generate a 6-digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        otpStore[`reset_${email.toLowerCase()}`] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 };
-
-        await sendOTPEmail(email, otp);
-        logger.info(`📧 Reset Password OTP sent to ${email}`);
+        await authService.sendOTP(email, 'reset_');
         res.json({ success: true, message: 'If an account exists with this email, an OTP has been sent.' });
     } catch (err) {
-        logger.error('FORGOT PASSWORD EMAIL SEND ERROR', { email, errorMessage: err.message });
-        delete otpStore[`reset_${email.toLowerCase()}`];
-        res.status(500).json({ success: false, message: 'Failed to send OTP email. Please try again.' });
+        logger.error('FORGOT PASSWORD OTP ERROR', { message: err.message });
+        res.status(err.statusCode || 500).json({ success: false, message: err.message });
     }
 });
 
@@ -315,61 +165,17 @@ router.post('/forgot-password-otp', otpLimiter, async (req, res) => {
 router.post('/reset-password', otpLimiter, async (req, res) => {
     try {
         const { email, otp, newPassword } = req.body;
-
-        if (!email || !otp || !newPassword) {
-            return res.status(400).json({ success: false, message: 'Email, OTP, and new password are required.' });
+        if (!email || !isValidEmail(email)) {
+            return res.status(400).json({ success: false, message: 'Only Gmail addresses (@gmail.com) are accepted.' });
         }
-
-        if (!isValidEmail(email)) {
-            return res.status(400).json({ success: false, message: 'Invalid email format.' });
+        if (!newPassword || newPassword.length < 10 || newPassword.length > 128) {
+            return res.status(400).json({ success: false, message: 'Password must be 10-128 characters.' });
         }
-
-        if (newPassword.length < 6) {
-            return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
-        }
-
-        if (newPassword.length > 128) {
-            return res.status(400).json({ success: false, message: 'Password is too long.' });
-        }
-
-        const emailKey = email.toLowerCase();
-        const stored = otpStore[`reset_${emailKey}`];
-
-        if (!stored || Date.now() > stored.expiresAt) {
-            return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
-        }
-
-        // Timing-safe OTP comparison
-        const otpBufferStored = Buffer.from(stored.otp, 'utf-8');
-        const otpBufferInput = Buffer.from(otp, 'utf-8');
-        if (otpBufferStored.length !== otpBufferInput.length ||
-            !crypto.timingSafeEqual(otpBufferStored, otpBufferInput)) {
-            return res.status(400).json({ success: false, message: 'Invalid or expired OTP.' });
-        }
-
-        // OTP is valid. Hash the new password.
-        const salt = await bcrypt.genSalt(12);
-        const password_hash = await bcrypt.hash(newPassword, salt);
-
-        // Update the user's password in the database
-        const { error } = await supabase
-            .from('users')
-            .update({ password_hash: password_hash })
-            .eq('email', email);
-
-        if (error) {
-            throw error;
-        }
-
-        // Clear the used OTP
-        delete otpStore[`reset_${emailKey}`];
-
-        logger.info(`🔑 Password reset successfully for ${email}`);
+        await authService.resetPassword(email, otp, newPassword);
         res.json({ success: true, message: 'Password has been reset successfully. You can now log in.' });
-
     } catch (err) {
-        logger.error('RESET PASSWORD ERROR', { message: err.message, stack: err.stack });
-        res.status(500).json({ success: false, message: 'Server error. Please try again.' });
+        logger.error('RESET PASSWORD ERROR', { message: err.message });
+        res.status(err.statusCode || 500).json({ success: false, message: err.message });
     }
 });
 
@@ -405,7 +211,7 @@ const multer = require('multer');
 const pathModule = require('path');
 const avatarUpload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    limits: { fileSize: 1 * 1024 * 1024 }, // 5MB
     fileFilter: (req, file, cb) => {
         const allowed = /jpeg|jpg|png|webp|gif/;
         const ext = allowed.test(pathModule.extname(file.originalname).toLowerCase());
@@ -417,10 +223,32 @@ const avatarUpload = multer({
 
 router.put('/profile', verifyToken, avatarUpload.single('avatar'), async (req, res) => {
     try {
-        const { name, email } = req.body;
+        const { name, email, otp } = req.body;
         const updates = {};
         if (name !== undefined) updates.name = name;
-        if (email !== undefined) updates.email = email;
+
+        if (email !== undefined) {
+            if (!isValidEmail(email)) {
+                return res.status(400).json({ success: false, message: 'Only Gmail addresses (@gmail.com) are accepted.' });
+            }
+            if (!otp) {
+                return res.status(400).json({ success: false, message: 'OTP is required to change email.' });
+            }
+            // Check if the new email is already taken
+            const { data: existing } = await supabase
+                .from('users')
+                .select('id')
+                .eq('email', email.toLowerCase())
+                .maybeSingle();
+
+            if (existing && existing.id !== req.user.id) {
+                return res.status(400).json({ success: false, message: 'This email is already registered to another account.' });
+            }
+
+            // Verify OTP for the NEW email
+            await authService.verifyOTP(email, otp);
+            updates.email = email.toLowerCase();
+        }
 
         // Handle avatar upload
         if (req.file) {

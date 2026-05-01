@@ -58,6 +58,9 @@ const config = {
     resend: {
         apiKey: process.env.RESEND_API_KEY,
     },
+    
+    // ─── Festiverse Meta ───
+    hostCollege: process.env.HOST_COLLEGE_NAME || 'Government Engineering College (GEC), Samastipur',
 
     // ─── CORS Allowed Origins ───
     allowedOrigins: [
@@ -72,7 +75,7 @@ const config = {
 
 // ─── Startup Validation ───
 function validateEnv() {
-    const critical = ['JWT_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'ADMIN_PASSWORD'];
+    const critical = ['JWT_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'ADMIN_PASSWORD', 'HOST_COLLEGE_NAME'];
     const missing = critical.filter(k => !process.env[k]);
     if (missing.length > 0) {
         console.error(`❌ Missing CRITICAL env vars: ${missing.join(', ')}. Server cannot start safely.`);

@@ -6,9 +6,30 @@ const authService = require('../services/authService');
 const userService = require('../services/userService');
 const asyncHandler = require('../utils/asyncHandler');
 
+const AppError = require('../utils/AppError');
+
 exports.sendOTP = asyncHandler(async (req, res) => {
+    // SECURITY: Check for duplicate email before sending OTP
+    const existing = await userService.findByEmail(req.body.email);
+    if (existing) {
+        throw AppError.conflict('Email address already registered. Please login instead.');
+    }
+
     const result = await authService.sendOTP(req.body.email);
     res.json({ success: true, message: result.message });
+});
+
+exports.verifyOTP = asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
+
+    // SECURITY: Check for duplicate email before verifying OTP
+    const existing = await userService.findByEmail(email);
+    if (existing) {
+        throw AppError.conflict('Email address already registered. Please login instead.');
+    }
+
+    await authService.verifyOTP(email, otp, '', false);
+    res.json({ success: true, message: 'OTP verified successfully.' });
 });
 
 exports.register = asyncHandler(async (req, res) => {

@@ -93,10 +93,32 @@ function validateIdParam(req, res, next) {
 }
 
 /**
- * Validate email format.
+ * Validate email format — STRICT: only @gmail.com is accepted.
+ * Rejects + aliases (e.g. user+tag@gmail.com) to prevent duplicate account tricks.
  */
 function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (typeof email !== 'string') return false;
+    const trimmed = email.trim().toLowerCase();
+    // Must be a well-formed email
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return false;
+    // Must be @gmail.com domain only
+    if (!trimmed.endsWith('@gmail.com')) return false;
+    // Reject + aliases (user+tag@gmail.com)
+    const localPart = trimmed.split('@')[0];
+    if (localPart.includes('+')) return false;
+    // Max length per RFC 5321
+    if (trimmed.length > 254) return false;
+    return true;
+}
+
+/**
+ * Explicitly check if an email is a @gmail.com address.
+ * Use for defense-in-depth checks in services.
+ */
+function isGmailOnly(email) {
+    if (typeof email !== 'string') return false;
+    const trimmed = email.trim().toLowerCase();
+    return trimmed.endsWith('@gmail.com') && !trimmed.split('@')[0].includes('+');
 }
 
 /**
@@ -121,6 +143,7 @@ module.exports = {
     isValidUUID,
     validateIdParam,
     isValidEmail,
+    isGmailOnly,
     isValidPhone,
     enforceMaxLength,
 };

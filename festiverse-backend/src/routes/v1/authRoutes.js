@@ -6,7 +6,8 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../../controllers/authController');
-const { registerValidation, loginValidation, sendOtpValidation, resetPasswordValidation } = require('../../validators/authValidator');
+const userService = require('../../services/userService');
+const { registerValidation, loginValidation, sendOtpValidation, verifyOtpValidation, resetPasswordValidation } = require('../../validators/authValidator');
 const validate = require('../../middlewares/validate');
 const { rateLimit } = require('../../middlewares/rateLimit');
 const { verifyToken } = require('../../middlewares/authMiddleware');
@@ -15,6 +16,7 @@ const pathModule = require('path');
 const supabase = require('../../config/supabaseClient');
 const asyncHandler = require('../../utils/asyncHandler');
 const logger = require('../../config/logger');
+const { isGmailOnly } = require('../../middlewares/sanitize');
 
 // Rate limiters
 const otpLimiter = rateLimit({ windowMs: 60000, max: 3, message: 'Too many OTP requests. Please wait 1 minute.' });
@@ -23,6 +25,9 @@ const registerLimiter = rateLimit({ windowMs: 60000, max: 3, message: 'Too many 
 
 // ─── POST /send-otp ───
 router.post('/send-otp', otpLimiter, sendOtpValidation, validate, authController.sendOTP);
+
+// ─── POST /verify-otp ───
+router.post('/verify-otp', otpLimiter, verifyOtpValidation, validate, authController.verifyOTP);
 
 // ─── POST /register ───
 router.post('/register', registerLimiter, registerValidation, validate, authController.register);
@@ -53,10 +58,22 @@ const avatarUpload = multer({
 });
 
 router.put('/profile', verifyToken, avatarUpload.single('avatar'), asyncHandler(async (req, res) => {
-    const { name, email, college } = req.body;
+    const authService = require('../../services/authService');
+    const { name, email, otp } = req.body;
     const updates = {};
     if (name !== undefined) updates.name = name;
-    if (email !== undefined) updates.email = email;
+    
+    if (email !== undefined) {
+        // SECURITY: Validate email is gmail.com
+        if (!isGmailOnly(email)) {
+            return res.status(400).json({ success: false, message: 'Only Gmail addresses (@gmail.com) are accepted.' });
+        }
+        if (!otp) {
+            return res.status(400).json({ success: false, message: 'OTP is required to change email.' });
+        }
+        await authService.verifyOTP(email, otp);
+        updates.email = email;
+    }
     // college is locked and cannot be updated after registration
 
 
@@ -75,7 +92,7 @@ router.put('/profile', verifyToken, avatarUpload.single('avatar'), asyncHandler(
 
     const { data: updated, error } = await supabase.from('users').update(updates).eq('id', req.user.id).select().single();
     if (error) throw error;
-    res.json({ success: true, message: 'Profile updated!', user: updated });
+    res.json({ success: true, message: 'Profile updated!', user: userService.sanitizeUser(updated) });
 }));
 
 // ─── POST /logout ───

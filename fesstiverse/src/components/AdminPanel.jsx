@@ -611,6 +611,26 @@ const AdminPanel = ({ onClose }) => {
     };
     const deleteResult = async (id) => { if (!confirm('Delete this result?')) return; await adminFetch(`/api/admin/results/${id}`, { method: 'DELETE' }); flash('Result deleted'); fetchTabData(); };
 
+    // ── Toggle publish results for an event ──
+    const toggleEventPublish = async (eventId) => {
+        try {
+            const d = await adminFetch(`/api/admin/events/${eventId}/toggle-publish`, { method: 'POST' });
+            flash(d.message || 'Publish status updated');
+            const evData = await fetch(`${API}/api/events`).then(r => r.json());
+            setEvents(evData.events || []);
+        } catch (err) { flash(err.message, 'err'); }
+    };
+
+    const bulkTogglePublish = async (publish) => {
+        if (!confirm(`${publish ? 'Publish' : 'Unpublish'} ALL event results and certificates?`)) return;
+        try {
+            const d = await adminFetch('/api/admin/events/bulk-toggle-publish', { method: 'POST', body: JSON.stringify({ publish }) });
+            flash(d.message);
+            const evData = await fetch(`${API}/api/events`).then(r => r.json());
+            setEvents(evData.events || []);
+        } catch (err) { flash(err.message, 'err'); }
+    };
+
     // ── Sponsors CRUD ──
     const addSponsor = async (e) => {
         e.preventDefault();
@@ -686,7 +706,7 @@ const AdminPanel = ({ onClose }) => {
             case 'checkin':
                 return <CheckinTab checkinId={checkinId} setCheckinId={setCheckinId} checkinLoading={checkinLoading} checkinResult={checkinResult} handleCheckin={handleCheckin} />;
             case 'results':
-                return <ResultsTab results={results} events={events} users={users} registrations={registrations} newResult={newResult} setNewResult={setNewResult} addResult={addResult} deleteResult={deleteResult} />;
+                return <ResultsTab results={results} events={events} users={users} registrations={registrations} newResult={newResult} setNewResult={setNewResult} addResult={addResult} deleteResult={deleteResult} toggleEventPublish={toggleEventPublish} bulkTogglePublish={bulkTogglePublish} />;
             case 'sponsors':
                 return <SponsorsTab sponsors={sponsors} newSponsor={newSponsor} setNewSponsor={setNewSponsor} sponsorLogo={sponsorLogo} setSponsorLogo={setSponsorLogo} addSponsor={addSponsor} deleteSponsor={deleteSponsor} />;
             case 'hiring':
