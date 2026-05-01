@@ -24,8 +24,11 @@ async function createOrder(category, userData) {
     // SECURITY: If category is INTERNAL, enforce the correct college name
     if (category === 'INTERNAL') {
         const internalCollege = config.hostCollege;
-        if (!userData || userData.college !== internalCollege) {
-            logger.warn('⚠️ Payment spoofing attempt: INTERNAL category with external college', { userData });
+        if (!userData || userData.college?.trim() !== internalCollege?.trim()) {
+            logger.warn('⚠️ Payment spoofing attempt: INTERNAL category with external college', { 
+                provided: userData?.college, 
+                expected: internalCollege 
+            });
             throw AppError.badRequest(`The Internal category is restricted to ${internalCollege} students.`);
         }
     }

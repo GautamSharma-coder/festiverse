@@ -25,8 +25,15 @@ const HeroSection = () => {
 
             {/* Main content */}
             <div className="z-10 text-center space-y-6 max-w-5xl px-4">
+                <div className="flex items-center justify-center gap-8 mb-2">
+                    <img src="/college_logo.webp" alt="GEC Samastipur" className="h-12 md:h-16 w-auto opacity-90 drop-shadow-lg" />
+                    <div className="text-left border-l border-white/20 py-1" style={{ paddingLeft: '30px' }}>
+                        <p className="text-[10px] tracking-[0.3em] text-white/50 uppercase leading-relaxed">Presented by</p>
+                        <p className="text-xs md:text-sm font-bold text-white tracking-wider">GEC SAMASTIPUR</p>
+                    </div>
+                </div>
                 <span className="inline-block px-3 py-1 rounded-full border border-red-500/30 text-red-500 text-xs tracking-[0.2em] uppercase bg-red-500/5 backdrop-blur-sm mb-4">
-                    Est. 2019 • GEC Samastipur
+                    Est. 2019
                 </span>
                 <h1 className="text-6xl md:text-8xl font-serif italic font-bold tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-200 to-zinc-600 drop-shadow-2xl">
                     UDAAN

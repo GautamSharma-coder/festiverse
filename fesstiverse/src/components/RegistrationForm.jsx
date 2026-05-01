@@ -127,6 +127,8 @@ const RegistrationForm = ({ onRegister, showToast }) => {
         EXTERNAL: import.meta.env.VITE_EXTERNAL_PRICE || 699
     };
 
+    const HOST_COLLEGE = import.meta.env.VITE_HOST_COLLEGE_NAME || "Government Engineering College (GEC), Samastipur";
+
     const updateForm = (field, val) => {
         // Sanitize text inputs (not password)
         const sanitized = field === 'password' ? val : sanitizeInput(val);
@@ -136,7 +138,7 @@ const RegistrationForm = ({ onRegister, showToast }) => {
     const selectCategory = (type) => {
         setCategory(type);
         if (type === 'INTERNAL') {
-            updateForm('college', 'Government Engineering College (GEC), Samastipur');
+            updateForm('college', HOST_COLLEGE);
         } else {
             updateForm('college', '');
         }
@@ -201,6 +203,12 @@ const RegistrationForm = ({ onRegister, showToast }) => {
             if (!email.toLowerCase().endsWith('@gmail.com') || email.includes('+')) {
                 return setStatus({ msg: 'Only standard Gmail addresses (@gmail.com) without aliases are accepted.', type: 'error' });
             }
+
+            // SECURITY: Ensure Internal category has the correct college
+            if (category === 'INTERNAL' && college !== HOST_COLLEGE) {
+                return setStatus({ msg: `Internal registrations are only for ${HOST_COLLEGE} students.`, type: 'error' });
+            }
+
             setStep(2);
             setStatus({ msg: '', type: '' });
         }
@@ -438,9 +446,11 @@ const RegistrationForm = ({ onRegister, showToast }) => {
                                     }}
                                 >
                                     <option value="" disabled style={{ background: '#111' }}>Select College</option>
-                                    {biharEngineeringColleges.map((c, i) => (
-                                        <option key={i} value={c} style={{ background: '#111' }}>{c}</option>
-                                    ))}
+                                    {biharEngineeringColleges
+                                        .filter(c => c !== HOST_COLLEGE)
+                                        .map((c, i) => (
+                                            <option key={i} value={c} style={{ background: '#111' }}>{c}</option>
+                                        ))}
                                 </select>
                             )}
                         </Field>

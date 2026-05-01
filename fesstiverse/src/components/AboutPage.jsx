@@ -635,11 +635,54 @@ export default function UdaanAbout() {
 
         <div style={styles.divider} />
 
-        {/* ── PILLARS ── */}
+        {/* ── COLLEGE FOUNDATION ── */}
         <section style={styles.section}>
           <FadeIn>
             <div style={styles.sectionHeader}>
               <span style={styles.sectionNum}>— 02</span>
+              <h2 style={styles.sectionTitle}>
+                Our<br />Foundation
+              </h2>
+            </div>
+          </FadeIn>
+
+          <div className="manifesto-layout" style={styles.manifestoLayout}>
+            <FadeIn delay={0.1}>
+              <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <img 
+                  src="/college_logo.webp" 
+                  alt="GEC Samastipur Logo" 
+                  style={{ width: '100%', height: 'auto', display: 'block', opacity: 0.8 }} 
+                />
+              </div>
+            </FadeIn>
+
+            <FadeIn delay={0.2}>
+              <div style={{ paddingTop: '20px' }}>
+                <span style={{ ...styles.festTag, borderColor: 'rgba(255,255,255,0.2)', color: '#FFFFFF' }}>GEC Samastipur</span>
+                <h3 style={{ ...styles.festTitle, color: '#FFFFFF', fontSize: 'clamp(24px, 3vw, 42px)' }}>Government Engineering College (GEC)</h3>
+                <p style={styles.manifestoBody}>
+                  UDAAN is the official Arts and Cultural Club of <strong>Government Engineering College (GEC), Samastipur</strong>. 
+                  Our college provides the canvas upon which we paint our visions. Under the visionary guidance of our administration, 
+                  we have grown from a small group of enthusiasts to a vibrant community of over 500 active members.
+                </p>
+                <br />
+                <p style={styles.manifestoBody}>
+                  GEC Samastipur stands as a beacon of technical excellence in Bihar, and its unwavering support for the arts ensures 
+                  that its students graduate as well-rounded individuals ready to lead with both logic and heart.
+                </p>
+              </div>
+            </FadeIn>
+          </div>
+        </section>
+
+        <div style={styles.divider} />
+
+        {/* ── PILLARS ── */}
+        <section style={styles.section}>
+          <FadeIn>
+            <div style={styles.sectionHeader}>
+              <span style={styles.sectionNum}>— 03</span>
               <h2 style={styles.sectionTitle}>
                 What We<br />Do
               </h2>
@@ -677,7 +720,7 @@ export default function UdaanAbout() {
         <section style={styles.section}>
           <FadeIn>
             <div style={styles.sectionHeader}>
-              <span style={styles.sectionNum}>— 03</span>
+              <span style={styles.sectionNum}>— 04</span>
               <h2 style={styles.sectionTitle}>
                 Core<br />Team
               </h2>

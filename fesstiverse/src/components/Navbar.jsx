@@ -238,7 +238,7 @@ const TopFloatingNavbar = ({ isFestiverse, toggleUniverse }) => {
       <nav className="top-floating-nav">
         {/* College Logo */}
         <div className="logo-container" onClick={() => { navNavigate('/'); window.scrollTo(0, 0); }} title="Home">
-          <img src="/udaan.png" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src="/udaan.webp" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
 
         {/* Desktop Divider */}
