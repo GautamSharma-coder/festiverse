@@ -80,7 +80,6 @@ const styles = `
       grid-template-columns: 1fr;
       direction: ltr !important;
       gap: 2rem;
-      --mobile-anim: slideUp;
     }
     .society-identity { align-items: center !important; text-align: center !important; }
   }
@@ -167,7 +166,7 @@ const societies = [
 
 /* ── useInView: fires once when element enters viewport ── */
 function useInView(options = {}) {
-    const { threshold = 0.1, rootMargin = '-100px 0px' } = options;
+    const { threshold = 0.05, rootMargin = '-20px 0px' } = options;
     const ref = useRef(null);
     const [visible, setVisible] = useState(false);
     useEffect(() => {
@@ -191,7 +190,7 @@ const EventCard = ({ event, accentColor, index, bgImage, sectionVisible }) => {
     const floatIndex = index % 5;
     const floatDuration = 3.8 + floatIndex * 0.6;
     const floatDelay = floatIndex * 0.5;
-    const entranceDelay = sectionVisible ? 0.38 + index * 0.1 : 0;
+    const entranceDelay = sectionVisible ? 0.2 + index * 0.1 : 0;
 
     useEffect(() => {
         const el = ref.current;
@@ -288,7 +287,7 @@ const EventCard = ({ event, accentColor, index, bgImage, sectionVisible }) => {
 /* ── SocietyRow ── */
 const SocietyRow = ({ s, idx }) => {
     const isRight = s.align === 'right';
-    const [wrapRef, visible] = useInView({ threshold: 0.1, rootMargin: '-100px 0px' });
+    const [wrapRef, visible] = useInView({ threshold: 0.02, rootMargin: '-20px 0px' });
 
     const identityAnim = isRight ? 'slideRight' : 'slideLeft';
     const eventsAnim = isRight ? 'slideLeft' : 'slideRight';
@@ -373,7 +372,7 @@ const SocietyRow = ({ s, idx }) => {
 
 /* ── Main Section ── */
 const Societies = () => {
-    const [headerRef, headerVisible] = useInView({ threshold: 0.1, rootMargin: '-50px 0px' });
+    const [headerRef, headerVisible] = useInView({ threshold: 0.05, rootMargin: '-20px 0px' });
 
     return (
         <section
