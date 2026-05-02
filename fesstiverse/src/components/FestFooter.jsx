@@ -232,12 +232,9 @@ const FestFooter = ({ onAdminClick }) => {
 
             {/* Brand Block */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                <img src="/college_logo.webp" alt="GEC Samastipur Logo" style={{ height: '32px', width: 'auto' }} />
-                <h2 className="min-brand-name" style={{ margin: 0 }}>FESTIVERSE '26</h2>
-              </div>
+              <h2 className="min-brand-name">FESTIVERSE '26</h2>
               <p className="min-brand-desc">
-                Where culture, tech & music collide. The official Arts & Cultural Club of Government Engineering College, Samastipur.
+                Where culture, tech & music collide. The annual fest of Government Engineering College, Samastipur.
               </p>
 
               {/* Newsletter */}
