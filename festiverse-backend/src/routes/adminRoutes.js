@@ -7,12 +7,13 @@ const supabase = require('../config/supabaseClient');
 const { verifyToken, verifyAdmin } = require('../middlewares/authMiddleware');
 const { sendResultEmail } = require('../config/emailClient');
 const { rateLimit } = require('../middlewares/rateLimit');
-const { validateIdParam, enforceMaxLength } = require('../middlewares/sanitize');
+const { validateIdParam, enforceMaxLength, isValidUUID } = require('../middlewares/sanitize');
+const { config } = require('../config/env');
 const logger = require('../config/logger');
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET; // Required — validated at startup
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD; // Required — validated at startup
+const JWT_SECRET = config.jwt.secret;       // Validated at startup via env.js
+const ADMIN_PASSWORD = config.admin.password; // Validated at startup via env.js
 
 // Rate limiter for admin login
 const adminLoginLimiter = rateLimit({ windowMs: 60000, max: 5, message: 'Too many admin login attempts. Please wait 1 minute.' });
@@ -57,8 +58,8 @@ router.post('/login', adminLoginLimiter, async (req, res) => {
             logger.info('Admin login successful', { ip: clientIp });
             res.cookie('festiverse_admin_token', token, {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                secure: config.isProduction,
+                sameSite: config.isProduction ? 'none' : 'lax',
                 path: '/',
                 maxAge: 4 * 60 * 60 * 1000 // 4 hours
             });
@@ -1076,8 +1077,11 @@ router.post('/checkin', verifyToken, verifyAdmin, async (req, res) => {
 router.post('/results', verifyToken, verifyAdmin, async (req, res) => {
     try {
         const { event_id, position, participant_name, participant_college, participant_email, score } = req.body;
-        if (!event_id || !position || !participant_name) {
-            return res.status(400).json({ success: false, message: 'Event, position, and participant name are required.' });
+        if (!event_id || !isValidUUID(event_id)) {
+            return res.status(400).json({ success: false, message: 'A valid event ID is required.' });
+        }
+        if (!position || !participant_name) {
+            return res.status(400).json({ success: false, message: 'Position and participant name are required.' });
         }
         const { data, error } = await supabase
             .from('results')
@@ -1103,13 +1107,30 @@ router.post('/results', verifyToken, verifyAdmin, async (req, res) => {
             // If no user_id or email, try to find registered user
             if (!matchedUserId || !targetEmail) {
                 // Query users who are registered for this event
-                const { data: match } = await supabase
+                const { data: matchByEmail } = await supabase
                     .from('users')
                     .select('id, name, email, event_registrations!inner(event_id)')
                     .eq('event_registrations.event_id', event_id)
-                    .or(`email.ilike.${participant_name},name.ilike.${participant_name}`)
+                    .ilike('email', participant_name)
                     .limit(1)
-                    .single();
+                    .maybeSingle();
+
+                const match = matchByEmail || null;
+                if (!match) {
+                    // Try matching by name
+                    const { data: matchByName } = await supabase
+                        .from('users')
+                        .select('id, name, email, event_registrations!inner(event_id)')
+                        .eq('event_registrations.event_id', event_id)
+                        .ilike('name', participant_name)
+                        .limit(1)
+                        .maybeSingle();
+                    if (matchByName) {
+                        if (!matchedUserId) matchedUserId = matchByName.id;
+                        if (!targetEmail) targetEmail = matchByName.email;
+                        if (!targetName) targetName = matchByName.name || participant_name;
+                    }
+                }
 
                 if (match) {
                     if (!matchedUserId) matchedUserId = match.id;
@@ -1131,10 +1152,10 @@ router.post('/results', verifyToken, verifyAdmin, async (req, res) => {
                     certificateUrl: `${process.env.FRONTEND_URL || 'https://www.udaangecsamastipur.in'}/certificates`
                 };
                 sendResultEmail(targetEmail, targetName, resultDetails)
-                    .catch(e => console.error('RESULT EMAIL ERR:', e.message));
+                    .catch(e => logger.error('RESULT EMAIL ERR', { message: e.message }));
             }
         } catch (emailErr) {
-            console.error('Failed to look up user for result email:', emailErr.message);
+            logger.error('Failed to look up user for result email', { message: emailErr.message });
         }
 
         res.status(201).json({ success: true, result: data });
@@ -1186,7 +1207,7 @@ router.delete('/results/:id', verifyToken, verifyAdmin, validateIdParam, async (
 router.get('/sponsors', verifyToken, verifyAdmin, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 50;
+        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const from = (page - 1) * limit;
         const to = from + limit - 1;
 
@@ -1296,7 +1317,7 @@ router.delete('/sponsors/:id', verifyToken, verifyAdmin, validateIdParam, async 
 router.get('/hiring', verifyToken, verifyAdmin, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 50;
+        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const from = (page - 1) * limit;
         const to = from + limit - 1;
 
@@ -1334,8 +1355,8 @@ router.delete('/hiring/:id', verifyToken, verifyAdmin, validateIdParam, async (r
 router.post('/logout', (req, res) => {
     res.clearCookie('festiverse_admin_token', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: config.isProduction,
+        sameSite: config.isProduction ? 'none' : 'lax',
         path: '/'
     });
     res.json({ success: true, message: 'Admin logged out.' });

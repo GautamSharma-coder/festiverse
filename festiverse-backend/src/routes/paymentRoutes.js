@@ -83,8 +83,8 @@ router.post('/create-order', paymentLimiter, async (req, res) => {
 
         // Save user data for webhook processing (Using DB instead of files)
         if (userData) {
-            // SECURITY: Hash the password BEFORE storing it in the pending table
-            const salt = await bcrypt.genSalt(10);
+            // SECURITY: Hash the password BEFORE storing it in the pending table (12 rounds — OWASP minimum)
+            const salt = await bcrypt.genSalt(12);
             const password_hash = await bcrypt.hash(userData.password, salt);
             
             // Remove plain-text password from the object
@@ -112,7 +112,7 @@ router.post('/create-order', paymentLimiter, async (req, res) => {
             keyId: process.env.RAZORPAY_KEY_ID
         });
     } catch (err) {
-        logger.error('RAZORPAY ORDER ERROR', { message: err.message, stack: err.stack });
+        logger.error('RAZORPAY ORDER ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Server error while creating payment order.' });
     }
 });
@@ -184,14 +184,30 @@ router.post('/webhook', async (req, res) => {
                     return res.json({ status: 'rejected' });
                 }
 
-                // 2. Complete Registration
                 // Check if user already exists (Verify both Email and Phone)
-                const { data: existingUser } = await supabase
+                const { data: byEmail } = await supabase
                     .from('users')
                     .select('id')
-                    .or(`email.eq.${userData.email.toLowerCase()},phone.eq.${userData.phone}`)
+                    .eq('email', userData.email.toLowerCase())
                     .limit(1)
                     .maybeSingle();
+
+                const existingUser = byEmail || null;
+                if (!existingUser) {
+                    const { data: byPhone } = await supabase
+                        .from('users')
+                        .select('id')
+                        .eq('phone', userData.phone)
+                        .limit(1)
+                        .maybeSingle();
+                    if (byPhone) {
+                        // Phone already registered — just mark as paid
+                        await supabase.from('users').update({ has_paid: true }).eq('id', byPhone.id);
+                        logger.info(`✅ User ${userData.email} already registered (by phone), marked as paid.`);
+                        await supabase.from('pending_registrations').update({ status: 'paid' }).eq('order_id', orderId);
+                        return res.json({ status: 'ok' });
+                    }
+                }
 
                 if (!existingUser) {
                     // Use userService.createUser to ensure consistency (Festiverse ID, T-shirt size, etc.)

@@ -6,10 +6,11 @@ const supabase = require('../config/supabaseClient');
 const { sendOTPEmail, sendConfirmationEmail } = require('../config/emailClient');
 const { rateLimit } = require('../middlewares/rateLimit');
 const { isValidEmail, isValidPhone, enforceMaxLength, isGmailOnly } = require('../middlewares/sanitize');
+const { config } = require('../config/env');
 const logger = require('../config/logger');
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET; // Required — validated at startup
+const JWT_SECRET = config.jwt.secret; // Validated at startup via env.js
 
 // Rate limiters
 const otpLimiter = rateLimit({ windowMs: 60000, max: 3, message: 'Too many OTP requests. Please wait 1 minute.' });
@@ -28,7 +29,7 @@ function generateFestiverseId(fullName) {
     const parts = fullName.trim().split(/\s+/);
     const firstInitial = (parts[0]?.[0] || 'X').toUpperCase();
     const lastInitial = (parts.length > 1 ? parts[parts.length - 1][0] : 'X').toUpperCase();
-    const randomNum = Math.floor(1000 + Math.random() * 9000); // 1000-9999
+    const randomNum = crypto.randomInt(1000, 9999);
     return `F26${firstInitial}${lastInitial}${randomNum}`;
 }
 
@@ -62,8 +63,8 @@ router.post('/register', registerLimiter, async (req, res) => {
         // Set JWT as httpOnly cookie (matching legacy behavior)
         res.cookie('festiverse_token', result.token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            secure: config.isProduction,
+            sameSite: config.isProduction ? 'none' : 'lax',
             path: '/',
             maxAge: 24 * 60 * 60 * 1000,
         });
@@ -123,8 +124,8 @@ router.post('/login', loginLimiter, async (req, res) => {
         // Set JWT as httpOnly cookie
         res.cookie('festiverse_token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            secure: config.isProduction,
+            sameSite: config.isProduction ? 'none' : 'lax',
             path: '/',
             maxAge: 24 * 60 * 60 * 1000, // 24 hours
         });
@@ -135,7 +136,7 @@ router.post('/login', loginLimiter, async (req, res) => {
             user: { id: user.id, name: user.name, email: user.email, phone: user.phone, festiverse_id: user.festiverse_id },
         });
     } catch (err) {
-        logger.error('LOGIN ERROR', { message: err.message, stack: err.stack });
+        logger.error('LOGIN ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Server error. Please try again.' });
     }
 });
@@ -290,7 +291,7 @@ router.put('/profile', verifyToken, avatarUpload.single('avatar'), async (req, r
 
         res.json({ success: true, message: 'Profile updated!', user: updated });
     } catch (err) {
-        logger.error('PROFILE UPDATE ERROR', { message: err.message, stack: err.stack });
+        logger.error('PROFILE UPDATE ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to update profile.' });
     }
 });
@@ -302,8 +303,8 @@ router.put('/profile', verifyToken, avatarUpload.single('avatar'), async (req, r
 router.post('/logout', (req, res) => {
     res.clearCookie('festiverse_token', {
         path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: config.isProduction,
+        sameSite: config.isProduction ? 'none' : 'lax',
     });
     res.json({ success: true, message: 'Logged out successfully.' });
 });

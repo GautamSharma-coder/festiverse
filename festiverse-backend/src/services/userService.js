@@ -7,6 +7,7 @@
  */
 const supabase = require('../config/supabaseClient');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const AppError = require('../utils/AppError');
 const logger = require('../config/logger');
 const { isGmailOnly } = require('../middlewares/sanitize');
@@ -15,12 +16,13 @@ const { isGmailOnly } = require('../middlewares/sanitize');
  * Generate a unique Festiverse ID.
  * Format: F26 + first letter of first name + first letter of last name + 4-digit random
  * Example: "Gautam Sharma" → F26GS4821
+ * SECURITY: Uses crypto.randomInt() for unpredictable ID generation.
  */
 function generateFestiverseId(fullName) {
     const parts = fullName.trim().split(/\s+/);
     const firstInitial = (parts[0]?.[0] || 'X').toUpperCase();
     const lastInitial = (parts.length > 1 ? parts[parts.length - 1][0] : 'X').toUpperCase();
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const randomNum = crypto.randomInt(1000, 9999);
     return `F26${firstInitial}${lastInitial}${randomNum}`;
 }
 
@@ -69,22 +71,43 @@ async function findById(id) {
 /**
  * Check if a user already exists by email OR phone OR razorpay_order_id.
  * Returns the existing user or null.
+ * SECURITY: Uses separate queries instead of string interpolation to prevent
+ * PostgREST filter injection.
  */
 async function findExisting(email, phone, razorpayOrderId = null) {
-    let query = `email.eq.${email.toLowerCase()},phone.eq.${phone}`;
-    if (razorpayOrderId) {
-        query += `,razorpay_order_id.eq.${razorpayOrderId}`;
-    }
-
-    const { data, error } = await supabase
+    // Check email
+    const { data: byEmail, error: e1 } = await supabase
         .from('users')
         .select('id, email, phone, razorpay_order_id')
-        .or(query)
+        .eq('email', email.toLowerCase())
         .limit(1)
         .maybeSingle();
+    if (e1) throw e1;
+    if (byEmail) return byEmail;
 
-    if (error) throw error;
-    return data || null;
+    // Check phone
+    const { data: byPhone, error: e2 } = await supabase
+        .from('users')
+        .select('id, email, phone, razorpay_order_id')
+        .eq('phone', phone)
+        .limit(1)
+        .maybeSingle();
+    if (e2) throw e2;
+    if (byPhone) return byPhone;
+
+    // Check razorpay_order_id if provided
+    if (razorpayOrderId) {
+        const { data: byOrder, error: e3 } = await supabase
+            .from('users')
+            .select('id, email, phone, razorpay_order_id')
+            .eq('razorpay_order_id', razorpayOrderId)
+            .limit(1)
+            .maybeSingle();
+        if (e3) throw e3;
+        if (byOrder) return byOrder;
+    }
+
+    return null;
 }
 
 

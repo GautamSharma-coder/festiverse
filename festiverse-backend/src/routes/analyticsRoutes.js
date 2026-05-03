@@ -1,15 +1,19 @@
 const express = require('express');
 const crypto = require('crypto');
 const supabase = require('../config/supabaseClient');
+const { rateLimit } = require('../middlewares/rateLimit');
 const logger = require('../config/logger');
 
 const router = express.Router();
+
+// Rate limiter for analytics endpoints (prevent inflation attacks)
+const analyticsLimiter = rateLimit({ windowMs: 60000, max: 5, message: 'Too many analytics requests.' });
 
 // ───────────────────────────────────────────────────
 // POST /api/analytics/visit
 // Record a unique visit (deduplicated per 24 hours)
 // ───────────────────────────────────────────────────
-router.post('/visit', async (req, res) => {
+router.post('/visit', analyticsLimiter, async (req, res) => {
     try {
         const clientId = req.body.clientId;
         const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;

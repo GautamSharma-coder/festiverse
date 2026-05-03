@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const { config } = require('../config/env');
 
-const JWT_SECRET = process.env.JWT_SECRET; // Required — validated at startup
+const JWT_SECRET = config.jwt.secret; // Validated at startup via env.js
 
 /**
  * Middleware to verify JWT tokens.

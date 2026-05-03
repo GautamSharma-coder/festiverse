@@ -1,5 +1,6 @@
 const express = require('express');
 const supabase = require('../config/supabaseClient');
+const logger = require('../config/logger');
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.get('/', async (req, res) => {
         res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
         res.json({ success: true, faculty: data });
     } catch (err) {
-        console.error('FACULTY FETCH ERROR:', err);
+        logger.error('FACULTY FETCH ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to fetch faculty members.' });
     }
 });

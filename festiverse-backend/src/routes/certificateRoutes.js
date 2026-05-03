@@ -1,9 +1,14 @@
 const express = require('express');
 const supabase = require('../config/supabaseClient');
 const { generateCertificate } = require('../utils/pdfGenerator');
+const { isValidUUID } = require('../middlewares/sanitize');
+const { rateLimit } = require('../middlewares/rateLimit');
 const logger = require('../config/logger');
 
 const router = express.Router();
+
+// Rate limiter for certificate downloads (PDF generation is CPU-intensive)
+const certLimiter = rateLimit({ windowMs: 60000, max: 5, message: 'Too many certificate requests. Please wait a moment.' });
 
 /**
  * GET /api/certificates/check/:festId
@@ -83,7 +88,7 @@ router.get('/check/:festId', async (req, res) => {
  * GET /api/certificates/download/:festId
  * Downloads a certificate for a user (Festiverse ID)
  */
-router.get('/download/:festId', async (req, res) => {
+router.get('/download/:festId', certLimiter, async (req, res) => {
     try {
         const { festId } = req.params;
         const { event_id } = req.query;
@@ -91,6 +96,11 @@ router.get('/download/:festId', async (req, res) => {
         // SECURITY: Validate Festiverse ID format
         if (!festId || !/^F26[A-Z]{2}\d{4}$/.test(festId.toUpperCase())) {
             return res.status(400).json({ success: false, message: 'Invalid Festiverse ID format.' });
+        }
+
+        // SECURITY: Validate event_id query param if provided
+        if (event_id && !isValidUUID(event_id)) {
+            return res.status(400).json({ success: false, message: 'Invalid event ID format.' });
         }
 
         // 1. Fetch User

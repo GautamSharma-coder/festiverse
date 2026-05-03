@@ -36,7 +36,8 @@ function assertGmail(email) {
  */
 async function sendOTP(email) {
     assertGmail(email);
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // SECURITY: Use crypto.randomInt() for cryptographically secure OTP generation
+    const otp = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
     // Hash OTP before storing
@@ -71,7 +72,8 @@ async function sendOTP(email) {
  */
 async function sendResetOTP(email) {
     assertGmail(email);
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // SECURITY: Use crypto.randomInt() for cryptographically secure OTP generation
+    const otp = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
     const otpHash = await bcrypt.hash(otp, 10);

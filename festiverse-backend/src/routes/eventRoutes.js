@@ -1,13 +1,17 @@
 const express = require('express');
+const crypto = require('crypto');
 const QRCode = require('qrcode');
 const supabase = require('../config/supabaseClient');
 const { verifyToken } = require('../middlewares/authMiddleware');
-const { validateIdParam } = require('../middlewares/sanitize');
+const { validateIdParam, isValidUUID, enforceMaxLength } = require('../middlewares/sanitize');
 const { sendEventRegistrationEmail, sendTeamInviteEmail } = require('../config/emailClient');
-const { enforceMaxLength } = require('../middlewares/sanitize');
+const { rateLimit } = require('../middlewares/rateLimit');
 const logger = require('../config/logger');
 
 const router = express.Router();
+
+// Rate limiter for event registration (prevent spam with compromised tokens)
+const eventRegLimiter = rateLimit({ windowMs: 60000, max: 10, message: 'Too many event registration attempts. Please wait a moment.' });
 
 /**
  * GET /api/events
@@ -67,7 +71,7 @@ router.get('/lookup-member/:festiverseId', verifyToken, async (req, res) => {
             },
         });
     } catch (err) {
-        console.error('MEMBER LOOKUP ERROR:', err);
+        logger.error('MEMBER LOOKUP ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Failed to look up member.' });
     }
 });
@@ -78,7 +82,7 @@ router.get('/lookup-member/:festiverseId', verifyToken, async (req, res) => {
  * Body: { registrations: [{ eventId, teamMembers?: [{name, phone}] }] }
  * OR legacy: { eventIds: [id1, id2] }
  */
-router.post('/register', verifyToken, async (req, res) => {
+router.post('/register', verifyToken, eventRegLimiter, async (req, res) => {
     try {
         const userId = req.user.id;
 
@@ -98,12 +102,25 @@ router.post('/register', verifyToken, async (req, res) => {
 
 
         if (req.body.registrations) {
+            // SECURITY: Limit the number of simultaneous event registrations
+            if (!Array.isArray(req.body.registrations) || req.body.registrations.length > 20) {
+                return res.status(400).json({ success: false, message: 'You can register for a maximum of 20 events at once.' });
+            }
+
             // New format: registrations with optional team members
-            regs = req.body.registrations.map((r) => ({
-                user_id: userId,
-                event_id: r.eventId,
-                team_members: r.teamMembers || [],
-            }));
+            regs = req.body.registrations.map((r) => {
+                // SECURITY: Validate each eventId is a valid UUID
+                if (!r.eventId || !isValidUUID(r.eventId)) {
+                    throw new Error('INVALID_EVENT_ID');
+                }
+                // SECURITY: Cap team members per event
+                const members = Array.isArray(r.teamMembers) ? r.teamMembers.slice(0, 10) : [];
+                return {
+                    user_id: userId,
+                    event_id: r.eventId,
+                    team_members: members,
+                };
+            });
 
             // Resolve any team members specified by festiverse_id
             for (const reg of regs) {
@@ -164,7 +181,7 @@ router.post('/register', verifyToken, async (req, res) => {
             const evName = eventMap[r.event_id]?.name || 'Event';
             const firstLetter = evName.trim().charAt(0).toUpperCase();
             const cleanLetter = firstLetter.match(/[A-Z]/) ? firstLetter : 'E';
-            const randomNum = Math.floor(1000 + Math.random() * 9000); // 1000-9999
+            const randomNum = crypto.randomInt(1000, 9999);
             return {
                 ...r,
                 custom_id: `F26${cleanLetter}${randomNum}`
@@ -224,6 +241,9 @@ router.post('/register', verifyToken, async (req, res) => {
             }
         });
     } catch (err) {
+        if (err.message === 'INVALID_EVENT_ID') {
+            return res.status(400).json({ success: false, message: 'One or more event IDs are invalid.' });
+        }
         logger.error('EVENT REGISTRATION ERROR', { message: err.message });
         res.status(500).json({ success: false, message: 'Registration failed. Please try again.' });
     }

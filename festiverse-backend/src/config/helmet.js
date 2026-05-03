@@ -22,6 +22,17 @@ const helmetOptions = {
     crossOriginEmbedderPolicy: false, // Allow cross-origin resources (Supabase images)
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }, // Allow Razorpay popup
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    // SECURITY: Restrict browser features that this site does not use
+    permissionsPolicy: {
+        features: {
+            camera: ["'none'"],
+            microphone: ["'none'"],
+            geolocation: ["'none'"],
+            gyroscope: ["'none'"],
+            magnetometer: ["'none'"],
+            usb: ["'none'"],
+        },
+    },
     hsts: config.isProduction
         ? { maxAge: 31536000, includeSubDomains: true, preload: true }
         : false,
