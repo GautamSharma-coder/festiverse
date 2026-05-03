@@ -26,7 +26,7 @@ const ContactPage = () => {
   const contactInfo = [
     { icon: 'solar:letter-linear', label: 'Email Us', value: 'contact@udaangecsamastipur.in', href: 'mailto:contact@udaangecsamastipur.in' },
     { icon: 'solar:map-point-linear', label: 'Visit Us', value: 'GEC Samastipur, Bihar, India', href: 'https://maps.app.goo.gl/YourMapLink' },
-    { icon: 'solar:phone-linear', label: 'Call Us', value: '+91 77393 26979', href: 'tel:+91 7739326979' },
+    { icon: 'solar:phone-linear', label: 'Call Us', value: '+91 94308 07084', href: 'tel:+919430807084' },
   ];
 
   const socialLinks = [
