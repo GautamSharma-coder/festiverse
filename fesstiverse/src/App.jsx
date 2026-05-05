@@ -26,7 +26,7 @@ import InterCollegeRegistration from './components/InterCollegeRegistration';
 
 // ─── LAZY LOADED: Only fetched when navigated to ───
 const RegistrationPage = lazy(() => import('./components/RegistrationPage'));
-const AdminPanel = lazy(() => import('./components/AdminPanel'));
+//const AdminPanel = lazy(() => import('./components/AdminPanel'));
 const UserDashboard = lazy(() => import('./components/UserDashboard'));
 const AboutPage = lazy(() => import('./components/AboutPage'));
 const EventDetails = lazy(() => import('./components/EventDetails'));
@@ -251,10 +251,12 @@ function App() {
             )
           }
         />
+         {/* Login Modal 
         <Route
           path="/admin"
           element={<AdminPanel onClose={() => navigate('/')} />}
         />
+        */}
         <Route
           path="/about"
           element={<AboutPage onClose={() => navigate('/')} />}
