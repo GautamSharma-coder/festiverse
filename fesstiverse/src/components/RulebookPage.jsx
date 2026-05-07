@@ -65,9 +65,37 @@ const CSS = `
     color: #71717a;
     font-size: 1.1rem;
     max-width: 600px;
-    margin: 0 auto 32px;
+    margin: 0 auto 24px;
     line-height: 1.6;
   }
+  
+  /* ── Download Action ── */
+  .rb-hero-actions {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 40px;
+  }
+  .rb-download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: #fff;
+    border-radius: 100px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+  }
+  .rb-download-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+    color: #fff;
+  }
+
   .rb-stats-row {
     display: flex;
     justify-content: center;
@@ -410,9 +438,23 @@ const RulebookPage = () => {
           Event <span>Rulebook</span>
         </h1>
         <p className="rb-hero-sub">
-          Complete rules, guidelines, and prize details for every event at Festiverse '26. 
+          Complete rules, guidelines, and prize details for every event at Festiverse '26.
           Know the rules before you compete.
         </p>
+
+        {/* ── PDF Download Button ── */}
+        <div className="rb-hero-actions">
+          <a
+            href="https://drive.google.com/file/d/1YhvluuhMz13PN65wUztBnJZzPQ9AFkvF/view?usp=sharings"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rb-download-btn"
+          >
+            <iconify-icon icon="solar:file-download-bold-duotone" width="20"></iconify-icon>
+            Download Full PDF
+          </a>
+        </div>
+
         <div className="rb-stats-row">
           <div className="rb-stat-box">
             <span className="rb-stat-val">{loading ? '—' : events.length}</span>
